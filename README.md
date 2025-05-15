@@ -2,6 +2,22 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Setup
+
+1. Create a `.env.local` file in the root directory of the project:
+
+```bash
+touch .env.local
+```
+
+2. Add your Repliers API key to the `.env.local` file:
+
+```
+NEXT_PUBLIC_REPLIERS_API_KEY=your_api_key_here
+```
+
+3. Restart your development server after adding the environment variable.
+
 ### Running the Next.js Development Server
 
 First, run the development server:
@@ -46,9 +62,3 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
