@@ -1,4 +1,5 @@
 import type { StorybookConfig } from "@storybook/experimental-nextjs-vite";
+import path from "path";
 
 const config: StorybookConfig = {
   stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
@@ -15,6 +16,13 @@ const config: StorybookConfig = {
   viteFinal: async (config) => {
     return {
       ...config,
+      resolve: {
+        ...config.resolve,
+        alias: {
+          ...config.resolve?.alias,
+          "@": path.resolve(__dirname, "../src"),
+        },
+      },
       optimizeDeps: {
         ...config.optimizeDeps,
         include: [

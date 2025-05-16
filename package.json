@@ -2,14 +2,15 @@
   "name": "pocs",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://Repliers-io.github.io/pocs",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "chromatic": "npx chromatic --project-token=chpt_ce0bd2bf6a68617"
+    "deploy-storybook": "storybook build && gh-pages -d storybook-static"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -47,6 +48,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
     "eslint-plugin-storybook": "^0.12.0",
+    "gh-pages": "^6.3.0",
     "playwright": "^1.52.0",
     "postcss": "^8.4.35",
     "storybook": "^8.0.0",
