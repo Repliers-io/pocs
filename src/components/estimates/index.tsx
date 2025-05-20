@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { ApiInput } from "@/components/api-input/api-input";
 
 const formSchema = z.object({
   address: z.object({
@@ -89,6 +90,7 @@ export function EstimatesForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<any>(null);
+  const [apiKey, setApiKey] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -103,7 +105,7 @@ export function EstimatesForm() {
       const response = await fetch(`https://dev.repliers.io/estimates`, {
         method: "POST",
         headers: {
-          "REPLIERS-API-KEY": process.env.NEXT_PUBLIC_REPLIERS_API_KEY || "",
+          "REPLIERS-API-KEY": apiKey,
           "Content-Type": "application/json",
           Accept: "application/json",
           "User-Agent": "PostmanRuntime/7.43.4",
@@ -131,6 +133,8 @@ export function EstimatesForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <ApiInput onApiKeyChange={setApiKey} />
+
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Address Information</h2>
           <div className="grid grid-cols-1 gap-4">
