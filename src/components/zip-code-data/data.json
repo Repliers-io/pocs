@@ -1,0 +1,5720 @@
+[
+  {
+    "address": {
+      "area": "York",
+      "city": "Richmond Hill",
+      "country": "Canada",
+      "streetName": "East Beaver Creek",
+      "streetNumber": "70",
+      "streetSuffix": "Rd",
+      "zip": "L4B 3B2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 19,
+      "listDate": "2025-05-20T12:23:17.000-00:00",
+      "originalPrice": 19,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Blue Goose",
+      "streetNumber": "1",
+      "streetSuffix": "St",
+      "zip": "M8V 2R5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 12900000,
+      "listDate": "2025-05-20T12:15:23.000-00:00",
+      "originalPrice": 12900000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Albion",
+      "streetNumber": "1530",
+      "streetSuffix": "Rd",
+      "zip": "M9V 1B4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 259000,
+      "listDate": "2025-05-20T12:14:41.000-00:00",
+      "originalPrice": 259000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Hastings",
+      "city": "Belleville",
+      "country": "Canada",
+      "streetName": "Victoria",
+      "streetNumber": "100",
+      "streetSuffix": "Ave",
+      "zip": "K8N 2A5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1500,
+      "listDate": "2025-05-20T11:56:03.000-00:00",
+      "originalPrice": 1500,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Everest",
+      "streetNumber": "5151",
+      "streetSuffix": "Dr",
+      "zip": "L4W 2Z3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1800000,
+      "listDate": "2025-05-20T11:53:26.000-00:00",
+      "originalPrice": 1800000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Hamilton",
+      "city": "Hamilton",
+      "country": "Canada",
+      "streetName": "Wilson",
+      "streetNumber": "54",
+      "streetSuffix": "St",
+      "zip": "L9G 3T8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 128800,
+      "listDate": "2025-05-20T11:42:00.000-00:00",
+      "originalPrice": 128800,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Timiskaming",
+      "city": "Kirkland Lake",
+      "country": "Canada",
+      "streetName": "Government",
+      "streetNumber": "53",
+      "streetSuffix": "Rd",
+      "zip": "P2N 2E5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 599000,
+      "listDate": "2025-05-20T11:34:20.000-00:00",
+      "originalPrice": 599000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "King",
+      "streetNumber": "1244",
+      "streetSuffix": "St",
+      "zip": "M6K 1G5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 6500,
+      "listDate": "2025-05-20T11:31:33.000-00:00",
+      "originalPrice": 6500,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Waterloo",
+      "city": "Kitchener",
+      "country": "Canada",
+      "streetName": "Kingsway",
+      "streetNumber": "2191",
+      "streetSuffix": "Dr",
+      "zip": "N2C 1A2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2200000,
+      "listDate": "2025-05-20T11:28:23.000-00:00",
+      "originalPrice": 2200000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Dundas",
+      "streetNumber": "1305",
+      "streetSuffix": "St",
+      "zip": "M6J 1X8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 25,
+      "listDate": "2025-05-20T11:23:19.000-00:00",
+      "originalPrice": 25,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Dunwin",
+      "streetNumber": "2485",
+      "streetSuffix": "Dr",
+      "zip": "L5L 1X2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 17,
+      "listDate": "2025-05-20T11:22:30.000-00:00",
+      "originalPrice": 17,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Dunwin",
+      "streetNumber": "2175",
+      "streetSuffix": "Dr",
+      "zip": "L5L 1X2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 17,
+      "listDate": "2025-05-20T11:21:39.000-00:00",
+      "originalPrice": 17,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Adelaide",
+      "streetNumber": "345",
+      "streetSuffix": "St",
+      "zip": "M5V 1R5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 40,
+      "listDate": "2025-05-20T11:17:20.000-00:00",
+      "originalPrice": 40,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Adelaide",
+      "streetNumber": "345",
+      "streetSuffix": "St",
+      "zip": "M5V 1R5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 40,
+      "listDate": "2025-05-20T11:16:45.000-00:00",
+      "originalPrice": 40,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Brampton",
+      "country": "Canada",
+      "streetName": "Finchgate",
+      "streetNumber": "40",
+      "streetSuffix": "Blvd",
+      "zip": "L6T 3J1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 18.25,
+      "listDate": "2025-05-20T11:15:45.000-00:00",
+      "originalPrice": 18.25,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Middlesex",
+      "city": "London East",
+      "country": "Canada",
+      "streetName": "First",
+      "streetNumber": "510",
+      "streetSuffix": "St",
+      "zip": "N5V 1Z3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3995000,
+      "listDate": "2025-05-20T11:14:28.000-00:00",
+      "originalPrice": 3995000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Halton",
+      "city": "Oakville",
+      "country": "Canada",
+      "streetName": "Dorval",
+      "streetNumber": "690",
+      "streetSuffix": "Dr",
+      "zip": "L6K 3W7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1250,
+      "listDate": "2025-05-20T11:12:40.000-00:00",
+      "originalPrice": 1250,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Augusta",
+      "streetNumber": "319",
+      "streetSuffix": "Ave",
+      "zip": "M5T 2M2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 299000,
+      "listDate": "2025-05-20T11:11:07.000-00:00",
+      "originalPrice": 299000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Waterloo",
+      "city": "Kitchener",
+      "country": null,
+      "streetName": "King",
+      "streetNumber": "4391",
+      "streetSuffix": "St",
+      "zip": "N2T 0A8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 155000,
+      "listDate": "2025-05-20T10:48:29.000-00:00",
+      "originalPrice": 155000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Kingston",
+      "streetNumber": "1443",
+      "streetSuffix": "Rd",
+      "zip": "M1N 1R4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2000,
+      "listDate": "2025-05-20T10:45:38.000-00:00",
+      "originalPrice": 2000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Tiffield",
+      "streetNumber": "200",
+      "streetSuffix": "Rd",
+      "zip": "M1V 5J1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1245000,
+      "listDate": "2025-05-20T10:28:36.000-00:00",
+      "originalPrice": 1245000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Mid-Dominion",
+      "streetNumber": "30",
+      "streetSuffix": "Acre",
+      "zip": "M1S 4A5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 15,
+      "listDate": "2025-05-20T10:19:33.000-00:00",
+      "originalPrice": 15,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Vaughan",
+      "country": null,
+      "streetName": "Weston",
+      "streetNumber": "7777",
+      "streetSuffix": "Rd",
+      "zip": "L4L 0G9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 988900,
+      "listDate": "2025-05-20T10:10:43.000-00:00",
+      "originalPrice": 988900,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Richmond Hill",
+      "country": "Canada",
+      "streetName": "Newkirk",
+      "streetNumber": "120",
+      "streetSuffix": "Rd",
+      "zip": "L4C 9S7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2500,
+      "listDate": "2025-05-20T09:54:03.000-00:00",
+      "originalPrice": 2500,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Chatham-Kent",
+      "city": "Chatham-Kent",
+      "country": null,
+      "streetName": "Merritt",
+      "streetNumber": "450",
+      "streetSuffix": "Ave",
+      "zip": "N7M 0W2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 8.95,
+      "listDate": "2025-05-20T09:40:17.000-00:00",
+      "originalPrice": 8.95,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Richmond Hill",
+      "country": "Canada",
+      "streetName": "Newkirk",
+      "streetNumber": "120",
+      "streetSuffix": "Rd",
+      "zip": "L4C 9S7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 450000,
+      "listDate": "2025-05-20T09:20:06.000-00:00",
+      "originalPrice": 450000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Markham",
+      "country": "Canada",
+      "streetName": "Alden",
+      "streetNumber": "400",
+      "streetSuffix": "Rd",
+      "zip": "L3R 4C1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2016.38,
+      "listDate": "2025-05-20T09:13:31.000-00:00",
+      "originalPrice": 2016.38,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Markham",
+      "country": "Canada",
+      "streetName": "Royal Crest",
+      "streetNumber": "30",
+      "streetSuffix": "Crt",
+      "zip": "L3R 9W8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2204,
+      "listDate": "2025-05-20T09:13:12.000-00:00",
+      "originalPrice": 2204,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Frontenac",
+      "city": "Kingston",
+      "country": "Canada",
+      "streetName": "Gardiners",
+      "streetNumber": "775",
+      "streetSuffix": "Rd",
+      "zip": "K7M 7H8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 39900,
+      "listDate": "2025-05-20T09:11:00.000-00:00",
+      "originalPrice": 39900,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Renfrew",
+      "city": "Arnprior",
+      "country": "Canada",
+      "streetName": "McGonigal",
+      "streetNumber": "71",
+      "streetSuffix": "St",
+      "zip": "K7S 1M2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 698800,
+      "listDate": "2025-05-20T09:04:03.000-00:00",
+      "originalPrice": 698800,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Hurontario",
+      "streetNumber": "3660",
+      "streetSuffix": "St",
+      "zip": "L5B 3C4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 725,
+      "listDate": "2025-05-20T09:00:51.000-00:00",
+      "originalPrice": 725,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Northumberland",
+      "city": "Alnwick/Haldimand",
+      "country": "Canada",
+      "streetName": "Eddystone",
+      "streetNumber": "436",
+      "streetSuffix": "Rd",
+      "zip": "K0K 2G0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2550000,
+      "listDate": "2025-05-20T08:46:10.000-00:00",
+      "originalPrice": 2550000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Halton",
+      "city": "Oakville",
+      "country": "Canada",
+      "streetName": "Dundas",
+      "streetNumber": "478",
+      "streetSuffix": "St",
+      "zip": "L6H 6Y3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 199900,
+      "listDate": "2025-05-20T01:19:59.000-00:00",
+      "originalPrice": 199900,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Avenue",
+      "streetNumber": "188",
+      "streetSuffix": "Rd",
+      "zip": "M5R 2J1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1800000,
+      "listDate": "2025-05-20T00:18:46.000-00:00",
+      "originalPrice": 1800000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Simcoe",
+      "city": "Clearview",
+      "country": "Canada",
+      "streetName": "Hwy 26",
+      "streetNumber": "7348",
+      "streetSuffix": "Highway",
+      "zip": "L0M 1S0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2588800,
+      "listDate": "2025-05-20T00:07:59.000-00:00",
+      "originalPrice": 2588800,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Waterloo",
+      "city": "Woolwich",
+      "country": "Canada",
+      "streetName": "Snow Goose",
+      "streetNumber": "51",
+      "streetSuffix": "Cres",
+      "zip": "N3B 3M4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 850000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 850000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 968288.7288424798,
+      "low": 758838.2711575202,
+      "value": 863563.5,
+      "date": "2025-05-20T04:38:57.540Z",
+      "confidence": 0.121271022736,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 863563.5
+          },
+          "2025-04": {
+            "value": 856265.8125
+          },
+          "2025-03": {
+            "value": 853494.8125
+          },
+          "2025-02": {
+            "value": 853172.6875
+          },
+          "2025-01": {
+            "value": 848277.5
+          },
+          "2024-12": {
+            "value": 850581.1875
+          },
+          "2024-11": {
+            "value": 848612.875
+          },
+          "2024-10": {
+            "value": 850374.1875
+          },
+          "2024-09": {
+            "value": 850581
+          },
+          "2024-08": {
+            "value": 851873.625
+          },
+          "2024-07": {
+            "value": 853285.3125
+          },
+          "2024-06": {
+            "value": 854311.6875
+          },
+          "2024-05": {
+            "value": 856690.125
+          },
+          "2024-04": {
+            "value": 860082.375
+          },
+          "2024-03": {
+            "value": 861359.125
+          },
+          "2024-02": {
+            "value": 861268.5
+          },
+          "2024-01": {
+            "value": 857385.875
+          },
+          "2023-12": {
+            "value": 842634
+          },
+          "2023-11": {
+            "value": 841542.875
+          },
+          "2023-10": {
+            "value": 837416.3125
+          },
+          "2023-09": {
+            "value": 836707.125
+          },
+          "2023-08": {
+            "value": 836452.125
+          },
+          "2023-07": {
+            "value": 835859.0625
+          },
+          "2023-06": {
+            "value": 835835.5
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "East Gwillimbury",
+      "country": "Canada",
+      "streetName": "Dog Wood",
+      "streetNumber": "95",
+      "streetSuffix": "Blvd",
+      "zip": "L9N 1G5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1199000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1199000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1282227.4560115903,
+      "low": 1099577.2939884097,
+      "value": 1190902.375,
+      "date": "2025-05-20T04:38:52.748Z",
+      "confidence": 0.076685614983,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1190902.375
+          },
+          "2025-04": {
+            "value": 1185804.875
+          },
+          "2025-03": {
+            "value": 1178217.25
+          },
+          "2025-02": {
+            "value": 1177835.125
+          },
+          "2025-01": {
+            "value": 1173802.25
+          },
+          "2024-12": {
+            "value": 1192010
+          },
+          "2024-11": {
+            "value": 1179385.625
+          },
+          "2024-10": {
+            "value": 1179289.75
+          },
+          "2024-09": {
+            "value": 1177826.25
+          },
+          "2024-08": {
+            "value": 1177907.75
+          },
+          "2024-07": {
+            "value": 1178897.375
+          },
+          "2024-06": {
+            "value": 1181578
+          },
+          "2024-05": {
+            "value": 1192222.75
+          },
+          "2024-04": {
+            "value": 1200776.25
+          },
+          "2024-03": {
+            "value": 1205369.25
+          },
+          "2024-02": {
+            "value": 1205068.875
+          },
+          "2024-01": {
+            "value": 1196556
+          },
+          "2023-12": {
+            "value": 1172990.375
+          },
+          "2023-11": {
+            "value": 1168689.375
+          },
+          "2023-10": {
+            "value": 1156635
+          },
+          "2023-09": {
+            "value": 1155785.25
+          },
+          "2023-08": {
+            "value": 1154912.375
+          },
+          "2023-07": {
+            "value": 1152870
+          },
+          "2023-06": {
+            "value": 1151569.875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Simcoe",
+      "city": "Barrie",
+      "country": "Canada",
+      "streetName": "Prince William",
+      "streetNumber": "238",
+      "streetSuffix": "Way",
+      "zip": "L9J 0C2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 649700,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 649700,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 705221.933209113,
+      "low": 630568.066790887,
+      "value": 667895,
+      "date": "2025-05-20T10:10:32.258Z",
+      "confidence": 0.055887427229,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 667895
+          },
+          "2025-04": {
+            "value": 664049.125
+          },
+          "2025-03": {
+            "value": 661570.75
+          },
+          "2025-02": {
+            "value": 661608.375
+          },
+          "2025-01": {
+            "value": 659987.375
+          },
+          "2024-12": {
+            "value": 664464.8125
+          },
+          "2024-11": {
+            "value": 662631.25
+          },
+          "2024-10": {
+            "value": 662265.3125
+          },
+          "2024-09": {
+            "value": 661837.375
+          },
+          "2024-08": {
+            "value": 661685.8125
+          },
+          "2024-07": {
+            "value": 662162.5
+          },
+          "2024-06": {
+            "value": 663177.875
+          },
+          "2024-05": {
+            "value": 669345.125
+          },
+          "2024-04": {
+            "value": 672005.5625
+          },
+          "2024-03": {
+            "value": 672876.6875
+          },
+          "2024-02": {
+            "value": 672684.3125
+          },
+          "2024-01": {
+            "value": 667906.375
+          },
+          "2023-12": {
+            "value": 656782.75
+          },
+          "2023-11": {
+            "value": 653370.875
+          },
+          "2023-10": {
+            "value": 647255.625
+          },
+          "2023-09": {
+            "value": 646737.125
+          },
+          "2023-08": {
+            "value": 645553.875
+          },
+          "2023-07": {
+            "value": 644431.375
+          },
+          "2023-06": {
+            "value": 643117.1875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Simcoe",
+      "city": "Barrie",
+      "country": "Canada",
+      "streetName": "Silo",
+      "streetNumber": "28",
+      "streetSuffix": "Mews",
+      "zip": "L9J 0C2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 599700,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 599700,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 655916.9858477064,
+      "low": 578229.2641522936,
+      "value": 617073.125,
+      "date": "2025-05-20T10:10:14.224Z",
+      "confidence": 0.062948553865,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 617073.125
+          },
+          "2025-04": {
+            "value": 613992.5625
+          },
+          "2025-03": {
+            "value": 611737.375
+          },
+          "2025-02": {
+            "value": 611772.4375
+          },
+          "2025-01": {
+            "value": 609848.8125
+          },
+          "2024-12": {
+            "value": 613351.3125
+          },
+          "2024-11": {
+            "value": 611377.1875
+          },
+          "2024-10": {
+            "value": 611683.6875
+          },
+          "2024-09": {
+            "value": 612185
+          },
+          "2024-08": {
+            "value": 612198.0625
+          },
+          "2024-07": {
+            "value": 612814
+          },
+          "2024-06": {
+            "value": 613857.5625
+          },
+          "2024-05": {
+            "value": 619209.9375
+          },
+          "2024-04": {
+            "value": 621701.125
+          },
+          "2024-03": {
+            "value": 622469.125
+          },
+          "2024-02": {
+            "value": 622313.3125
+          },
+          "2024-01": {
+            "value": 617920.6875
+          },
+          "2023-12": {
+            "value": 608106.5
+          },
+          "2023-11": {
+            "value": 605025.625
+          },
+          "2023-10": {
+            "value": 599747.4375
+          },
+          "2023-09": {
+            "value": 599270.125
+          },
+          "2023-08": {
+            "value": 598169.625
+          },
+          "2023-07": {
+            "value": 597431.375
+          },
+          "2023-06": {
+            "value": 596231.3125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Bruce",
+      "city": "Northern Bruce Peninsula",
+      "country": "Canada",
+      "streetName": "Zorra",
+      "streetNumber": "157",
+      "streetSuffix": "Dr",
+      "zip": "N0H 2R0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 999000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 999000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1141938.8692862126,
+      "low": 848049.7557137874,
+      "value": 994994.3125,
+      "date": "2025-05-20T11:05:43.948Z",
+      "confidence": 0.147683815817,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 994994.3125
+          },
+          "2025-04": {
+            "value": 986475.1875
+          },
+          "2025-03": {
+            "value": 981496.875
+          },
+          "2025-02": {
+            "value": 979909.625
+          },
+          "2025-01": {
+            "value": 974773.5
+          },
+          "2024-12": {
+            "value": 968447.8125
+          },
+          "2024-11": {
+            "value": 970079.8125
+          },
+          "2024-10": {
+            "value": 971276.1875
+          },
+          "2024-09": {
+            "value": 967483.375
+          },
+          "2024-08": {
+            "value": 968285.3125
+          },
+          "2024-07": {
+            "value": 968791.375
+          },
+          "2024-06": {
+            "value": 970947
+          },
+          "2024-05": {
+            "value": 976460.6875
+          },
+          "2024-04": {
+            "value": 980625.5
+          },
+          "2024-03": {
+            "value": 983009.8125
+          },
+          "2024-02": {
+            "value": 982594
+          },
+          "2024-01": {
+            "value": 978699.875
+          },
+          "2023-12": {
+            "value": 956430.6875
+          },
+          "2023-11": {
+            "value": 952212.625
+          },
+          "2023-10": {
+            "value": 945297.1875
+          },
+          "2023-09": {
+            "value": 942527.5
+          },
+          "2023-08": {
+            "value": 939250.1875
+          },
+          "2023-07": {
+            "value": 937518.5
+          },
+          "2023-06": {
+            "value": 936985.8125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Niagara",
+      "city": "Thorold",
+      "country": "Canada",
+      "streetName": "CONCORD",
+      "streetNumber": "35",
+      "streetSuffix": "Dr",
+      "zip": "L2V 0K8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 649000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 649000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 698957.9719576534,
+      "low": 604402.2780423466,
+      "value": 651680.125,
+      "date": "2025-05-20T13:45:52.032Z",
+      "confidence": 0.0725476275,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 651680.125
+          },
+          "2025-04": {
+            "value": 649374.9375
+          },
+          "2025-03": {
+            "value": 646907.125
+          },
+          "2025-02": {
+            "value": 646907.125
+          },
+          "2025-01": {
+            "value": 644184.875
+          },
+          "2024-12": {
+            "value": 647021.5
+          },
+          "2024-11": {
+            "value": 644890.5625
+          },
+          "2024-10": {
+            "value": 645225.875
+          },
+          "2024-09": {
+            "value": 644860.1875
+          },
+          "2024-08": {
+            "value": 644818.8125
+          },
+          "2024-07": {
+            "value": 645275.125
+          },
+          "2024-06": {
+            "value": 646017.5625
+          },
+          "2024-05": {
+            "value": 649306.6875
+          },
+          "2024-04": {
+            "value": 652148
+          },
+          "2024-03": {
+            "value": 652865.4375
+          },
+          "2024-02": {
+            "value": 652739.125
+          },
+          "2024-01": {
+            "value": 649392.375
+          },
+          "2023-12": {
+            "value": 641855.625
+          },
+          "2023-11": {
+            "value": 639778.1875
+          },
+          "2023-10": {
+            "value": 637014.5
+          },
+          "2023-09": {
+            "value": 636590.875
+          },
+          "2023-08": {
+            "value": 635786.625
+          },
+          "2023-07": {
+            "value": 635661.9375
+          },
+          "2023-06": {
+            "value": 635465.75
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Leslie",
+      "streetNumber": "1131A",
+      "streetSuffix": "St",
+      "zip": "M3C 3L8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 0.01,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 0.01,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Markham",
+      "country": null,
+      "streetName": "YONGE",
+      "streetNumber": "7161",
+      "streetSuffix": "St",
+      "zip": "L3T 0C8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2375,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2375,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Niagara",
+      "city": "Welland",
+      "country": "Canada",
+      "streetName": "Royal Oak",
+      "streetNumber": "120",
+      "streetSuffix": "Dr",
+      "zip": "L3C 5V9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 699900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 699900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 768911.4074180935,
+      "low": 626721.5925819065,
+      "value": 697816.5,
+      "date": "2025-05-20T10:26:18.308Z",
+      "confidence": 0.101881952373,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 697816.5
+          },
+          "2025-04": {
+            "value": 695228.875
+          },
+          "2025-03": {
+            "value": 692376.625
+          },
+          "2025-02": {
+            "value": 692257.625
+          },
+          "2025-01": {
+            "value": 689225.5625
+          },
+          "2024-12": {
+            "value": 692195.6875
+          },
+          "2024-11": {
+            "value": 687431.25
+          },
+          "2024-10": {
+            "value": 685985.1875
+          },
+          "2024-09": {
+            "value": 685445
+          },
+          "2024-08": {
+            "value": 685314.0625
+          },
+          "2024-07": {
+            "value": 685818.125
+          },
+          "2024-06": {
+            "value": 686495.875
+          },
+          "2024-05": {
+            "value": 690258.125
+          },
+          "2024-04": {
+            "value": 693728.6875
+          },
+          "2024-03": {
+            "value": 694834.375
+          },
+          "2024-02": {
+            "value": 694607.0625
+          },
+          "2024-01": {
+            "value": 690985.375
+          },
+          "2023-12": {
+            "value": 677601
+          },
+          "2023-11": {
+            "value": 675092.1875
+          },
+          "2023-10": {
+            "value": 669146.75
+          },
+          "2023-09": {
+            "value": 667448.5
+          },
+          "2023-08": {
+            "value": 665692.875
+          },
+          "2023-07": {
+            "value": 664911.9375
+          },
+          "2023-06": {
+            "value": 664896.8125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Elgin",
+      "city": "Central Elgin",
+      "country": null,
+      "streetName": "Old Field",
+      "streetNumber": "134",
+      "streetSuffix": "Lane",
+      "zip": "N5L 0A9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 979000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 979000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1056761.7414068438,
+      "low": 862003.0085931564,
+      "value": 959382.375,
+      "date": "2025-05-20T11:33:51.273Z",
+      "confidence": 0.101502142362,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 959382.375
+          },
+          "2025-04": {
+            "value": 953938.125
+          },
+          "2025-03": {
+            "value": 949755.5
+          },
+          "2025-02": {
+            "value": 948960.125
+          },
+          "2025-01": {
+            "value": 944135.1875
+          },
+          "2024-12": {
+            "value": 953693.5
+          },
+          "2024-11": {
+            "value": 949902.1875
+          },
+          "2024-10": {
+            "value": 950139.3125
+          },
+          "2024-09": {
+            "value": 948950.125
+          },
+          "2024-08": {
+            "value": 949451.375
+          },
+          "2024-07": {
+            "value": 949849.5
+          },
+          "2024-06": {
+            "value": 952332.625
+          },
+          "2024-05": {
+            "value": 960313.5
+          },
+          "2024-04": {
+            "value": 966814.625
+          },
+          "2024-03": {
+            "value": 969938.6875
+          },
+          "2024-02": {
+            "value": 969853.5
+          },
+          "2024-01": {
+            "value": 964559.875
+          },
+          "2023-12": {
+            "value": 949806.375
+          },
+          "2023-11": {
+            "value": 946101.875
+          },
+          "2023-10": {
+            "value": 940776.1875
+          },
+          "2023-09": {
+            "value": 940100.625
+          },
+          "2023-08": {
+            "value": 939891
+          },
+          "2023-07": {
+            "value": 939763.5
+          },
+          "2023-06": {
+            "value": 939727.1875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": null,
+      "streetName": "Bala",
+      "streetNumber": "3495",
+      "streetSuffix": "Dr",
+      "zip": "L5M 0G5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2200,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2200,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Ottawa",
+      "city": "Ashton",
+      "country": "Canada",
+      "streetName": "Dwyer Hill",
+      "streetNumber": "1540",
+      "streetSuffix": "Rd",
+      "zip": "K0A 1B0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 359900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 359900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 453341.61294882925,
+      "low": 259105.26205117075,
+      "value": 356223.4375,
+      "date": "2025-05-20T11:21:37.023Z",
+      "confidence": 0.272632750193,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 356223.4375
+          },
+          "2025-04": {
+            "value": 353501.4375
+          },
+          "2025-03": {
+            "value": 351275.09375
+          },
+          "2025-02": {
+            "value": 350932.1875
+          },
+          "2025-01": {
+            "value": 347425
+          },
+          "2024-12": {
+            "value": 346541.15625
+          },
+          "2024-11": {
+            "value": 347480.0625
+          },
+          "2024-10": {
+            "value": 348284.21875
+          },
+          "2024-09": {
+            "value": 349511.8125
+          },
+          "2024-08": {
+            "value": 349469.9375
+          },
+          "2024-07": {
+            "value": 349624.96875
+          },
+          "2024-06": {
+            "value": 349669.0625
+          },
+          "2024-05": {
+            "value": 350538.5
+          },
+          "2024-04": {
+            "value": 350597.28125
+          },
+          "2024-03": {
+            "value": 350689.71875
+          },
+          "2024-02": {
+            "value": 350499.03125
+          },
+          "2024-01": {
+            "value": 348847.59375
+          },
+          "2023-12": {
+            "value": 344726.0625
+          },
+          "2023-11": {
+            "value": 343312.46875
+          },
+          "2023-10": {
+            "value": 340436.34375
+          },
+          "2023-09": {
+            "value": 340082.3125
+          },
+          "2023-08": {
+            "value": 339423.4375
+          },
+          "2023-07": {
+            "value": 338909.3125
+          },
+          "2023-06": {
+            "value": 337994.28125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "East Liberty",
+      "streetNumber": "135",
+      "streetSuffix": "St",
+      "zip": "M6K 0G7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 3000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Wellington",
+      "city": "Guelph",
+      "country": null,
+      "streetName": "Kay",
+      "streetNumber": "39",
+      "streetSuffix": "Cres",
+      "zip": "N1L 0N5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 649900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 649900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 728486.7101811084,
+      "low": 628621.5398188916,
+      "value": 678554.125,
+      "date": "2025-05-20T11:33:49.043Z",
+      "confidence": 0.07358673883399999,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 678554.125
+          },
+          "2025-04": {
+            "value": 672876
+          },
+          "2025-03": {
+            "value": 670707.8125
+          },
+          "2025-02": {
+            "value": 671001.5
+          },
+          "2025-01": {
+            "value": 668527.1875
+          },
+          "2024-12": {
+            "value": 663526.375
+          },
+          "2024-11": {
+            "value": 663622.25
+          },
+          "2024-10": {
+            "value": 663760.125
+          },
+          "2024-09": {
+            "value": 662658.875
+          },
+          "2024-08": {
+            "value": 662764.0625
+          },
+          "2024-07": {
+            "value": 663575.4375
+          },
+          "2024-06": {
+            "value": 665005.4375
+          },
+          "2024-05": {
+            "value": 670788.1875
+          },
+          "2024-04": {
+            "value": 673005.5625
+          },
+          "2024-03": {
+            "value": 673585.9375
+          },
+          "2024-02": {
+            "value": 673452.875
+          },
+          "2024-01": {
+            "value": 669342
+          },
+          "2023-12": {
+            "value": 658707.3125
+          },
+          "2023-11": {
+            "value": 656444.625
+          },
+          "2023-10": {
+            "value": 652686.125
+          },
+          "2023-09": {
+            "value": 652484.3125
+          },
+          "2023-08": {
+            "value": 651995.25
+          },
+          "2023-07": {
+            "value": 651195.5
+          },
+          "2023-06": {
+            "value": 650053.125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Northumberland",
+      "city": "Alnwick/Haldimand",
+      "country": null,
+      "streetName": "St Andrews",
+      "streetNumber": "109",
+      "streetSuffix": "Dr",
+      "zip": "K0K 2G0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 989000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 989000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1125683.5936996178,
+      "low": 897193.0313003823,
+      "value": 1011438.3125,
+      "date": "2025-05-20T10:53:39.814Z",
+      "confidence": 0.112953286214,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1011438.3125
+          },
+          "2025-04": {
+            "value": 1004974.1875
+          },
+          "2025-03": {
+            "value": 994287.6875
+          },
+          "2025-02": {
+            "value": 993003
+          },
+          "2025-01": {
+            "value": 988466.5
+          },
+          "2024-12": {
+            "value": 1005443.6875
+          },
+          "2024-11": {
+            "value": 993757.125
+          },
+          "2024-10": {
+            "value": 993708.8125
+          },
+          "2024-09": {
+            "value": 990322.5
+          },
+          "2024-08": {
+            "value": 990431.1875
+          },
+          "2024-07": {
+            "value": 991152.8125
+          },
+          "2024-06": {
+            "value": 993982.375
+          },
+          "2024-05": {
+            "value": 1002562.375
+          },
+          "2024-04": {
+            "value": 1008115.5
+          },
+          "2024-03": {
+            "value": 1011462.8125
+          },
+          "2024-02": {
+            "value": 1010794
+          },
+          "2024-01": {
+            "value": 1005580.875
+          },
+          "2023-12": {
+            "value": 984071.875
+          },
+          "2023-11": {
+            "value": 980588
+          },
+          "2023-10": {
+            "value": 972215.375
+          },
+          "2023-09": {
+            "value": 970645.1875
+          },
+          "2023-08": {
+            "value": 969117.375
+          },
+          "2023-07": {
+            "value": 968422.625
+          },
+          "2023-06": {
+            "value": 968320.3125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Brantford",
+      "city": "Brantford",
+      "country": null,
+      "streetName": "Sprucehill",
+      "streetNumber": "15",
+      "streetSuffix": "Dr",
+      "zip": "N3R 3R7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 639900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 639900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 725688.3314691723,
+      "low": 577446.5435308277,
+      "value": 651567.4375,
+      "date": "2025-05-20T12:41:58.965Z",
+      "confidence": 0.113757824138,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 651567.4375
+          },
+          "2025-04": {
+            "value": 648148.0625
+          },
+          "2025-03": {
+            "value": 646705.6875
+          },
+          "2025-02": {
+            "value": 646492.5
+          },
+          "2025-01": {
+            "value": 644247.375
+          },
+          "2024-12": {
+            "value": 641867.3125
+          },
+          "2024-11": {
+            "value": 639728.125
+          },
+          "2024-10": {
+            "value": 640138.5
+          },
+          "2024-09": {
+            "value": 639860.125
+          },
+          "2024-08": {
+            "value": 639928
+          },
+          "2024-07": {
+            "value": 640336.125
+          },
+          "2024-06": {
+            "value": 641386.1875
+          },
+          "2024-05": {
+            "value": 646198.375
+          },
+          "2024-04": {
+            "value": 649509.1875
+          },
+          "2024-03": {
+            "value": 650570.1875
+          },
+          "2024-02": {
+            "value": 650308.375
+          },
+          "2024-01": {
+            "value": 646794.375
+          },
+          "2023-12": {
+            "value": 635446.25
+          },
+          "2023-11": {
+            "value": 632611.4375
+          },
+          "2023-10": {
+            "value": 627738.125
+          },
+          "2023-09": {
+            "value": 625951.625
+          },
+          "2023-08": {
+            "value": 623543.9375
+          },
+          "2023-07": {
+            "value": 622365.3125
+          },
+          "2023-06": {
+            "value": 621849.625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Rathburn",
+      "streetNumber": "330",
+      "streetSuffix": "Rd",
+      "zip": "L5B 3Y1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 589999,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 589999,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 648110.119714555,
+      "low": 526939.130285445,
+      "value": 587524.625,
+      "date": "2025-05-20T12:09:50.001Z",
+      "confidence": 0.103119924062,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 587524.625
+          },
+          "2025-04": {
+            "value": 584467.4375
+          },
+          "2025-03": {
+            "value": 581714.625
+          },
+          "2025-02": {
+            "value": 581686.25
+          },
+          "2025-01": {
+            "value": 579072.9375
+          },
+          "2024-12": {
+            "value": 577007.3125
+          },
+          "2024-11": {
+            "value": 577676.875
+          },
+          "2024-10": {
+            "value": 579400.25
+          },
+          "2024-09": {
+            "value": 580258.125
+          },
+          "2024-08": {
+            "value": 580515.5
+          },
+          "2024-07": {
+            "value": 581707.375
+          },
+          "2024-06": {
+            "value": 582902.5625
+          },
+          "2024-05": {
+            "value": 587918
+          },
+          "2024-04": {
+            "value": 589354.375
+          },
+          "2024-03": {
+            "value": 590100.3125
+          },
+          "2024-02": {
+            "value": 589916.0625
+          },
+          "2024-01": {
+            "value": 585966.25
+          },
+          "2023-12": {
+            "value": 579352.4375
+          },
+          "2023-11": {
+            "value": 577958.5
+          },
+          "2023-10": {
+            "value": 575468.0625
+          },
+          "2023-09": {
+            "value": 575193.0625
+          },
+          "2023-08": {
+            "value": 574710.9375
+          },
+          "2023-07": {
+            "value": 574032.3125
+          },
+          "2023-06": {
+            "value": 572532
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Elgin",
+      "city": "St. Thomas",
+      "country": "Canada",
+      "streetName": "Talbot",
+      "streetNumber": "370",
+      "streetSuffix": "St",
+      "zip": "N5P 1B6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1250,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1250,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Hamilton",
+      "city": "Hamilton",
+      "country": "Canada",
+      "streetName": "Berkindale",
+      "streetNumber": "172",
+      "streetSuffix": "Dr",
+      "zip": "L8E 1M5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 668000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 668000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 739708.5506634363,
+      "low": 616295.4493365637,
+      "value": 678002,
+      "date": "2025-05-20T13:29:52.278Z",
+      "confidence": 0.091012343125,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 678002
+          },
+          "2025-04": {
+            "value": 672323.625
+          },
+          "2025-03": {
+            "value": 669625.875
+          },
+          "2025-02": {
+            "value": 669392.8125
+          },
+          "2025-01": {
+            "value": 667545.6875
+          },
+          "2024-12": {
+            "value": 665389.375
+          },
+          "2024-11": {
+            "value": 665418.25
+          },
+          "2024-10": {
+            "value": 666326.75
+          },
+          "2024-09": {
+            "value": 664951.9375
+          },
+          "2024-08": {
+            "value": 664979.3125
+          },
+          "2024-07": {
+            "value": 665746.625
+          },
+          "2024-06": {
+            "value": 666332.625
+          },
+          "2024-05": {
+            "value": 672945.4375
+          },
+          "2024-04": {
+            "value": 676014.125
+          },
+          "2024-03": {
+            "value": 676895.3125
+          },
+          "2024-02": {
+            "value": 676660
+          },
+          "2024-01": {
+            "value": 672055.125
+          },
+          "2023-12": {
+            "value": 657687.1875
+          },
+          "2023-11": {
+            "value": 654533.8125
+          },
+          "2023-10": {
+            "value": 650319.125
+          },
+          "2023-09": {
+            "value": 648614.875
+          },
+          "2023-08": {
+            "value": 646225.625
+          },
+          "2023-07": {
+            "value": 645079.875
+          },
+          "2023-06": {
+            "value": 644423.375
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Niagara",
+      "city": "Niagara Falls",
+      "country": null,
+      "streetName": "Curlin",
+      "streetNumber": "6220",
+      "streetSuffix": "Cres",
+      "zip": "L2H 0B8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 749900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 749900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 820592.2612768246,
+      "low": 676281.1137231754,
+      "value": 748436.6875,
+      "date": "2025-05-20T13:13:50.086Z",
+      "confidence": 0.096408386951,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 748436.6875
+          },
+          "2025-04": {
+            "value": 747413.5
+          },
+          "2025-03": {
+            "value": 745354.625
+          },
+          "2025-02": {
+            "value": 746924.625
+          },
+          "2025-01": {
+            "value": 742493.5
+          },
+          "2024-12": {
+            "value": 739855.4375
+          },
+          "2024-11": {
+            "value": 741882.625
+          },
+          "2024-10": {
+            "value": 742661.3125
+          },
+          "2024-09": {
+            "value": 742407.0625
+          },
+          "2024-08": {
+            "value": 742572.75
+          },
+          "2024-07": {
+            "value": 742924.4375
+          },
+          "2024-06": {
+            "value": 745041.875
+          },
+          "2024-05": {
+            "value": 749811.625
+          },
+          "2024-04": {
+            "value": 753256.9375
+          },
+          "2024-03": {
+            "value": 754430.5
+          },
+          "2024-02": {
+            "value": 754207
+          },
+          "2024-01": {
+            "value": 748952.375
+          },
+          "2023-12": {
+            "value": 740224.625
+          },
+          "2023-11": {
+            "value": 737899.125
+          },
+          "2023-10": {
+            "value": 732962.6875
+          },
+          "2023-09": {
+            "value": 732955
+          },
+          "2023-08": {
+            "value": 732163.375
+          },
+          "2023-07": {
+            "value": 731217.125
+          },
+          "2023-06": {
+            "value": 728303.9375
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Lee Centre",
+      "streetNumber": "11",
+      "streetSuffix": "Dr",
+      "zip": "M1H 3J5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2850,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2850,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Brantford",
+      "city": "Brantford",
+      "country": null,
+      "streetName": "Blackburn",
+      "streetNumber": "461",
+      "streetSuffix": "Dr",
+      "zip": "N3T 0W9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2299,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2299,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Royal York",
+      "streetNumber": "1135",
+      "streetSuffix": "Rd",
+      "zip": "M9A 0C3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1900,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Brant",
+      "city": "Brant",
+      "country": "Canada",
+      "streetName": "Silver",
+      "streetNumber": "126",
+      "streetSuffix": "St",
+      "zip": "N3L 1V4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 599900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 599900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 677197.0432740749,
+      "low": 527701.0817259251,
+      "value": 602449.0625,
+      "date": "2025-05-20T12:57:53.104Z",
+      "confidence": 0.124073528248,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 602449.0625
+          },
+          "2025-04": {
+            "value": 598970.3125
+          },
+          "2025-03": {
+            "value": 596768
+          },
+          "2025-02": {
+            "value": 596648.5
+          },
+          "2025-01": {
+            "value": 594034.5
+          },
+          "2024-12": {
+            "value": 591116.1875
+          },
+          "2024-11": {
+            "value": 591404.125
+          },
+          "2024-10": {
+            "value": 591616.25
+          },
+          "2024-09": {
+            "value": 590102.625
+          },
+          "2024-08": {
+            "value": 590305.375
+          },
+          "2024-07": {
+            "value": 590575.625
+          },
+          "2024-06": {
+            "value": 591111.125
+          },
+          "2024-05": {
+            "value": 593740.125
+          },
+          "2024-04": {
+            "value": 596204
+          },
+          "2024-03": {
+            "value": 596994.375
+          },
+          "2024-02": {
+            "value": 596755.875
+          },
+          "2024-01": {
+            "value": 593446.3125
+          },
+          "2023-12": {
+            "value": 583435.75
+          },
+          "2023-11": {
+            "value": 581624.625
+          },
+          "2023-10": {
+            "value": 577190.5625
+          },
+          "2023-09": {
+            "value": 575616.5
+          },
+          "2023-08": {
+            "value": 573151.5625
+          },
+          "2023-07": {
+            "value": 572105.375
+          },
+          "2023-06": {
+            "value": 571403.875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Simcoe",
+      "city": "Bradford West Gwillimbury",
+      "country": "Canada",
+      "streetName": "Cayton",
+      "streetNumber": "32",
+      "streetSuffix": "Cres",
+      "zip": "L3Z 2A6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1649000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1649000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1788332.9849360294,
+      "low": 1470160.5150639706,
+      "value": 1629246.75,
+      "date": "2025-05-20T04:25:42.398Z",
+      "confidence": 0.09764404006699999,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1629246.75
+          },
+          "2025-04": {
+            "value": 1622911
+          },
+          "2025-03": {
+            "value": 1614824.375
+          },
+          "2025-02": {
+            "value": 1613840.375
+          },
+          "2025-01": {
+            "value": 1607137.75
+          },
+          "2024-12": {
+            "value": 1624763.5
+          },
+          "2024-11": {
+            "value": 1615776
+          },
+          "2024-10": {
+            "value": 1616210.125
+          },
+          "2024-09": {
+            "value": 1613774.625
+          },
+          "2024-08": {
+            "value": 1613801.5
+          },
+          "2024-07": {
+            "value": 1614844.25
+          },
+          "2024-06": {
+            "value": 1617924.125
+          },
+          "2024-05": {
+            "value": 1631855
+          },
+          "2024-04": {
+            "value": 1643430.75
+          },
+          "2024-03": {
+            "value": 1649238.25
+          },
+          "2024-02": {
+            "value": 1648788.375
+          },
+          "2024-01": {
+            "value": 1637936.625
+          },
+          "2023-12": {
+            "value": 1609528.5
+          },
+          "2023-11": {
+            "value": 1603377.625
+          },
+          "2023-10": {
+            "value": 1586121.25
+          },
+          "2023-09": {
+            "value": 1584948.25
+          },
+          "2023-08": {
+            "value": 1582506
+          },
+          "2023-07": {
+            "value": 1578390
+          },
+          "2023-06": {
+            "value": 1577455.75
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Ottawa",
+      "city": "Ottawa",
+      "country": "Canada",
+      "streetName": "Foxwell",
+      "streetNumber": "1372",
+      "streetSuffix": "St",
+      "zip": "K1B 5J2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 359995,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 359995,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 419101.5333550451,
+      "low": 334414.7166449549,
+      "value": 376758.125,
+      "date": "2025-05-20T04:38:52.237Z",
+      "confidence": 0.112388839272,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 376758.125
+          },
+          "2025-04": {
+            "value": 374059.0625
+          },
+          "2025-03": {
+            "value": 371941.84375
+          },
+          "2025-02": {
+            "value": 371830.75
+          },
+          "2025-01": {
+            "value": 367692.875
+          },
+          "2024-12": {
+            "value": 365702.4375
+          },
+          "2024-11": {
+            "value": 366401.4375
+          },
+          "2024-10": {
+            "value": 367276
+          },
+          "2024-09": {
+            "value": 368804.59375
+          },
+          "2024-08": {
+            "value": 368842.96875
+          },
+          "2024-07": {
+            "value": 369440.5625
+          },
+          "2024-06": {
+            "value": 369934.6875
+          },
+          "2024-05": {
+            "value": 372920.09375
+          },
+          "2024-04": {
+            "value": 373827.1875
+          },
+          "2024-03": {
+            "value": 373870.4375
+          },
+          "2024-02": {
+            "value": 373678.0625
+          },
+          "2024-01": {
+            "value": 371280.78125
+          },
+          "2023-12": {
+            "value": 365931
+          },
+          "2023-11": {
+            "value": 364386.03125
+          },
+          "2023-10": {
+            "value": 362158.34375
+          },
+          "2023-09": {
+            "value": 361875.09375
+          },
+          "2023-08": {
+            "value": 361292.65625
+          },
+          "2023-07": {
+            "value": 360730.5625
+          },
+          "2023-06": {
+            "value": 359147.0625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Trolley",
+      "streetNumber": "51",
+      "streetSuffix": "Cres",
+      "zip": "M5A 0E9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 699000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 699000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 889864.4010122622,
+      "low": 599190.2239877378,
+      "value": 744527.3125,
+      "date": "2025-05-20T04:25:44.119Z",
+      "confidence": 0.19520719532,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 744527.3125
+          },
+          "2025-04": {
+            "value": 737596
+          },
+          "2025-03": {
+            "value": 731323.875
+          },
+          "2025-02": {
+            "value": 731461.125
+          },
+          "2025-01": {
+            "value": 727890.5
+          },
+          "2024-12": {
+            "value": 712578.125
+          },
+          "2024-11": {
+            "value": 714696.875
+          },
+          "2024-10": {
+            "value": 715938.8125
+          },
+          "2024-09": {
+            "value": 716376.625
+          },
+          "2024-08": {
+            "value": 716259.4375
+          },
+          "2024-07": {
+            "value": 717671.125
+          },
+          "2024-06": {
+            "value": 718890.875
+          },
+          "2024-05": {
+            "value": 723733.625
+          },
+          "2024-04": {
+            "value": 725516.375
+          },
+          "2024-03": {
+            "value": 726046
+          },
+          "2024-02": {
+            "value": 725719.5
+          },
+          "2024-01": {
+            "value": 719793.0625
+          },
+          "2023-12": {
+            "value": 710342.1875
+          },
+          "2023-11": {
+            "value": 706571.875
+          },
+          "2023-10": {
+            "value": 702264.75
+          },
+          "2023-09": {
+            "value": 702092.5
+          },
+          "2023-08": {
+            "value": 701598.375
+          },
+          "2023-07": {
+            "value": 700941.3125
+          },
+          "2023-06": {
+            "value": 698613.375
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": null,
+      "streetName": "Brickstone Mews",
+      "streetNumber": "4011",
+      "streetSuffix": "Rd",
+      "zip": "L5B 0J7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1250000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1250000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1310780.7168301449,
+      "low": 1032125.5331698551,
+      "value": 1171453.125,
+      "date": "2025-05-20T04:25:41.395Z",
+      "confidence": 0.118935695212,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1171453.125
+          },
+          "2025-04": {
+            "value": 1165415.25
+          },
+          "2025-03": {
+            "value": 1160954.125
+          },
+          "2025-02": {
+            "value": 1161477.75
+          },
+          "2025-01": {
+            "value": 1153489.25
+          },
+          "2024-12": {
+            "value": 1156844.875
+          },
+          "2024-11": {
+            "value": 1152697.75
+          },
+          "2024-10": {
+            "value": 1153256.625
+          },
+          "2024-09": {
+            "value": 1149975.5
+          },
+          "2024-08": {
+            "value": 1149961.25
+          },
+          "2024-07": {
+            "value": 1151349.25
+          },
+          "2024-06": {
+            "value": 1153250.25
+          },
+          "2024-05": {
+            "value": 1164827.625
+          },
+          "2024-04": {
+            "value": 1169691.625
+          },
+          "2024-03": {
+            "value": 1173131.875
+          },
+          "2024-02": {
+            "value": 1172788.375
+          },
+          "2024-01": {
+            "value": 1164675.75
+          },
+          "2023-12": {
+            "value": 1145301.875
+          },
+          "2023-11": {
+            "value": 1141646.125
+          },
+          "2023-10": {
+            "value": 1135447
+          },
+          "2023-09": {
+            "value": 1134998.75
+          },
+          "2023-08": {
+            "value": 1134633.875
+          },
+          "2023-07": {
+            "value": 1133433.625
+          },
+          "2023-06": {
+            "value": 1130995.25
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Ottawa",
+      "city": "Orleans",
+      "country": "Canada",
+      "streetName": "Ashenvale",
+      "streetNumber": "812",
+      "streetSuffix": "Way",
+      "zip": "K4A 0R3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 679000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 679000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 718589.7654538222,
+      "low": 641443.9845461778,
+      "value": 680016.875,
+      "date": "2025-05-20T04:41:55.477Z",
+      "confidence": 0.056723431244000005,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 680016.875
+          },
+          "2025-04": {
+            "value": 676293.9375
+          },
+          "2025-03": {
+            "value": 673101
+          },
+          "2025-02": {
+            "value": 672923.25
+          },
+          "2025-01": {
+            "value": 669783.375
+          },
+          "2024-12": {
+            "value": 670233.5
+          },
+          "2024-11": {
+            "value": 669046.3125
+          },
+          "2024-10": {
+            "value": 669261.5
+          },
+          "2024-09": {
+            "value": 668550.5
+          },
+          "2024-08": {
+            "value": 668505.9375
+          },
+          "2024-07": {
+            "value": 668823.25
+          },
+          "2024-06": {
+            "value": 669584.125
+          },
+          "2024-05": {
+            "value": 673511.875
+          },
+          "2024-04": {
+            "value": 676108.375
+          },
+          "2024-03": {
+            "value": 677049.625
+          },
+          "2024-02": {
+            "value": 676789.75
+          },
+          "2024-01": {
+            "value": 672555.8125
+          },
+          "2023-12": {
+            "value": 662576.6875
+          },
+          "2023-11": {
+            "value": 659515.3125
+          },
+          "2023-10": {
+            "value": 654535.125
+          },
+          "2023-09": {
+            "value": 654035.5
+          },
+          "2023-08": {
+            "value": 652863.75
+          },
+          "2023-07": {
+            "value": 651766.3125
+          },
+          "2023-06": {
+            "value": 650585.125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Triumph",
+      "streetNumber": "7203",
+      "streetSuffix": "Lane",
+      "zip": "L5N 0C5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 849000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 849000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 959208.2137776307,
+      "low": 809182.0362223693,
+      "value": 884195.125,
+      "date": "2025-05-20T04:57:42.272Z",
+      "confidence": 0.084837709072,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 884195.125
+          },
+          "2025-04": {
+            "value": 879386.375
+          },
+          "2025-03": {
+            "value": 875789.3125
+          },
+          "2025-02": {
+            "value": 876248.875
+          },
+          "2025-01": {
+            "value": 872311
+          },
+          "2024-12": {
+            "value": 872776.5
+          },
+          "2024-11": {
+            "value": 868578.375
+          },
+          "2024-10": {
+            "value": 867327.375
+          },
+          "2024-09": {
+            "value": 864610
+          },
+          "2024-08": {
+            "value": 864473.6875
+          },
+          "2024-07": {
+            "value": 865147.625
+          },
+          "2024-06": {
+            "value": 867108
+          },
+          "2024-05": {
+            "value": 876193.1875
+          },
+          "2024-04": {
+            "value": 880054.8125
+          },
+          "2024-03": {
+            "value": 881504.3125
+          },
+          "2024-02": {
+            "value": 881321.625
+          },
+          "2024-01": {
+            "value": 874871.3125
+          },
+          "2023-12": {
+            "value": 858906.625
+          },
+          "2023-11": {
+            "value": 855473.5
+          },
+          "2023-10": {
+            "value": 848649.5
+          },
+          "2023-09": {
+            "value": 848449.125
+          },
+          "2023-08": {
+            "value": 847543.8125
+          },
+          "2023-07": {
+            "value": 846178.625
+          },
+          "2023-06": {
+            "value": 844071.875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Morningside",
+      "streetNumber": "49",
+      "streetSuffix": "Ave",
+      "zip": "M6S 1C6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2495,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2995,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Frontenac",
+      "city": "Kingston",
+      "country": "Canada",
+      "streetName": "Division",
+      "streetNumber": "390",
+      "streetSuffix": "St",
+      "zip": "K7K 4A7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 765000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 765000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 874376.3559049839,
+      "low": 579187.8940950161,
+      "value": 726782.125,
+      "date": "2025-05-20T12:45:59.058Z",
+      "confidence": 0.203079060186,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 726782.125
+          },
+          "2025-04": {
+            "value": 720614.0625
+          },
+          "2025-03": {
+            "value": 716328.5625
+          },
+          "2025-02": {
+            "value": 715851.125
+          },
+          "2025-01": {
+            "value": 712870
+          },
+          "2024-12": {
+            "value": 710662.5
+          },
+          "2024-11": {
+            "value": 711735.3125
+          },
+          "2024-10": {
+            "value": 711203.125
+          },
+          "2024-09": {
+            "value": 710697.375
+          },
+          "2024-08": {
+            "value": 710941.375
+          },
+          "2024-07": {
+            "value": 711960.8125
+          },
+          "2024-06": {
+            "value": 714211.0625
+          },
+          "2024-05": {
+            "value": 721345.9375
+          },
+          "2024-04": {
+            "value": 724406.125
+          },
+          "2024-03": {
+            "value": 725326.875
+          },
+          "2024-02": {
+            "value": 725151.5
+          },
+          "2024-01": {
+            "value": 719637.125
+          },
+          "2023-12": {
+            "value": 704652
+          },
+          "2023-11": {
+            "value": 701514
+          },
+          "2023-10": {
+            "value": 694866.8125
+          },
+          "2023-09": {
+            "value": 692766
+          },
+          "2023-08": {
+            "value": 689499.375
+          },
+          "2023-07": {
+            "value": 687873.125
+          },
+          "2023-06": {
+            "value": 686207.0625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Frontenac",
+      "city": "Sydenham",
+      "country": "Canada",
+      "streetName": "Keeley",
+      "streetNumber": "1960",
+      "streetSuffix": "Rd",
+      "zip": "K0H 2T0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 785000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 785000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 860712.8932591364,
+      "low": 657774.9817408636,
+      "value": 759243.9375,
+      "date": "2025-05-20T13:14:48.023Z",
+      "confidence": 0.13364473622700002,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 759243.9375
+          },
+          "2025-04": {
+            "value": 754204.125
+          },
+          "2025-03": {
+            "value": 749052.6875
+          },
+          "2025-02": {
+            "value": 748495.625
+          },
+          "2025-01": {
+            "value": 745169.625
+          },
+          "2024-12": {
+            "value": 750732.4375
+          },
+          "2024-11": {
+            "value": 742293.875
+          },
+          "2024-10": {
+            "value": 742556.875
+          },
+          "2024-09": {
+            "value": 742198.625
+          },
+          "2024-08": {
+            "value": 742087
+          },
+          "2024-07": {
+            "value": 742302.625
+          },
+          "2024-06": {
+            "value": 744004.6875
+          },
+          "2024-05": {
+            "value": 747642.625
+          },
+          "2024-04": {
+            "value": 749633.875
+          },
+          "2024-03": {
+            "value": 750952.8125
+          },
+          "2024-02": {
+            "value": 750656.3125
+          },
+          "2024-01": {
+            "value": 748133.75
+          },
+          "2023-12": {
+            "value": 735046
+          },
+          "2023-11": {
+            "value": 732292.6875
+          },
+          "2023-10": {
+            "value": 726024
+          },
+          "2023-09": {
+            "value": 724162.75
+          },
+          "2023-08": {
+            "value": 721613.1875
+          },
+          "2023-07": {
+            "value": 720568.1875
+          },
+          "2023-06": {
+            "value": 720433.875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Middlesex",
+      "city": "London South",
+      "country": "Canada",
+      "streetName": "Beattie",
+      "streetNumber": "6912",
+      "streetSuffix": "St",
+      "zip": "N6P 1A3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 449900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 449900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 505704.60810252535,
+      "low": 408490.51689747465,
+      "value": 457097.5625,
+      "date": "2025-05-20T12:43:05.480Z",
+      "confidence": 0.10633844848500001,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 457097.5625
+          },
+          "2025-04": {
+            "value": 455943.8125
+          },
+          "2025-03": {
+            "value": 454356.9375
+          },
+          "2025-02": {
+            "value": 454025.59375
+          },
+          "2025-01": {
+            "value": 450563.65625
+          },
+          "2024-12": {
+            "value": 448610.15625
+          },
+          "2024-11": {
+            "value": 448113.15625
+          },
+          "2024-10": {
+            "value": 448711
+          },
+          "2024-09": {
+            "value": 450382.5625
+          },
+          "2024-08": {
+            "value": 450510.15625
+          },
+          "2024-07": {
+            "value": 450713.25
+          },
+          "2024-06": {
+            "value": 451792.3125
+          },
+          "2024-05": {
+            "value": 453985.90625
+          },
+          "2024-04": {
+            "value": 455692.40625
+          },
+          "2024-03": {
+            "value": 456076.15625
+          },
+          "2024-02": {
+            "value": 455900.5
+          },
+          "2024-01": {
+            "value": 453806.90625
+          },
+          "2023-12": {
+            "value": 445951.90625
+          },
+          "2023-11": {
+            "value": 444436.5
+          },
+          "2023-10": {
+            "value": 441053
+          },
+          "2023-09": {
+            "value": 439712.5
+          },
+          "2023-08": {
+            "value": 437940.6875
+          },
+          "2023-07": {
+            "value": 437124.34375
+          },
+          "2023-06": {
+            "value": 436680.65625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Lennox & Addington",
+      "city": "Greater Napanee",
+      "country": "Canada",
+      "streetName": "Shoreline",
+      "streetNumber": "150",
+      "streetSuffix": "Cres",
+      "zip": "K7R 3W2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 650000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 650000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 695049.5732047214,
+      "low": 585311.1767952786,
+      "value": 640180.375,
+      "date": "2025-05-20T13:01:47.719Z",
+      "confidence": 0.085708966328,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 640180.375
+          },
+          "2025-04": {
+            "value": 636700.625
+          },
+          "2025-03": {
+            "value": 634229.375
+          },
+          "2025-02": {
+            "value": 634073.8125
+          },
+          "2025-01": {
+            "value": 631386.8125
+          },
+          "2024-12": {
+            "value": 629562.1875
+          },
+          "2024-11": {
+            "value": 631471.3125
+          },
+          "2024-10": {
+            "value": 632618.375
+          },
+          "2024-09": {
+            "value": 632455.8125
+          },
+          "2024-08": {
+            "value": 632531.375
+          },
+          "2024-07": {
+            "value": 633218.3125
+          },
+          "2024-06": {
+            "value": 634864.8125
+          },
+          "2024-05": {
+            "value": 638872.875
+          },
+          "2024-04": {
+            "value": 641562.75
+          },
+          "2024-03": {
+            "value": 642441.625
+          },
+          "2024-02": {
+            "value": 642186.4375
+          },
+          "2024-01": {
+            "value": 638537.1875
+          },
+          "2023-12": {
+            "value": 628738.1875
+          },
+          "2023-11": {
+            "value": 626214.625
+          },
+          "2023-10": {
+            "value": 622301.1875
+          },
+          "2023-09": {
+            "value": 621867.375
+          },
+          "2023-08": {
+            "value": 620875.3125
+          },
+          "2023-07": {
+            "value": 620238.875
+          },
+          "2023-06": {
+            "value": 619261.0625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Lanark",
+      "city": "White Lake",
+      "country": "Canada",
+      "streetName": "Lacourse",
+      "streetNumber": "211",
+      "streetSuffix": "Lane",
+      "zip": "K0A 3L0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 492100,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 492100,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 599770.3691024442,
+      "low": 289460.75589755585,
+      "value": 444615.5625,
+      "date": "2025-05-20T13:14:58.751Z",
+      "confidence": 0.348963958279,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 444615.5625
+          },
+          "2025-04": {
+            "value": 439110.59375
+          },
+          "2025-03": {
+            "value": 436033.25
+          },
+          "2025-02": {
+            "value": 435757
+          },
+          "2025-01": {
+            "value": 432262.75
+          },
+          "2024-12": {
+            "value": 429265.6875
+          },
+          "2024-11": {
+            "value": 428725.34375
+          },
+          "2024-10": {
+            "value": 428245.6875
+          },
+          "2024-09": {
+            "value": 428400.59375
+          },
+          "2024-08": {
+            "value": 428168.5
+          },
+          "2024-07": {
+            "value": 428214.6875
+          },
+          "2024-06": {
+            "value": 428139
+          },
+          "2024-05": {
+            "value": 428169.84375
+          },
+          "2024-04": {
+            "value": 428385.5
+          },
+          "2024-03": {
+            "value": 428503.90625
+          },
+          "2024-02": {
+            "value": 428353.5
+          },
+          "2024-01": {
+            "value": 425539.5625
+          },
+          "2023-12": {
+            "value": 422307.09375
+          },
+          "2023-11": {
+            "value": 420706.1875
+          },
+          "2023-10": {
+            "value": 417616.1875
+          },
+          "2023-09": {
+            "value": 417945.21875
+          },
+          "2023-08": {
+            "value": 416605.125
+          },
+          "2023-07": {
+            "value": 415456.8125
+          },
+          "2023-06": {
+            "value": 414729.9375
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Niagara",
+      "city": "Welland",
+      "country": null,
+      "streetName": "Superior",
+      "streetNumber": "87",
+      "streetSuffix": "St",
+      "zip": "L3B 3A6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2200,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2200,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Brampton",
+      "country": "Canada",
+      "streetName": "Pressed Brick",
+      "streetNumber": "226",
+      "streetSuffix": "Dr",
+      "zip": "L6V 4L3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 759000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 759000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 849485.9815104969,
+      "low": 723295.7684895031,
+      "value": 786390.875,
+      "date": "2025-05-20T04:25:38.953Z",
+      "confidence": 0.08023377243600001,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 786390.875
+          },
+          "2025-04": {
+            "value": 780433.375
+          },
+          "2025-03": {
+            "value": 777095.125
+          },
+          "2025-02": {
+            "value": 777081.875
+          },
+          "2025-01": {
+            "value": 774087.1875
+          },
+          "2024-12": {
+            "value": 777314.125
+          },
+          "2024-11": {
+            "value": 773644.875
+          },
+          "2024-10": {
+            "value": 772434.125
+          },
+          "2024-09": {
+            "value": 771416.375
+          },
+          "2024-08": {
+            "value": 771344.6875
+          },
+          "2024-07": {
+            "value": 772005.8125
+          },
+          "2024-06": {
+            "value": 774304.625
+          },
+          "2024-05": {
+            "value": 783517.625
+          },
+          "2024-04": {
+            "value": 787028.9375
+          },
+          "2024-03": {
+            "value": 787763.75
+          },
+          "2024-02": {
+            "value": 787589.75
+          },
+          "2024-01": {
+            "value": 781787.0625
+          },
+          "2023-12": {
+            "value": 764380.875
+          },
+          "2023-11": {
+            "value": 760258
+          },
+          "2023-10": {
+            "value": 753737.3125
+          },
+          "2023-09": {
+            "value": 752517.25
+          },
+          "2023-08": {
+            "value": 750898.25
+          },
+          "2023-07": {
+            "value": 749801.375
+          },
+          "2023-06": {
+            "value": 749201.5625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Dufferin",
+      "streetNumber": "285",
+      "streetSuffix": "St",
+      "zip": "M6K 0J2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3300,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 3300,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Bloor",
+      "streetNumber": "1300",
+      "streetSuffix": "St",
+      "zip": "L4Y 3Z2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 829000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 829000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 912506.4137689773,
+      "low": 690878.8362310227,
+      "value": 801692.625,
+      "date": "2025-05-20T04:41:47.233Z",
+      "confidence": 0.138224782558,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 801692.625
+          },
+          "2025-04": {
+            "value": 796711.5625
+          },
+          "2025-03": {
+            "value": 792962.875
+          },
+          "2025-02": {
+            "value": 793331.6875
+          },
+          "2025-01": {
+            "value": 788134.125
+          },
+          "2024-12": {
+            "value": 791739.875
+          },
+          "2024-11": {
+            "value": 785567.875
+          },
+          "2024-10": {
+            "value": 786439.625
+          },
+          "2024-09": {
+            "value": 785345.6875
+          },
+          "2024-08": {
+            "value": 785576.875
+          },
+          "2024-07": {
+            "value": 786230.625
+          },
+          "2024-06": {
+            "value": 787810.5
+          },
+          "2024-05": {
+            "value": 794274.5625
+          },
+          "2024-04": {
+            "value": 796891.875
+          },
+          "2024-03": {
+            "value": 798179.625
+          },
+          "2024-02": {
+            "value": 797966.625
+          },
+          "2024-01": {
+            "value": 792785.3125
+          },
+          "2023-12": {
+            "value": 782790.375
+          },
+          "2023-11": {
+            "value": 780547.6875
+          },
+          "2023-10": {
+            "value": 777071.875
+          },
+          "2023-09": {
+            "value": 776583.1875
+          },
+          "2023-08": {
+            "value": 775815.5
+          },
+          "2023-07": {
+            "value": 775057
+          },
+          "2023-06": {
+            "value": 773001.5625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Durham",
+      "city": "Oshawa",
+      "country": "Canada",
+      "streetName": "Camelot",
+      "streetNumber": "576",
+      "streetSuffix": "Dr",
+      "zip": "L1K 1K4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2500,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2500,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Fairview",
+      "streetNumber": "38",
+      "streetSuffix": "Rd",
+      "zip": "L5B 4J8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 3000,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Hamilton",
+      "city": "Hamilton",
+      "country": null,
+      "streetName": "Spring Creek",
+      "streetNumber": "22",
+      "streetSuffix": "Dr",
+      "zip": "L8B 1V7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3450,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 3450,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Richmond Hill",
+      "country": null,
+      "streetName": "Highway 7",
+      "streetNumber": "398",
+      "streetSuffix": "N/A",
+      "zip": "L4B 0G6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 477000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 477000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 528667.414183825,
+      "low": 458347.89831617504,
+      "value": 493507.65625,
+      "date": "2025-05-20T15:31:00.264Z",
+      "confidence": 0.071244604797,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 493507.65625
+          },
+          "2025-04": {
+            "value": 491626.8125
+          },
+          "2025-03": {
+            "value": 488713.34375
+          },
+          "2025-02": {
+            "value": 488932.1875
+          },
+          "2025-01": {
+            "value": 485858.65625
+          },
+          "2024-12": {
+            "value": 487686.5625
+          },
+          "2024-11": {
+            "value": 485592.0625
+          },
+          "2024-10": {
+            "value": 486480
+          },
+          "2024-09": {
+            "value": 488151.8125
+          },
+          "2024-08": {
+            "value": 488186
+          },
+          "2024-07": {
+            "value": 488767.3125
+          },
+          "2024-06": {
+            "value": 489278.8125
+          },
+          "2024-05": {
+            "value": 493021.4375
+          },
+          "2024-04": {
+            "value": 494590.59375
+          },
+          "2024-03": {
+            "value": 494905.25
+          },
+          "2024-02": {
+            "value": 494772.6875
+          },
+          "2024-01": {
+            "value": 491709.3125
+          },
+          "2023-12": {
+            "value": 485572.75
+          },
+          "2023-11": {
+            "value": 483230.4375
+          },
+          "2023-10": {
+            "value": 480130.3125
+          },
+          "2023-09": {
+            "value": 479943.0625
+          },
+          "2023-08": {
+            "value": 479532.40625
+          },
+          "2023-07": {
+            "value": 479059.59375
+          },
+          "2023-06": {
+            "value": 477749.1875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Front",
+      "streetNumber": "158",
+      "streetSuffix": "St",
+      "zip": "M5A 0K9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3150,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 3150,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Wellington",
+      "city": "Guelph",
+      "country": "Canada",
+      "streetName": "Rhonda",
+      "streetNumber": "69",
+      "streetSuffix": "Rd",
+      "zip": "N1H 6H3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 829999,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 829999,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 944353.8335041729,
+      "low": 756453.5414958271,
+      "value": 850403.6875,
+      "date": "2025-05-20T15:30:50.718Z",
+      "confidence": 0.110477115028,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 850403.6875
+          },
+          "2025-04": {
+            "value": 845293.1875
+          },
+          "2025-03": {
+            "value": 842858.8125
+          },
+          "2025-02": {
+            "value": 842739.1875
+          },
+          "2025-01": {
+            "value": 839017.625
+          },
+          "2024-12": {
+            "value": 839236.5
+          },
+          "2024-11": {
+            "value": 842973.875
+          },
+          "2024-10": {
+            "value": 840209.1875
+          },
+          "2024-09": {
+            "value": 837871.1875
+          },
+          "2024-08": {
+            "value": 837855.1875
+          },
+          "2024-07": {
+            "value": 838563.125
+          },
+          "2024-06": {
+            "value": 840636.125
+          },
+          "2024-05": {
+            "value": 851189.8125
+          },
+          "2024-04": {
+            "value": 855662.3125
+          },
+          "2024-03": {
+            "value": 857393.3125
+          },
+          "2024-02": {
+            "value": 856945.375
+          },
+          "2024-01": {
+            "value": 848870.1875
+          },
+          "2023-12": {
+            "value": 833454.8125
+          },
+          "2023-11": {
+            "value": 828768.6875
+          },
+          "2023-10": {
+            "value": 820915.6875
+          },
+          "2023-09": {
+            "value": 819861.3125
+          },
+          "2023-08": {
+            "value": 818200.5
+          },
+          "2023-07": {
+            "value": 816601.75
+          },
+          "2023-06": {
+            "value": 814973.8125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Wellington",
+      "streetNumber": "270",
+      "streetSuffix": "St",
+      "zip": "M5V 3P5",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 508000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 508000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 576015.0470622488,
+      "low": 473810.4529377512,
+      "value": 524912.75,
+      "date": "2025-05-20T15:30:43.603Z",
+      "confidence": 0.097353887979,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 524912.75
+          },
+          "2025-04": {
+            "value": 519226.3125
+          },
+          "2025-03": {
+            "value": 514655.09375
+          },
+          "2025-02": {
+            "value": 514686.15625
+          },
+          "2025-01": {
+            "value": 511628.5625
+          },
+          "2024-12": {
+            "value": 514639.34375
+          },
+          "2024-11": {
+            "value": 513765.59375
+          },
+          "2024-10": {
+            "value": 514905.3125
+          },
+          "2024-09": {
+            "value": 516902.5625
+          },
+          "2024-08": {
+            "value": 516879.40625
+          },
+          "2024-07": {
+            "value": 518342.34375
+          },
+          "2024-06": {
+            "value": 519024.8125
+          },
+          "2024-05": {
+            "value": 524328.375
+          },
+          "2024-04": {
+            "value": 525708
+          },
+          "2024-03": {
+            "value": 525859.875
+          },
+          "2024-02": {
+            "value": 525574.625
+          },
+          "2024-01": {
+            "value": 521070.34375
+          },
+          "2023-12": {
+            "value": 515209.8125
+          },
+          "2023-11": {
+            "value": 513238.8125
+          },
+          "2023-10": {
+            "value": 509371.75
+          },
+          "2023-09": {
+            "value": 509076.5
+          },
+          "2023-08": {
+            "value": 508819.34375
+          },
+          "2023-07": {
+            "value": 508073.15625
+          },
+          "2023-06": {
+            "value": 506640.25
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Queens",
+      "streetNumber": "500",
+      "streetSuffix": "Quay",
+      "zip": "M5V 3K8",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 4900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 4900,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Front",
+      "streetNumber": "560",
+      "streetSuffix": "St",
+      "zip": "M5V 1C1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 4800,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 4800,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Peel",
+      "city": "Mississauga",
+      "country": "Canada",
+      "streetName": "Absolute",
+      "streetNumber": "50",
+      "streetSuffix": "Ave",
+      "zip": "L4Z 0A9",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 2250,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 2250,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Kawartha Lakes",
+      "city": "Kawartha Lakes",
+      "country": "Canada",
+      "streetName": "Mcguire Beach",
+      "streetNumber": "220",
+      "streetSuffix": "Rd",
+      "zip": "K0M 2B0",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 485000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 485000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 568491.5585868092,
+      "low": 399868.6289131908,
+      "value": 484180.09375,
+      "date": "2025-05-20T15:30:53.857Z",
+      "confidence": 0.17413244766799998,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 484180.09375
+          },
+          "2025-04": {
+            "value": 480740.25
+          },
+          "2025-03": {
+            "value": 477792.8125
+          },
+          "2025-02": {
+            "value": 477572.5
+          },
+          "2025-01": {
+            "value": 474559.0625
+          },
+          "2024-12": {
+            "value": 476330.3125
+          },
+          "2024-11": {
+            "value": 474519.6875
+          },
+          "2024-10": {
+            "value": 475513.65625
+          },
+          "2024-09": {
+            "value": 476359.6875
+          },
+          "2024-08": {
+            "value": 476471.15625
+          },
+          "2024-07": {
+            "value": 476669.84375
+          },
+          "2024-06": {
+            "value": 477042.90625
+          },
+          "2024-05": {
+            "value": 478234.25
+          },
+          "2024-04": {
+            "value": 479659.65625
+          },
+          "2024-03": {
+            "value": 479908.3125
+          },
+          "2024-02": {
+            "value": 479676.1875
+          },
+          "2024-01": {
+            "value": 477019.6875
+          },
+          "2023-12": {
+            "value": 470886.9375
+          },
+          "2023-11": {
+            "value": 469477
+          },
+          "2023-10": {
+            "value": 466369.84375
+          },
+          "2023-09": {
+            "value": 465535.90625
+          },
+          "2023-08": {
+            "value": 464485.0625
+          },
+          "2023-07": {
+            "value": 463809.34375
+          },
+          "2023-06": {
+            "value": 462951.40625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Durham",
+      "city": "Whitby",
+      "country": null,
+      "streetName": "Glen Dhu",
+      "streetNumber": "60",
+      "streetSuffix": "Dr",
+      "zip": "L1R 1K4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1099900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1099900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1227511.1833951334,
+      "low": 1004785.3166048668,
+      "value": 1116148.25,
+      "date": "2025-05-20T15:34:43.115Z",
+      "confidence": 0.099774320656,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1116148.25
+          },
+          "2025-04": {
+            "value": 1110371.625
+          },
+          "2025-03": {
+            "value": 1107169.25
+          },
+          "2025-02": {
+            "value": 1106873.75
+          },
+          "2025-01": {
+            "value": 1102589.625
+          },
+          "2024-12": {
+            "value": 1104715.375
+          },
+          "2024-11": {
+            "value": 1100308.625
+          },
+          "2024-10": {
+            "value": 1100769.125
+          },
+          "2024-09": {
+            "value": 1099555
+          },
+          "2024-08": {
+            "value": 1099692
+          },
+          "2024-07": {
+            "value": 1100512.25
+          },
+          "2024-06": {
+            "value": 1104262.875
+          },
+          "2024-05": {
+            "value": 1118021.75
+          },
+          "2024-04": {
+            "value": 1126590.25
+          },
+          "2024-03": {
+            "value": 1131496.75
+          },
+          "2024-02": {
+            "value": 1131071.25
+          },
+          "2024-01": {
+            "value": 1124055.375
+          },
+          "2023-12": {
+            "value": 1096512
+          },
+          "2023-11": {
+            "value": 1090995.25
+          },
+          "2023-10": {
+            "value": 1081492.25
+          },
+          "2023-09": {
+            "value": 1078917.25
+          },
+          "2023-08": {
+            "value": 1077050.25
+          },
+          "2023-07": {
+            "value": 1075820.625
+          },
+          "2023-06": {
+            "value": 1075737.5
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Hamilton",
+      "city": "Hamilton",
+      "country": "Canada",
+      "streetName": "Picardy",
+      "streetNumber": "19",
+      "streetSuffix": "Dr",
+      "zip": "L8J 0M7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 574900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 574900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 615918.8765969952,
+      "low": 531436.8734030048,
+      "value": 573677.875,
+      "date": "2025-05-20T15:34:42.025Z",
+      "confidence": 0.073631916861,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 573677.875
+          },
+          "2025-04": {
+            "value": 570556.5625
+          },
+          "2025-03": {
+            "value": 569180.6875
+          },
+          "2025-02": {
+            "value": 569158.8125
+          },
+          "2025-01": {
+            "value": 567608
+          },
+          "2024-12": {
+            "value": 566904.5625
+          },
+          "2024-11": {
+            "value": 566503.8125
+          },
+          "2024-10": {
+            "value": 567141.125
+          },
+          "2024-09": {
+            "value": 568130.5
+          },
+          "2024-08": {
+            "value": 568266.875
+          },
+          "2024-07": {
+            "value": 569060.6875
+          },
+          "2024-06": {
+            "value": 570333.1875
+          },
+          "2024-05": {
+            "value": 575622.4375
+          },
+          "2024-04": {
+            "value": 577850.375
+          },
+          "2024-03": {
+            "value": 578456.875
+          },
+          "2024-02": {
+            "value": 578330.3125
+          },
+          "2024-01": {
+            "value": 574648.875
+          },
+          "2023-12": {
+            "value": 567413.4375
+          },
+          "2023-11": {
+            "value": 565242.625
+          },
+          "2023-10": {
+            "value": 563331
+          },
+          "2023-09": {
+            "value": 562986.3125
+          },
+          "2023-08": {
+            "value": 562402.375
+          },
+          "2023-07": {
+            "value": 562212.1875
+          },
+          "2023-06": {
+            "value": 561842.4375
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Robert",
+      "streetNumber": "66",
+      "streetSuffix": "St",
+      "zip": "M5S 2K3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1948000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1948000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 2419789.8033420383,
+      "low": 1849226.6966579617,
+      "value": 2134508.25,
+      "date": "2025-05-20T15:41:47.786Z",
+      "confidence": 0.133652120268,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 2134508.25
+          },
+          "2025-04": {
+            "value": 2108321.25
+          },
+          "2025-03": {
+            "value": 2086476.375
+          },
+          "2025-02": {
+            "value": 2080873.75
+          },
+          "2025-01": {
+            "value": 2063219.625
+          },
+          "2024-12": {
+            "value": 2067611.75
+          },
+          "2024-11": {
+            "value": 2054464.75
+          },
+          "2024-10": {
+            "value": 2050453.625
+          },
+          "2024-09": {
+            "value": 2046545.375
+          },
+          "2024-08": {
+            "value": 2046404.75
+          },
+          "2024-07": {
+            "value": 2049318
+          },
+          "2024-06": {
+            "value": 2056773
+          },
+          "2024-05": {
+            "value": 2092486.75
+          },
+          "2024-04": {
+            "value": 2109490
+          },
+          "2024-03": {
+            "value": 2115937.5
+          },
+          "2024-02": {
+            "value": 2112996
+          },
+          "2024-01": {
+            "value": 2086131.625
+          },
+          "2023-12": {
+            "value": 2017954
+          },
+          "2023-11": {
+            "value": 2004252
+          },
+          "2023-10": {
+            "value": 1973587.375
+          },
+          "2023-09": {
+            "value": 1967083.75
+          },
+          "2023-08": {
+            "value": 1957134.375
+          },
+          "2023-07": {
+            "value": 1949490.375
+          },
+          "2023-06": {
+            "value": 1945302.75
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Ottawa",
+      "city": "Ottawa",
+      "country": "Canada",
+      "streetName": "Bedbrooke",
+      "streetNumber": "1102",
+      "streetSuffix": "St",
+      "zip": "K2C 2R7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 779900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 779900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 847319.8486685506,
+      "low": 704432.0263314494,
+      "value": 775875.9375,
+      "date": "2025-05-20T14:50:49.284Z",
+      "confidence": 0.092081617325,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 775875.9375
+          },
+          "2025-04": {
+            "value": 771349.5625
+          },
+          "2025-03": {
+            "value": 766790.375
+          },
+          "2025-02": {
+            "value": 766272.8125
+          },
+          "2025-01": {
+            "value": 763704.875
+          },
+          "2024-12": {
+            "value": 761973.625
+          },
+          "2024-11": {
+            "value": 763010.375
+          },
+          "2024-10": {
+            "value": 761741.625
+          },
+          "2024-09": {
+            "value": 761014
+          },
+          "2024-08": {
+            "value": 761083.5
+          },
+          "2024-07": {
+            "value": 762065.0625
+          },
+          "2024-06": {
+            "value": 764535.125
+          },
+          "2024-05": {
+            "value": 773320.875
+          },
+          "2024-04": {
+            "value": 776530.9375
+          },
+          "2024-03": {
+            "value": 777531.875
+          },
+          "2024-02": {
+            "value": 777240.625
+          },
+          "2024-01": {
+            "value": 770480.8125
+          },
+          "2023-12": {
+            "value": 756838.5
+          },
+          "2023-11": {
+            "value": 753400.3125
+          },
+          "2023-10": {
+            "value": 746836.1875
+          },
+          "2023-09": {
+            "value": 746123
+          },
+          "2023-08": {
+            "value": 744762.625
+          },
+          "2023-07": {
+            "value": 743417
+          },
+          "2023-06": {
+            "value": 741771
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Winston Park",
+      "streetNumber": "68",
+      "streetSuffix": "Blvd",
+      "zip": "M3K 1C2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 639900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 639900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 725906.8168484294,
+      "low": 605042.1831515706,
+      "value": 665474.5,
+      "date": "2025-05-20T15:19:53.548Z",
+      "confidence": 0.090810867807,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 665474.5
+          },
+          "2025-04": {
+            "value": 661699.75
+          },
+          "2025-03": {
+            "value": 656823.5
+          },
+          "2025-02": {
+            "value": 657119.25
+          },
+          "2025-01": {
+            "value": 653589.1875
+          },
+          "2024-12": {
+            "value": 652524.75
+          },
+          "2024-11": {
+            "value": 652541.8125
+          },
+          "2024-10": {
+            "value": 652727.8125
+          },
+          "2024-09": {
+            "value": 653071.4375
+          },
+          "2024-08": {
+            "value": 653166.4375
+          },
+          "2024-07": {
+            "value": 654508.3125
+          },
+          "2024-06": {
+            "value": 655596.75
+          },
+          "2024-05": {
+            "value": 663796.6875
+          },
+          "2024-04": {
+            "value": 666413.25
+          },
+          "2024-03": {
+            "value": 666827.1875
+          },
+          "2024-02": {
+            "value": 666641.75
+          },
+          "2024-01": {
+            "value": 660539.125
+          },
+          "2023-12": {
+            "value": 649709.625
+          },
+          "2023-11": {
+            "value": 646531.0625
+          },
+          "2023-10": {
+            "value": 641428.125
+          },
+          "2023-09": {
+            "value": 641246.5625
+          },
+          "2023-08": {
+            "value": 641224.4375
+          },
+          "2023-07": {
+            "value": 640602.875
+          },
+          "2023-06": {
+            "value": 639215.75
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Norfolk",
+      "city": "Norfolk",
+      "country": null,
+      "streetName": "Colborne",
+      "streetNumber": "108",
+      "streetSuffix": "St",
+      "zip": "N3Y 3V1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 539900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 539900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 622802.2320970434,
+      "low": 449461.0179029566,
+      "value": 536131.625,
+      "date": "2025-05-20T15:20:18.811Z",
+      "confidence": 0.161659195346,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 536131.625
+          },
+          "2025-04": {
+            "value": 533710.5
+          },
+          "2025-03": {
+            "value": 532614.75
+          },
+          "2025-02": {
+            "value": 532254.8125
+          },
+          "2025-01": {
+            "value": 529919.1875
+          },
+          "2024-12": {
+            "value": 530440.1875
+          },
+          "2024-11": {
+            "value": 528060.0625
+          },
+          "2024-10": {
+            "value": 529291.625
+          },
+          "2024-09": {
+            "value": 530737.125
+          },
+          "2024-08": {
+            "value": 530900.75
+          },
+          "2024-07": {
+            "value": 531313
+          },
+          "2024-06": {
+            "value": 532958.25
+          },
+          "2024-05": {
+            "value": 535567.5625
+          },
+          "2024-04": {
+            "value": 538270.0625
+          },
+          "2024-03": {
+            "value": 538793.875
+          },
+          "2024-02": {
+            "value": 538545.375
+          },
+          "2024-01": {
+            "value": 536056.6875
+          },
+          "2023-12": {
+            "value": 527942.875
+          },
+          "2023-11": {
+            "value": 525754.3125
+          },
+          "2023-10": {
+            "value": 520676.5
+          },
+          "2023-09": {
+            "value": 519184.40625
+          },
+          "2023-08": {
+            "value": 517454.6875
+          },
+          "2023-07": {
+            "value": 516563.09375
+          },
+          "2023-06": {
+            "value": 516184.0625
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Wellington",
+      "city": "Centre Wellington",
+      "country": "Canada",
+      "streetName": "ST ANDREW",
+      "streetNumber": "513",
+      "streetSuffix": "St",
+      "zip": "N1M 1P4",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 950000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 950000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1131575.2852173257,
+      "low": 819987.9647826742,
+      "value": 975781.625,
+      "date": "2025-05-20T14:16:04.588Z",
+      "confidence": 0.159660375053,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 975781.625
+          },
+          "2025-04": {
+            "value": 966904.1875
+          },
+          "2025-03": {
+            "value": 962350.5
+          },
+          "2025-02": {
+            "value": 961454.6875
+          },
+          "2025-01": {
+            "value": 956212.1875
+          },
+          "2024-12": {
+            "value": 967535.5
+          },
+          "2024-11": {
+            "value": 954850.8125
+          },
+          "2024-10": {
+            "value": 953260.375
+          },
+          "2024-09": {
+            "value": 951128.875
+          },
+          "2024-08": {
+            "value": 951562.375
+          },
+          "2024-07": {
+            "value": 951869.875
+          },
+          "2024-06": {
+            "value": 954772.3125
+          },
+          "2024-05": {
+            "value": 963456.375
+          },
+          "2024-04": {
+            "value": 970285.875
+          },
+          "2024-03": {
+            "value": 973110.3125
+          },
+          "2024-02": {
+            "value": 972851.375
+          },
+          "2024-01": {
+            "value": 965860.5
+          },
+          "2023-12": {
+            "value": 944456.8125
+          },
+          "2023-11": {
+            "value": 940961.875
+          },
+          "2023-10": {
+            "value": 927503.8125
+          },
+          "2023-09": {
+            "value": 924568
+          },
+          "2023-08": {
+            "value": 922498.3125
+          },
+          "2023-07": {
+            "value": 919987
+          },
+          "2023-06": {
+            "value": 918657.1875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Richmond Hill",
+      "country": "Canada",
+      "streetName": "Garden",
+      "streetNumber": "84",
+      "streetSuffix": "Ave",
+      "zip": "L4C 6M1",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 8888000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 8888000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 9016774.808675937,
+      "low": 6081622.191324063,
+      "value": 7549198.5,
+      "date": "2025-05-20T11:21:37.560Z",
+      "confidence": 0.194401605505,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 7549198.5
+          },
+          "2025-04": {
+            "value": 7409373.5
+          },
+          "2025-03": {
+            "value": 7205725
+          },
+          "2025-02": {
+            "value": 7207591
+          },
+          "2025-01": {
+            "value": 7176598.5
+          },
+          "2024-12": {
+            "value": 7144583
+          },
+          "2024-11": {
+            "value": 7186701.5
+          },
+          "2024-10": {
+            "value": 7182155
+          },
+          "2024-09": {
+            "value": 7174568
+          },
+          "2024-08": {
+            "value": 7174897.5
+          },
+          "2024-07": {
+            "value": 7182141.5
+          },
+          "2024-06": {
+            "value": 7187300
+          },
+          "2024-05": {
+            "value": 7273696
+          },
+          "2024-04": {
+            "value": 7281538.5
+          },
+          "2024-03": {
+            "value": 7206183
+          },
+          "2024-02": {
+            "value": 7203477.5
+          },
+          "2024-01": {
+            "value": 7144429
+          },
+          "2023-12": {
+            "value": 6994469
+          },
+          "2023-11": {
+            "value": 6964505.5
+          },
+          "2023-10": {
+            "value": 6875506.5
+          },
+          "2023-09": {
+            "value": 6867725.5
+          },
+          "2023-08": {
+            "value": 6856665.5
+          },
+          "2023-07": {
+            "value": 6827528
+          },
+          "2023-06": {
+            "value": 6817886.5
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Markham",
+      "country": "Canada",
+      "streetName": "Herman Gilroy",
+      "streetNumber": "22",
+      "streetSuffix": "Lane",
+      "zip": "L6C 3L7",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1190000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1190000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1319537.427335655,
+      "low": 1167996.072664345,
+      "value": 1243766.75,
+      "date": "2025-05-20T15:20:56.040Z",
+      "confidence": 0.060920327172,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1243766.75
+          },
+          "2025-04": {
+            "value": 1236394.75
+          },
+          "2025-03": {
+            "value": 1228104.125
+          },
+          "2025-02": {
+            "value": 1228141.75
+          },
+          "2025-01": {
+            "value": 1224121.375
+          },
+          "2024-12": {
+            "value": 1244146.625
+          },
+          "2024-11": {
+            "value": 1229182.5
+          },
+          "2024-10": {
+            "value": 1227447.25
+          },
+          "2024-09": {
+            "value": 1224678.75
+          },
+          "2024-08": {
+            "value": 1224654.375
+          },
+          "2024-07": {
+            "value": 1225554
+          },
+          "2024-06": {
+            "value": 1228485.75
+          },
+          "2024-05": {
+            "value": 1246102.25
+          },
+          "2024-04": {
+            "value": 1255571
+          },
+          "2024-03": {
+            "value": 1260946.875
+          },
+          "2024-02": {
+            "value": 1260630.625
+          },
+          "2024-01": {
+            "value": 1250908
+          },
+          "2023-12": {
+            "value": 1223361.375
+          },
+          "2023-11": {
+            "value": 1214911.625
+          },
+          "2023-10": {
+            "value": 1206180.375
+          },
+          "2023-09": {
+            "value": 1205321.25
+          },
+          "2023-08": {
+            "value": 1203824.125
+          },
+          "2023-07": {
+            "value": 1203182.5
+          },
+          "2023-06": {
+            "value": 1202732.375
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Halton",
+      "city": "Oakville",
+      "country": "Canada",
+      "streetName": "Cornerbrooke",
+      "streetNumber": "2436",
+      "streetSuffix": "Cres",
+      "zip": "L6M 4B6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 3900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 3900,
+      "soldPrice": null,
+      "soldDate": null
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": null,
+      "streetName": "Northtown",
+      "streetNumber": "15",
+      "streetSuffix": "Way",
+      "zip": "M2N 7A2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 689000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 689000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 748482.6342368599,
+      "low": 651096.1157631401,
+      "value": 699789.375,
+      "date": "2025-05-20T14:49:53.301Z",
+      "confidence": 0.069582735858,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 699789.375
+          },
+          "2025-04": {
+            "value": 695910.6875
+          },
+          "2025-03": {
+            "value": 690795.1875
+          },
+          "2025-02": {
+            "value": 691102
+          },
+          "2025-01": {
+            "value": 688978.9375
+          },
+          "2024-12": {
+            "value": 687019.3125
+          },
+          "2024-11": {
+            "value": 688271.9375
+          },
+          "2024-10": {
+            "value": 689199.4375
+          },
+          "2024-09": {
+            "value": 688885.875
+          },
+          "2024-08": {
+            "value": 688928.625
+          },
+          "2024-07": {
+            "value": 690446.8125
+          },
+          "2024-06": {
+            "value": 691695
+          },
+          "2024-05": {
+            "value": 699908.125
+          },
+          "2024-04": {
+            "value": 702351.6875
+          },
+          "2024-03": {
+            "value": 703152.125
+          },
+          "2024-02": {
+            "value": 702929.4375
+          },
+          "2024-01": {
+            "value": 697017.375
+          },
+          "2023-12": {
+            "value": 687512.5625
+          },
+          "2023-11": {
+            "value": 684336.375
+          },
+          "2023-10": {
+            "value": 679673.375
+          },
+          "2023-09": {
+            "value": 679446.875
+          },
+          "2023-08": {
+            "value": 679072.625
+          },
+          "2023-07": {
+            "value": 677723.375
+          },
+          "2023-06": {
+            "value": 676147.875
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Simcoe",
+      "city": "Barrie",
+      "country": "Canada",
+      "streetName": "Westminster",
+      "streetNumber": "10",
+      "streetSuffix": "Circ",
+      "zip": "L4M 0A3",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 834900,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 834900,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 908730.378304536,
+      "low": 780286.871695464,
+      "value": 844508.625,
+      "date": "2025-05-20T15:21:43.204Z",
+      "confidence": 0.076046296513,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 844508.625
+          },
+          "2025-04": {
+            "value": 840047.125
+          },
+          "2025-03": {
+            "value": 837576.5
+          },
+          "2025-02": {
+            "value": 836952.5625
+          },
+          "2025-01": {
+            "value": 833749.6875
+          },
+          "2024-12": {
+            "value": 835493.0625
+          },
+          "2024-11": {
+            "value": 837466.8125
+          },
+          "2024-10": {
+            "value": 830708.875
+          },
+          "2024-09": {
+            "value": 829066.125
+          },
+          "2024-08": {
+            "value": 829470.0625
+          },
+          "2024-07": {
+            "value": 830364.6875
+          },
+          "2024-06": {
+            "value": 833277.3125
+          },
+          "2024-05": {
+            "value": 843588.5
+          },
+          "2024-04": {
+            "value": 848395.875
+          },
+          "2024-03": {
+            "value": 849845.8125
+          },
+          "2024-02": {
+            "value": 849726.6875
+          },
+          "2024-01": {
+            "value": 844344.6875
+          },
+          "2023-12": {
+            "value": 827173.8125
+          },
+          "2023-11": {
+            "value": 823358.625
+          },
+          "2023-10": {
+            "value": 816507.8125
+          },
+          "2023-09": {
+            "value": 815037.3125
+          },
+          "2023-08": {
+            "value": 812978.625
+          },
+          "2023-07": {
+            "value": 811927
+          },
+          "2023-06": {
+            "value": 811978.3125
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "York",
+      "city": "Vaughan",
+      "country": null,
+      "streetName": "Southvale",
+      "streetNumber": "17",
+      "streetSuffix": "Dr",
+      "zip": "L6A 0X2",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 1918000,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 1918000,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 2203640.6335172798,
+      "low": 1826665.36648272,
+      "value": 2015153,
+      "date": "2025-05-20T15:21:42.876Z",
+      "confidence": 0.093535147712,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 2015153
+          },
+          "2025-04": {
+            "value": 1999055.75
+          },
+          "2025-03": {
+            "value": 1967524
+          },
+          "2025-02": {
+            "value": 1966424.375
+          },
+          "2025-01": {
+            "value": 1955908.375
+          },
+          "2024-12": {
+            "value": 1984121.375
+          },
+          "2024-11": {
+            "value": 1962966.375
+          },
+          "2024-10": {
+            "value": 1961688
+          },
+          "2024-09": {
+            "value": 1958825.75
+          },
+          "2024-08": {
+            "value": 1958935.75
+          },
+          "2024-07": {
+            "value": 1960448.375
+          },
+          "2024-06": {
+            "value": 1966824.625
+          },
+          "2024-05": {
+            "value": 1993001.25
+          },
+          "2024-04": {
+            "value": 2009650.25
+          },
+          "2024-03": {
+            "value": 2018045
+          },
+          "2024-02": {
+            "value": 2017634.375
+          },
+          "2024-01": {
+            "value": 2003833.75
+          },
+          "2023-12": {
+            "value": 1951984.25
+          },
+          "2023-11": {
+            "value": 1940220.75
+          },
+          "2023-10": {
+            "value": 1920620.375
+          },
+          "2023-09": {
+            "value": 1916784.375
+          },
+          "2023-08": {
+            "value": 1912976.75
+          },
+          "2023-07": {
+            "value": 1909578
+          },
+          "2023-06": {
+            "value": 1909641.25
+          }
+        }
+      }
+    }
+  },
+  {
+    "address": {
+      "area": "Toronto",
+      "city": "Toronto",
+      "country": "Canada",
+      "streetName": "Merchant",
+      "streetNumber": "40",
+      "streetSuffix": "Lane",
+      "zip": "M6P 4J6",
+      "state": "Ontario"
+    },
+    "priceHistory": {
+      "listPrice": 999999,
+      "listDate": "2025-05-20T00:00:00.000-00:00",
+      "originalPrice": 999999,
+      "soldPrice": null,
+      "soldDate": null
+    },
+    "estimate": {
+      "high": 1273313.5763982618,
+      "low": 854406.1736017381,
+      "value": 1063859.875,
+      "date": "2025-05-20T14:26:01.139Z",
+      "confidence": 0.19688091103000002,
+      "history": {
+        "mth": {
+          "2025-05": {
+            "value": 1063859.875
+          },
+          "2025-04": {
+            "value": 1058205.25
+          },
+          "2025-03": {
+            "value": 1049954
+          },
+          "2025-02": {
+            "value": 1050419.625
+          },
+          "2025-01": {
+            "value": 1045489.3125
+          },
+          "2024-12": {
+            "value": 1059867.875
+          },
+          "2024-11": {
+            "value": 1044059.875
+          },
+          "2024-10": {
+            "value": 1041106.6875
+          },
+          "2024-09": {
+            "value": 1032012.375
+          },
+          "2024-08": {
+            "value": 1032570
+          },
+          "2024-07": {
+            "value": 1033395.375
+          },
+          "2024-06": {
+            "value": 1035082
+          },
+          "2024-05": {
+            "value": 1047328.375
+          },
+          "2024-04": {
+            "value": 1052893.625
+          },
+          "2024-03": {
+            "value": 1055795
+          },
+          "2024-02": {
+            "value": 1055549.375
+          },
+          "2024-01": {
+            "value": 1047233.875
+          },
+          "2023-12": {
+            "value": 1021030.375
+          },
+          "2023-11": {
+            "value": 1016819.5
+          },
+          "2023-10": {
+            "value": 1010043
+          },
+          "2023-09": {
+            "value": 1007478.875
+          },
+          "2023-08": {
+            "value": 1004137.375
+          },
+          "2023-07": {
+            "value": 1001930.125
+          },
+          "2023-06": {
+            "value": 1001414.125
+          }
+        }
+      }
+    }
+  }
+]
