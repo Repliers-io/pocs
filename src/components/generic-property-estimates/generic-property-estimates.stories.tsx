@@ -1,16 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { EstimatesForm } from ".";
+import { EstimatesForm } from "./generic-property-estimates";
 
 const meta: Meta<typeof EstimatesForm> = {
-  title: "Components/EstimatesForm",
+  title: "PoCs/Generic Property Estimates",
   component: EstimatesForm,
   parameters: {
     layout: "centered",
     docs: {
       description: {
         component: `
-# Property Estimate Form
-
 A comprehensive form component for collecting property details and generating real estate estimates.
 
 ## Features
@@ -33,7 +31,7 @@ A comprehensive form component for collecting property details and generating re
 ## Usage
 
 \`\`\`tsx
-import { EstimatesForm } from "@/components/estimates";
+import { EstimatesForm } from "@/components/generic-property-estimates";
 
 export default function MyPage() {
   return (
@@ -130,6 +128,6 @@ The component uses Tailwind CSS for styling and is built on top of shadcn/ui com
 export default meta;
 type Story = StoryObj<typeof EstimatesForm>;
 
-export const Default: Story = {
+export const WorkingDemo: Story = {
   args: {},
 };

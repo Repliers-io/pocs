@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ZipCodeData } from "./zip-code-data";
+import { AIInventoryForecast } from "./AI-inventory-forecast";
 
 /**
- * # ZipCodeData Component
  *
  * A React component that provides real estate market analysis for a given zip code. It fetches data from Repliers API and uses OpenAI to analyze market trends.
  *
@@ -13,7 +12,7 @@ import { ZipCodeData } from "./zip-code-data";
  * ## Complete Code
  *
  * You can find the complete working code for this component in the Repliers POCs repository:
- * [View on GitHub](https://github.com/Repliers-io/pocs/blob/main/src/components/zip-code-data/zip-code-data.tsx)
+ * [View on GitHub](https://github.com/Repliers-io/pocs/blob/main/src/components/statistics-by-zip-code/AI-inventory-forecast.tsx)
  *
  * ## Tech Stack
  * - React
@@ -50,12 +49,12 @@ import { ZipCodeData } from "./zip-code-data";
  * ## Usage Example
  *
  * ```tsx
- * import { ZipCodeData } from "./zip-code-data";
+ * import { AIInventoryForecast } from "./AI-inventory-forecast";
  *
  * function App() {
  *   return (
  *     <div className="container mx-auto p-4">
- *       <ZipCodeData />
+ *       <AIInventoryForecast />
  *     </div>
  *   );
  * }
@@ -102,9 +101,9 @@ import { ZipCodeData } from "./zip-code-data";
  * - ./data-display
  */
 
-const meta: Meta<typeof ZipCodeData> = {
-  title: "Components/ZipCodeData",
-  component: ZipCodeData,
+const meta: Meta<typeof AIInventoryForecast> = {
+  title: "PoCs/Statistics by Zip Code/AI Inventory Forecast",
+  component: AIInventoryForecast,
   parameters: {
     layout: "centered",
   },
@@ -112,8 +111,8 @@ const meta: Meta<typeof ZipCodeData> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof ZipCodeData>;
+type Story = StoryObj<typeof AIInventoryForecast>;
 
-export const Default: Story = {
+export const WorkingDemo: Story = {
   args: {},
 };

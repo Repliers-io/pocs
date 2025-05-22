@@ -16,6 +16,10 @@ interface ProcessedData {
   location: string;
   averagePrice: number;
   priceChange: number;
+  sixMonthAverage: number;
+  sixMonthChange: number;
+  yearOverYearAverage: number;
+  yearOverYearChange: number;
   currentInventory: number;
   daysOnMarket: number;
   inventoryForecast: InventoryForecast[];
@@ -23,7 +27,78 @@ interface ProcessedData {
 
 type LoadingStep = "idle" | "fetching-repliers" | "analyzing-data" | "complete";
 
-export function ZipCodeData() {
+function calculatePriceMetrics(repliersData: any): {
+  averagePrice: number;
+  priceChange: number;
+  sixMonthAverage: number;
+  sixMonthChange: number;
+  yearOverYearAverage: number;
+  yearOverYearChange: number;
+} {
+  const monthlyPrices = repliersData.statistics.soldPrice.mth;
+  const months = Object.keys(monthlyPrices).sort();
+
+  // Remove the last month (current month) from our calculations
+  const monthsToUse = months.slice(0, -1);
+
+  // Get the most recent complete month's data (now the last month in our filtered array)
+  const previousMonth = monthsToUse[monthsToUse.length - 1];
+  const twoMonthsAgo = monthsToUse[monthsToUse.length - 2];
+
+  // Calculate previous month's average price
+  const averagePrice = monthlyPrices[previousMonth].avg;
+
+  // Calculate price change between previous month and two months ago
+  const previousPrice = monthlyPrices[previousMonth].avg;
+  const twoMonthsAgoPrice = monthlyPrices[twoMonthsAgo].avg;
+  const priceChange = Number(
+    (((previousPrice - twoMonthsAgoPrice) / twoMonthsAgoPrice) * 100).toFixed(2)
+  );
+
+  // Calculate 6-month averages
+  const last6Months = monthsToUse.slice(-6); // Get last 6 complete months
+  const previous6Months = monthsToUse.slice(-12, -6); // Get the 6 months before that
+
+  const sixMonthAverage =
+    last6Months.reduce((sum, month) => sum + monthlyPrices[month].avg, 0) / 6;
+  const previousSixMonthAverage =
+    previous6Months.reduce((sum, month) => sum + monthlyPrices[month].avg, 0) /
+    6;
+  const sixMonthChange = Number(
+    (
+      ((sixMonthAverage - previousSixMonthAverage) / previousSixMonthAverage) *
+      100
+    ).toFixed(2)
+  );
+
+  // Calculate year-over-year averages
+  const last12Months = monthsToUse.slice(-12); // Get last 12 complete months
+  const previous12Months = monthsToUse.slice(-24, -12); // Get the 12 months before that
+
+  const yearOverYearAverage =
+    last12Months.reduce((sum, month) => sum + monthlyPrices[month].avg, 0) / 12;
+  const previousYearOverYearAverage =
+    previous12Months.reduce((sum, month) => sum + monthlyPrices[month].avg, 0) /
+    12;
+  const yearOverYearChange = Number(
+    (
+      ((yearOverYearAverage - previousYearOverYearAverage) /
+        previousYearOverYearAverage) *
+      100
+    ).toFixed(2)
+  );
+
+  return {
+    averagePrice,
+    priceChange,
+    sixMonthAverage,
+    sixMonthChange,
+    yearOverYearAverage,
+    yearOverYearChange,
+  };
+}
+
+export function AIInventoryForecast() {
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [showOpenaiApiKey, setShowOpenaiApiKey] = useState(false);
@@ -43,6 +118,10 @@ export function ZipCodeData() {
     location: "Location will appear here",
     averagePrice: 0,
     priceChange: 0,
+    sixMonthAverage: 0,
+    sixMonthChange: 0,
+    yearOverYearAverage: 0,
+    yearOverYearChange: 0,
     currentInventory: 0,
     daysOnMarket: 0,
     inventoryForecast: [
@@ -104,7 +183,10 @@ export function ZipCodeData() {
 
       setLoadingStep("analyzing-data");
 
-      // Second API call to OpenAI
+      // Calculate price metrics from Repliers data
+      const priceMetrics = calculatePriceMetrics(repliersData);
+
+      // Second API call to OpenAI for remaining analysis
       const openaiResponse = await fetch(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -141,8 +223,6 @@ export function ZipCodeData() {
                   `  "zipCode": "string - use the provided zip code: ${zipCode}",\n` +
                   `  "riskLevel": "string - calculate based on trends in cnt-closed and avg-soldPrice",\n` +
                   `  "location": "string - city and state based on zip code ${zipCode}",\n` +
-                  `  "averagePrice": "number - use the most recent avg-soldPrice",\n` +
-                  `  "priceChange": "number - calculate percentage change in avg-soldPrice between most recent and previous month",\n` +
                   `  "currentInventory": "number - use the most recent cnt-available",\n` +
                   `  "daysOnMarket": "number - use the most recent med-daysOnMarket",\n` +
                   `  "inventoryForecast": [\n` +
@@ -187,22 +267,28 @@ export function ZipCodeData() {
           .trim();
         console.log("Cleaned content:", cleanedContent);
 
-        const parsedProps = JSON.parse(cleanedContent) as ProcessedData;
+        const parsedProps = JSON.parse(cleanedContent);
         console.log("Parsed Props:", parsedProps);
 
-        // Validate the parsed data
+        // Combine OpenAI analysis with our calculated price metrics
+        const processedData: ProcessedData = {
+          ...parsedProps,
+          ...priceMetrics,
+        };
+
+        // Validate the processed data
         if (
-          !parsedProps.zipCode ||
-          !parsedProps.riskLevel ||
-          !parsedProps.location ||
-          !Array.isArray(parsedProps.inventoryForecast) ||
-          parsedProps.inventoryForecast.length !== 3
+          !processedData.zipCode ||
+          !processedData.riskLevel ||
+          !processedData.location ||
+          !Array.isArray(processedData.inventoryForecast) ||
+          processedData.inventoryForecast.length !== 3
         ) {
-          console.error("Invalid data structure:", parsedProps);
+          console.error("Invalid data structure:", processedData);
           throw new Error("Invalid data structure returned from OpenAI");
         }
 
-        setProcessedData(parsedProps);
+        setProcessedData(processedData);
         setLoadingStep("complete");
       } catch (parseError: unknown) {
         console.error("JSON Parse Error:", parseError);

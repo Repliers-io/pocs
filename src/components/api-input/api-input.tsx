@@ -21,7 +21,7 @@ export function ApiInput({ onApiKeyChange, className }: ApiInputProps) {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <label htmlFor="api-key" className="text-sm font-medium">
-        RepliersAPI Key
+        Repliers API Key
       </label>
       <div className="flex gap-2 items-center">
         <Input
