@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ApiInput } from "@/components/api-input/api-input";
 import { useState } from "react";
 import DataDisplay from "./data-display";
+import { Eye, EyeOff } from "lucide-react";
 
 interface InventoryForecast {
   month: string;
@@ -25,6 +26,7 @@ type LoadingStep = "idle" | "fetching-repliers" | "analyzing-data" | "complete";
 export function ZipCodeData() {
   const [apiKey, setApiKey] = useState("");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [showOpenaiApiKey, setShowOpenaiApiKey] = useState(false);
   const [zipCode, setZipCode] = useState("94112");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
@@ -225,15 +227,31 @@ export function ZipCodeData() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <ApiInput onApiKeyChange={setApiKey} />
 
-        <div className="flex gap-2">
-          <Input
-            type="password"
-            placeholder="OpenAI API Key"
-            className="max-w-[300px]"
-            value={openaiApiKey}
-            onChange={(e) => setOpenaiApiKey(e.target.value)}
-            required
-          />
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">OpenAI API Key</label>
+          <div className="flex gap-2 items-center">
+            <Input
+              type={showOpenaiApiKey ? "text" : "password"}
+              placeholder="OpenAI API Key"
+              className="max-w-[300px]"
+              value={openaiApiKey}
+              onChange={(e) => setOpenaiApiKey(e.target.value)}
+              required
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowOpenaiApiKey(!showOpenaiApiKey)}
+              className="h-10 w-10"
+            >
+              {showOpenaiApiKey ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2">

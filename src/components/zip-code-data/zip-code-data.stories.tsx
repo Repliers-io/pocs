@@ -6,6 +6,10 @@ import { ZipCodeData } from "./zip-code-data";
  *
  * A React component that provides real estate market analysis for a given zip code. It fetches data from Repliers API and uses OpenAI to analyze market trends.
  *
+ * ## Video Demo
+ *
+ * Watch a demo of this component in action: [View Demo Video](https://www.loom.com/share/503d120372d2445786922c0a4f89cc3f?sid=e0ca72d9-0b25-46e9-9366-ac1ae3e87919)
+ *
  * ## Complete Code
  *
  * You can find the complete working code for this component in the Repliers POCs repository:
