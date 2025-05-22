@@ -1,4 +1,4 @@
-import{j as e,M as o}from"./storybook-vendor-8Vm6ZddL.js";import{useMDXComponents as t}from"./index-BQWIn21j.js";import"./react-vendor-Cl_43YK6.js";function i(s){const n={h1:"h1",h2:"h2",li:"li",ol:"ol",p:"p",strong:"strong",ul:"ul",...t(),...s.components};return e.jsxs(e.Fragment,{children:[e.jsx(o,{title:"Getting Started/Introduction"}),`
+import{j as e}from"./jsx-runtime-CBjAUaf4.js";import{useMDXComponents as t}from"./index-KJYtXZ-a.js";import{M as o}from"./index-BWthFvYW.js";import"./jsx-runtime-B2VJbz7C.js";import"./index-CoAThXCU.js";import"./iframe-BuqyjNKD.js";import"./index-CfR0xb4d.js";import"./index-fny-Lthe.js";import"./index-CXQShRbs.js";import"./index-DrFu-skq.js";function i(s){const n={h1:"h1",h2:"h2",li:"li",ol:"ol",p:"p",strong:"strong",ul:"ul",...t(),...s.components};return e.jsxs(e.Fragment,{children:[e.jsx(o,{title:"Getting Started/Introduction"}),`
 `,e.jsx(n.h1,{id:"repliers-api-poc-showcase",children:"Repliers API PoC Showcase"}),`
 `,e.jsx(n.p,{children:"Welcome to the Repliers API PoC Showcase! This Storybook serves as a comprehensive collection of Proof of Concepts (PoCs) that demonstrate the power and versatility of the Repliers API. Whether you're a developer looking to implement specific features or exploring the API's capabilities, you'll find practical examples and use cases here."}),`
 `,e.jsx(n.h2,{id:"what-is-this-storybook",children:"What is this Storybook?"}),`
@@ -57,4 +57,4 @@ import{j as e,M as o}from"./storybook-vendor-8Vm6ZddL.js";import{useMDXComponent
 `,e.jsx(n.li,{children:"Check the implementation details and code examples"}),`
 `,e.jsx(n.li,{children:"Contact the Repliers API team for assistance"}),`
 `,e.jsx(n.li,{children:"Request a custom PoC for your specific use case"}),`
-`]})]})}function a(s={}){const{wrapper:n}={...t(),...s.components};return n?e.jsx(n,{...s,children:e.jsx(i,{...s})}):i(s)}export{a as default};
+`]})]})}function j(s={}){const{wrapper:n}={...t(),...s.components};return n?e.jsx(n,{...s,children:e.jsx(i,{...s})}):i(s)}export{j as default};
