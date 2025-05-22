@@ -102,7 +102,7 @@ export function EstimatesForm() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`https://dev.repliers.io/estimates`, {
+      const response = await fetch(`https://api.repliers.io/estimates`, {
         method: "POST",
         headers: {
           "REPLIERS-API-KEY": apiKey,

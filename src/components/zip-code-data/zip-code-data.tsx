@@ -2,106 +2,77 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ApiInput } from "@/components/api-input/api-input";
 import { useState } from "react";
+import DataDisplay from "./data-display";
 
-interface Address {
-  area: string;
-  city: string;
-  country: string;
-  streetName: string;
-  streetNumber: string;
-  streetSuffix: string;
-  zip: string;
-  state: string;
-}
-
-interface PriceHistory {
-  listPrice: number;
-  listDate: string;
-  originalPrice: number;
-  soldPrice: number | null;
-  soldDate: string | null;
-}
-
-interface Estimate {
-  high: number;
-  low: number;
+interface InventoryForecast {
+  month: string;
   value: number;
-  date: string;
-  confidence: number;
-  history: {
-    mth: {
-      [key: string]: {
-        value: number;
-      };
-    };
-  };
 }
 
-interface FilteredListing {
-  address: Address;
-  priceHistory: PriceHistory;
-  estimate?: Estimate;
+interface ProcessedData {
+  zipCode: string;
+  riskLevel: string;
+  location: string;
+  averagePrice: number;
+  priceChange: number;
+  currentInventory: number;
+  daysOnMarket: number;
+  inventoryForecast: InventoryForecast[];
 }
+
+type LoadingStep = "idle" | "fetching-repliers" | "analyzing-data" | "complete";
 
 export function ZipCodeData() {
   const [apiKey, setApiKey] = useState("");
-  const [zipCode, setZipCode] = useState("M1P3C2");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [zipCode, setZipCode] = useState("94112");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [response, setResponse] = useState<FilteredListing[]>([]);
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [response, setResponse] = useState<any>(null);
+  const [processedData, setProcessedData] = useState<ProcessedData | null>(
+    null
+  );
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(response, null, 2));
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
+  // Placeholder data for when no API response is available
+  const placeholderData: ProcessedData = {
+    zipCode: "Enter Zip Code",
+    riskLevel: "N/A",
+    location: "Location will appear here",
+    averagePrice: 0,
+    priceChange: 0,
+    currentInventory: 0,
+    daysOnMarket: 0,
+    inventoryForecast: [
+      { month: "Month 1", value: 0 },
+      { month: "Month 2", value: 0 },
+      { month: "Month 3", value: 0 },
+    ],
   };
 
-  const filterResponse = (data: any): FilteredListing[] => {
-    if (!data.listings) return [];
-
-    return data.listings.map((listing: any) => ({
-      address: {
-        area: listing.address.area,
-        city: listing.address.city,
-        country: listing.address.country,
-        streetName: listing.address.streetName,
-        streetNumber: listing.address.streetNumber,
-        streetSuffix: listing.address.streetSuffix,
-        zip: listing.address.zip,
-        state: listing.address.state,
-      },
-      priceHistory: {
-        listPrice: listing.listPrice,
-        listDate: listing.listDate,
-        originalPrice: listing.originalPrice,
-        soldPrice: listing.soldPrice,
-        soldDate: listing.soldDate,
-      },
-      estimate: listing.estimate
-        ? {
-            high: listing.estimate.high,
-            low: listing.estimate.low,
-            value: listing.estimate.value,
-            date: listing.estimate.date,
-            confidence: listing.estimate.confidence,
-            history: listing.estimate.history,
-          }
-        : undefined,
-    }));
+  const getStatusMessage = (step: LoadingStep) => {
+    switch (step) {
+      case "fetching-repliers":
+        return "Fetching real estate data from Repliers...";
+      case "analyzing-data":
+        return "Analyzing market data with AI...";
+      case "complete":
+        return "Analysis complete!";
+      default:
+        return "";
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setProcessedData(null);
+    setLoadingStep("fetching-repliers");
 
     try {
-      const headers = {
+      // First API call to Repliers
+      const repliersHeaders = {
         "REPLIERS-API-KEY": apiKey,
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -110,44 +81,143 @@ export function ZipCodeData() {
         Connection: "keep-alive",
       };
 
-      const response = await fetch(`https://dev.repliers.io/listings`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ zipCode }),
-      });
+      const repliersResponse = await fetch(
+        `https://dev.repliers.io/listings?listings=false&statistics=cnt-available,avg-soldPrice,med-daysOnMarket,cnt-new,cnt-closed,grp-mth&type=sale&status=U&minSoldDate=2023-05-20&status=A&zip=${zipCode}`,
+        {
+          method: "GET",
+          headers: repliersHeaders,
+        }
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (!repliersResponse.ok) {
+        const errorText = await repliersResponse.text();
         throw new Error(
-          `HTTP error! status: ${response.status}, message: ${errorText}`
+          `Repliers API error! status: ${repliersResponse.status}, message: ${errorText}`
         );
       }
 
-      const result = await response.json();
-      const filteredData = filterResponse(result);
-      setResponse(filteredData);
+      const repliersData = await repliersResponse.json();
+      setResponse(repliersData);
+      console.log("Repliers Response:", repliersData);
+
+      setLoadingStep("analyzing-data");
+
+      // Second API call to OpenAI
+      const openaiResponse = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a helpful assistant that analyzes real estate data and returns structured insights in JSON format. Your analysis should be based on the provided Repliers data. IMPORTANT: Return ONLY the JSON object without any additional text, explanations, or markdown formatting. Use the exact field names and data types as specified.",
+              },
+              {
+                role: "user",
+                content:
+                  `Analyze the following real estate data from Repliers and return ONLY a JSON object with the specified fields. The Repliers data contains these key metrics:\n` +
+                  `- cnt-available: Number of listings available at the end of each month\n` +
+                  `- cnt-closed: Number of listings sold in each month\n` +
+                  `- cnt-new: Number of new listings added in each month\n` +
+                  `- avg-soldPrice: Average sold price for each month\n` +
+                  `- med-daysOnMarket: Median time to sell\n\n` +
+                  `Target Zip Code: ${zipCode}\n\n` +
+                  `Repliers Data: ${JSON.stringify(
+                    repliersData,
+                    null,
+                    2
+                  )}\n\n` +
+                  `Return a JSON object with these exact fields and types:\n` +
+                  `{\n` +
+                  `  "zipCode": "string - use the provided zip code: ${zipCode}",\n` +
+                  `  "riskLevel": "string - calculate based on trends in cnt-closed and avg-soldPrice",\n` +
+                  `  "location": "string - city and state based on zip code ${zipCode}",\n` +
+                  `  "averagePrice": "number - use the most recent avg-soldPrice",\n` +
+                  `  "priceChange": "number - calculate percentage change in avg-soldPrice between most recent and previous month",\n` +
+                  `  "currentInventory": "number - use the most recent cnt-available",\n` +
+                  `  "daysOnMarket": "number - use the most recent med-daysOnMarket",\n` +
+                  `  "inventoryForecast": [\n` +
+                  `    {"month": "string - next month abbreviation", "value": "number - project based on cnt-new and cnt-closed trends"},\n` +
+                  `    {"month": "string - month after next abbreviation", "value": "number - project based on cnt-new and cnt-closed trends"},\n` +
+                  `    {"month": "string - third month abbreviation", "value": "number - project based on cnt-new and cnt-closed trends"}\n` +
+                  `  ]\n` +
+                  `}\n\n` +
+                  `IMPORTANT:\n` +
+                  `1. Return ONLY the JSON object with actual values\n` +
+                  `2. Use the exact field names and types as shown above\n` +
+                  `3. Calculate riskLevel based on trends in sales and prices\n` +
+                  `4. For inventoryForecast, use trends in cnt-new and cnt-closed to project future inventory\n` +
+                  `5. Use the provided zip code ${zipCode} for the zipCode and location fields\n` +
+                  `6. No explanations, no markdown, no additional text`,
+              },
+            ],
+            temperature: 0.2,
+          }),
+        }
+      );
+
+      if (!openaiResponse.ok) {
+        const errorText = await openaiResponse.text();
+        console.error("OpenAI Error Response:", errorText);
+        throw new Error(
+          `OpenAI API error! status: ${openaiResponse.status}, message: ${errorText}`
+        );
+      }
+
+      const openaiData = await openaiResponse.json();
+      console.log("OpenAI Response:", openaiData);
+
+      const { choices } = openaiData;
+      console.log("OpenAI Choices:", choices);
+      console.log("Raw content from OpenAI:", choices[0].message.content);
+
+      try {
+        // First try to clean the response in case there are any markdown code blocks
+        const cleanedContent = choices[0].message.content
+          .replace(/```json\n?|\n?```/g, "")
+          .trim();
+        console.log("Cleaned content:", cleanedContent);
+
+        const parsedProps = JSON.parse(cleanedContent) as ProcessedData;
+        console.log("Parsed Props:", parsedProps);
+
+        // Validate the parsed data
+        if (
+          !parsedProps.zipCode ||
+          !parsedProps.riskLevel ||
+          !parsedProps.location ||
+          !Array.isArray(parsedProps.inventoryForecast) ||
+          parsedProps.inventoryForecast.length !== 3
+        ) {
+          console.error("Invalid data structure:", parsedProps);
+          throw new Error("Invalid data structure returned from OpenAI");
+        }
+
+        setProcessedData(parsedProps);
+        setLoadingStep("complete");
+      } catch (parseError: unknown) {
+        console.error("JSON Parse Error:", parseError);
+        console.error("Failed to parse content:", choices[0].message.content);
+        throw new Error(
+          `Failed to parse OpenAI response: ${
+            parseError instanceof Error ? parseError.message : "Unknown error"
+          }`
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       console.error("Error:", err);
+      setLoadingStep("idle");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-CA", {
-      style: "currency",
-      currency: "CAD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-CA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
   return (
@@ -157,141 +227,43 @@ export function ZipCodeData() {
 
         <div className="flex gap-2">
           <Input
+            type="password"
+            placeholder="OpenAI API Key"
+            className="max-w-[300px]"
+            value={openaiApiKey}
+            onChange={(e) => setOpenaiApiKey(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <Input
             type="text"
-            placeholder="M1P3C2"
+            placeholder="95130"
             className="max-w-[200px]"
             value={zipCode}
             onChange={(e) => setZipCode(e.target.value)}
             required
           />
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Searching..." : "Search"}
+            {isLoading ? "Loading..." : "Get Data"}
           </Button>
         </div>
 
         {error && <div className="text-red-500 text-sm">{error}</div>}
       </form>
 
-      {response.length > 0 && (
-        <div className="border rounded-lg p-6 bg-white shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Property Listings</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
-              className="flex items-center gap-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-              </svg>
-              {copySuccess ? "Copied!" : "Copy Response"}
-            </Button>
-          </div>
-          <div className="space-y-6">
-            {response.map((listing, index) => (
-              <div key={index} className="border-b pb-4 last:border-b-0">
-                <div className="mb-2">
-                  <h3 className="font-medium text-gray-700">Address</h3>
-                  <p className="text-sm text-gray-600">
-                    {listing.address.streetNumber} {listing.address.streetName}{" "}
-                    {listing.address.streetSuffix}
-                    <br />
-                    {listing.address.city}, {listing.address.state}{" "}
-                    {listing.address.zip}
-                    <br />
-                    {listing.address.country}
-                  </p>
-                </div>
-                <div className="mb-2">
-                  <h3 className="font-medium text-gray-700">Price History</h3>
-                  <div className="text-sm text-gray-600">
-                    <p>
-                      List Price:{" "}
-                      {formatCurrency(listing.priceHistory.listPrice)}
-                    </p>
-                    <p>
-                      Original Price:{" "}
-                      {formatCurrency(listing.priceHistory.originalPrice)}
-                    </p>
-                    <p>
-                      List Date: {formatDate(listing.priceHistory.listDate)}
-                    </p>
-                    {listing.priceHistory.soldPrice && (
-                      <>
-                        <p>
-                          Sold Price:{" "}
-                          {formatCurrency(listing.priceHistory.soldPrice)}
-                        </p>
-                        <p>
-                          Sold Date:{" "}
-                          {formatDate(listing.priceHistory.soldDate!)}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {listing.estimate && (
-                  <div>
-                    <h3 className="font-medium text-gray-700">
-                      Property Estimate
-                    </h3>
-                    <div className="text-sm text-gray-600">
-                      <p>
-                        Current Estimate:{" "}
-                        {formatCurrency(listing.estimate.value)}
-                      </p>
-                      <p>
-                        Estimate Range: {formatCurrency(listing.estimate.low)} -{" "}
-                        {formatCurrency(listing.estimate.high)}
-                      </p>
-                      <p>
-                        Confidence:{" "}
-                        {(listing.estimate.confidence * 100).toFixed(1)}%
-                      </p>
-                      <p>Last Updated: {formatDate(listing.estimate.date)}</p>
-                      <div className="mt-2">
-                        <h4 className="font-medium text-gray-600">
-                          Complete Price History
-                        </h4>
-                        <div className="space-y-1">
-                          {Object.entries(listing.estimate.history.mth)
-                            .sort(
-                              ([dateA], [dateB]) =>
-                                new Date(dateB).getTime() -
-                                new Date(dateA).getTime()
-                            )
-                            .map(([date, data]) => (
-                              <p key={date} className="text-sm">
-                                {new Date(date).toLocaleDateString("en-CA", {
-                                  year: "numeric",
-                                  month: "short",
-                                })}
-                                : {formatCurrency(data.value)}
-                              </p>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+      {loadingStep !== "idle" && (
+        <div
+          className={`text-sm font-medium ${
+            loadingStep === "complete" ? "text-green-600" : "text-blue-600"
+          }`}
+        >
+          {getStatusMessage(loadingStep)}
         </div>
       )}
+
+      <DataDisplay {...(processedData || placeholderData)} />
     </div>
   );
 }
