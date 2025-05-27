@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { EstimatesForm } from "./generic-property-estimates";
 
 const meta: Meta<typeof EstimatesForm> = {
-  title: "PoCs/Generic Property Estimates",
+  title: "PoCs/Estimates/Generic Property Estimates",
   component: EstimatesForm,
   parameters: {
     layout: "centered",
