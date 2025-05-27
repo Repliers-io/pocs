@@ -26,12 +26,19 @@ import { AIInventoryForecast } from "./AI-inventory-forecast";
  * npm install openai lucide-react
  * ```
  *
- * 2. Copy the component files:
- * - `AI-inventory-forecast.tsx`
- * - `data-display.tsx`
- * - Required UI components from your component library
+ * 2. Set up UI Components:
+ *    - If you have your own component library, you can use your existing components
+ *    - If not, copy our UI components:
+ *      - Basic UI components (buttons, inputs, etc.): [View UI Components](https://github.com/Repliers-io/pocs/tree/main/src/components/ui)
+ *      - Data display component: [View Data Display Component](https://github.com/Repliers-io/pocs/blob/main/src/components/statistics/statistics-by-zip/inventory-forecast/data-display.tsx)
  *
- * 3. Add to your project:
+ * 3. Copy the component files:
+ *    - `AI-inventory-forecast.tsx`
+ *    - `data-display.tsx` (if not using your own UI)
+ *    - Required UI components (either from your library or ours)
+ *
+ * 4. Add to your project:
+ *
  * ```tsx
  * import { AIInventoryForecast } from "./components/AI-inventory-forecast";
  *
