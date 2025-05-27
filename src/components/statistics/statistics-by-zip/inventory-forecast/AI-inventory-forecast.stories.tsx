@@ -3,6 +3,16 @@ import { AIInventoryForecast } from "./AI-inventory-forecast";
 
 /**
  *
+ * ## 👤 User Story
+ *
+ * As a real estate professional, I want to search an area by zip code and analyze the projected inventory for the next three months.
+ *
+ * This component helps real estate professionals:
+ * - Quickly assess market conditions in any area
+ * - Make data-driven decisions about inventory management
+ * - Plan for future market changes
+ * - Identify potential investment opportunities
+ *
  * This component provides real-time real estate market analysis for any given zip code using Repliers API data and OpenAI's analysis capabilities.
  *
  * ## 🎥 Video Demo
@@ -183,6 +193,11 @@ import { AIInventoryForecast } from "./AI-inventory-forecast";
  * - Invalid zip codes
  * - API rate limiting
  * - Data processing errors
+ *
+ * ## 📝 Full Component Code
+ *
+ * For the complete implementation of this component, including all the code and functionality, visit:
+ * [View Full Component Code](https://github.com/Repliers-io/pocs/blob/main/src/components/statistics/statistics-by-zip/inventory-forecast/AI-inventory-forecast.tsx)
  *
  */
 
