@@ -364,7 +364,7 @@ const DROPDOWN_OPTIONS = {
   ],
 } as const;
 
-export function EstimatesForm() {
+export function PropertyValueEstimator() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<any>(null);

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { AIInventoryForecast } from "./AI-inventory-forecast";
+import { AIInventoryForecast } from "./openAI-market-inventory-forecaster";
 
 /**
  *
@@ -33,14 +33,14 @@ import { AIInventoryForecast } from "./AI-inventory-forecast";
  *      - Data display component: [View Data Display Component](https://github.com/Repliers-io/pocs/blob/main/src/components/statistics/statistics-by-zip/inventory-forecast/data-display.tsx)
  *
  * 3. Copy the component files:
- *    - `AI-inventory-forecast.tsx`
+ *    - `openAI-market-inventory-forecaster.tsx`
  *    - `data-display.tsx` (if not using your own UI)
  *    - Required UI components (either from your library or ours)
  *
  * 4. Add to your project:
  *
  * ```tsx
- * import { AIInventoryForecast } from "./components/AI-inventory-forecast";
+ * import { AIInventoryForecast } from "./components/openAI-market-inventory-forecaster";
  *
  * function App() {
  *   return (
@@ -204,7 +204,7 @@ import { AIInventoryForecast } from "./AI-inventory-forecast";
  * ## 📝 Full Component Code
  *
  * For the complete implementation of this component, including all the code and functionality, visit:
- * [View Full Component Code](https://github.com/Repliers-io/pocs/blob/main/src/components/statistics/statistics-by-zip/inventory-forecast/AI-inventory-forecast.tsx)
+ * [View Full Component Code](https://github.com/Repliers-io/pocs/blob/main/src/components/statistics/statistics-by-zip/inventory-forecast/openAI-market-inventory-forecaster.tsx)
  *
  */
 

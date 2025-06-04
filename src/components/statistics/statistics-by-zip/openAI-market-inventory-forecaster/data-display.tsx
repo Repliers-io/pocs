@@ -1,6 +1,6 @@
 import React from "react";
 
-interface AIInventoryForecastProps {
+interface OpenAIInventoryForecastProps {
   zipCode: string;
   riskLevel: string;
   location: string;
@@ -18,7 +18,7 @@ interface AIInventoryForecastProps {
   yearOverYearChange: number;
 }
 
-const AIInventoryForecast: React.FC<AIInventoryForecastProps> = ({
+const OpenAIInventoryForecast: React.FC<OpenAIInventoryForecastProps> = ({
   zipCode,
   riskLevel,
   location,
@@ -133,4 +133,4 @@ const AIInventoryForecast: React.FC<AIInventoryForecastProps> = ({
   );
 };
 
-export default AIInventoryForecast;
+export default OpenAIInventoryForecast;

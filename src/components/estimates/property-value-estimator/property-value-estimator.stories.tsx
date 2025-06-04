@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { EstimatesForm } from "./generic-property-estimates";
+import { PropertyValueEstimator } from "./property-value-estimator";
 
 /**
  *
@@ -32,18 +32,18 @@ import { EstimatesForm } from "./generic-property-estimates";
  *      - Basic UI components (buttons, inputs, etc.): [View UI Components](https://github.com/Repliers-io/pocs/tree/main/src/components/ui)
  *
  * 3. Copy the component files:
- *    - `generic-property-estimates.tsx`
+ *    - `property-value-estimator.tsx`
  *    - Required UI components (either from your library or ours)
  *
  * 4. Add to your project:
  *
  * ```tsx
- * import { EstimatesForm } from "./components/generic-property-estimates";
+ * import { PropertyValueEstimator } from "./components/property-value-estimator";
  *
  * function App() {
  *   return (
  *     <div className="container mx-auto p-4">
- *       <EstimatesForm />
+ *       <PropertyValueEstimator />
  *     </div>
  *   );
  * }
@@ -201,13 +201,13 @@ import { EstimatesForm } from "./generic-property-estimates";
  * ## 📝 Full Component Code
  *
  * For the complete implementation of this component, including all the code and functionality, visit:
- * [View Full Component Code](https://github.com/Repliers-io/pocs/blob/main/src/components/estimates/generic-property-estimates/generic-property-estimates.tsx)
+ * [View Full Component Code](https://github.com/Repliers-io/pocs/blob/main/src/components/estimates/property-value-estimator/property-value-estimator.tsx)
  *
  */
 
-const meta: Meta<typeof EstimatesForm> = {
-  title: "PoCs/Estimates/Generic Property Estimates",
-  component: EstimatesForm,
+const meta: Meta<typeof PropertyValueEstimator> = {
+  title: "PoCs/Estimates/Property Value Estimator",
+  component: PropertyValueEstimator,
   parameters: {
     layout: "centered",
   },
@@ -222,7 +222,7 @@ const meta: Meta<typeof EstimatesForm> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof EstimatesForm>;
+type Story = StoryObj<typeof PropertyValueEstimator>;
 
 export const WorkingDemo: Story = {
   args: {},
