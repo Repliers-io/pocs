@@ -202,7 +202,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
     try {
       // Fetch active listings
       const activeResponse = await fetch(
-        `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=1&status=A`,
+        `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=2&status=A`,
         {
           headers: {
             "REPLIERS-API-KEY": apiKey,
@@ -458,7 +458,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
             <div className="p-4 bg-purple-50 rounded-md border border-purple-200">
               <p className="text-sm text-purple-700 mb-2">
                 Found {recentSoldListings.length} properties sold in the last 7
-                days within 1km radius
+                days within 2km radius
               </p>
               <Button
                 variant="outline"
@@ -477,7 +477,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                 <div>
                   <h3 className="font-semibold">Recent Sales (Last 7 Days)</h3>
                   <p className="text-sm text-gray-500">
-                    Within 1km radius of the property
+                    Within 2km radius of the property
                   </p>
                 </div>
                 <Button
@@ -536,7 +536,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
             <div className="p-4 bg-green-50 rounded-md border border-green-200">
               <p className="text-sm text-green-700 mb-2">
                 Found {recentListings.length} new listings in the last 7 days
-                within 1km radius
+                within 2km radius
               </p>
               <Button
                 variant="outline"
@@ -557,7 +557,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                     Recent Listings (Last 7 Days)
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Within 1km radius of the property
+                    Within 2km radius of the property
                   </p>
                 </div>
                 <Button
@@ -597,7 +597,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
           {nearbyListings.length > 0 && !showNearbyListings && (
             <div className="p-4 bg-blue-50 rounded-md border border-blue-200">
               <p className="text-sm text-blue-700 mb-2">
-                Found {totalNearbyCount} active listings within 1km radius
+                Found {totalNearbyCount} active listings within 2km radius
               </p>
               <Button
                 variant="outline"
@@ -616,7 +616,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                 <div>
                   <h3 className="font-semibold">Nearby Active Listings</h3>
                   <p className="text-sm text-gray-500">
-                    All active listings within 1km radius
+                    All active listings within 2km radius
                   </p>
                 </div>
                 <Button
