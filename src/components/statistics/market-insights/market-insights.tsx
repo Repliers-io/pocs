@@ -15,10 +15,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiInput } from "@/components/api-input/api-input";
-import { MLSReport } from "./mls-report";
+import { MLSReport } from "@/components/statistics/market-insights/mls-report";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 // Types
 type FormValues = z.infer<typeof formSchema>;
+
+interface MarketInsightsProps {
+  by: "mls#" | "address";
+}
 
 // Constants
 const formSchema = z.object({
@@ -26,22 +38,134 @@ const formSchema = z.object({
   address: z.object({
     city: z.string(),
     streetName: z.string(),
+    streetSuffix: z.string(),
     streetNumber: z.string(),
-    zip: z.string(),
   }),
 });
 
 const initialValues: FormValues = {
   mlsNumber: "",
   address: {
-    city: "King City",
-    streetName: "Clearview Heights",
-    streetNumber: "106",
-    zip: "L7B 1H6",
+    city: "toronto",
+    streetName: "citation",
+    streetSuffix: "dr",
+    streetNumber: "77",
   },
 };
 
-export function MarketInsightsByAddress() {
+const STREET_SUFFIXES = [
+  "st",
+  "rd",
+  "ave",
+  "blvd",
+  "dr",
+  "ln",
+  "ct",
+  "pl",
+  "cir",
+  "way",
+  "ter",
+  "pkwy",
+  "sq",
+  "hwy",
+  "expy",
+  "trl",
+  "rdg",
+  "run",
+  "path",
+  "pt",
+  "cres",
+  "crt",
+  "cove",
+  "grv",
+  "hill",
+  "hls",
+  "holw",
+  "isles",
+  "isle",
+  "jct",
+  "knls",
+  "knl",
+  "lk",
+  "lks",
+  "land",
+  "lndg",
+  "mdws",
+  "ml",
+  "mews",
+  "mnt",
+  "mt",
+  "mtn",
+  "mtns",
+  "orch",
+  "oval",
+  "park",
+  "parks",
+  "pass",
+  "pike",
+  "plaza",
+  "plz",
+  "prt",
+  "prts",
+  "radl",
+  "ramp",
+  "rnch",
+  "row",
+  "rue",
+  "rvr",
+  "shl",
+  "shls",
+  "shr",
+  "shrs",
+  "skwy",
+  "spg",
+  "spgs",
+  "spur",
+  "spurs",
+  "sqr",
+  "sqrs",
+  "stn",
+  "str",
+  "stra",
+  "strav",
+  "strm",
+  "strt",
+  "sumit",
+  "terr",
+  "tpke",
+  "trce",
+  "trk",
+  "trks",
+  "trls",
+  "tunl",
+  "tunls",
+  "turnpike",
+  "un",
+  "vly",
+  "vlys",
+  "via",
+  "vis",
+  "vist",
+  "vsta",
+  "vl",
+  "vlg",
+  "vlgs",
+  "vlly",
+  "walk",
+  "walks",
+  "wall",
+  "way",
+  "ways",
+  "well",
+  "wells",
+  "xing",
+  "xrd",
+  "xrds",
+]
+  .sort((a, b) => a.localeCompare(b))
+  .map((suffix) => ({ value: suffix, label: suffix }));
+
+export function MarketInsights({ by }: MarketInsightsProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [apiKey, setApiKey] = React.useState("");
@@ -146,8 +270,9 @@ export function MarketInsightsByAddress() {
       setRecentSoldListings([]);
       setShowRecentSoldListings(false);
 
-      if (data.mlsNumber) {
-        const response = await fetch(
+      let response;
+      if (by === "mls#") {
+        response = await fetch(
           `https://api.repliers.io/listings/${data.mlsNumber}`,
           {
             headers: {
@@ -156,21 +281,60 @@ export function MarketInsightsByAddress() {
             },
           }
         );
+      } else {
+        const params = new URLSearchParams({
+          city: data.address.city,
+          streetNumber: data.address.streetNumber,
+          streetName: data.address.streetName,
+          streetSuffix: data.address.streetSuffix,
+        });
+        response = await fetch(
+          `https://api.repliers.io/listings?${params.toString()}`,
+          {
+            headers: {
+              "REPLIERS-API-KEY": apiKey,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
 
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Full API Response:", responseData);
+
+      // Handle both response formats
+      let listingData;
+      if (by === "mls#") {
+        listingData = responseData;
+      } else {
+        // For address search, get the first listing from the array
+        if (!responseData.listings?.[0]) {
+          throw new Error("No listing found with the provided information");
         }
+        listingData = responseData.listings[0];
+      }
 
-        const listingData = await response.json();
-        setListingData(listingData);
+      // Check if we got a valid listing
+      if (!listingData || !listingData.listPrice) {
+        throw new Error("No listing found with the provided information");
+      }
 
-        // Fetch nearby listings if we have coordinates
-        if (listingData.map?.latitude && listingData.map?.longitude) {
-          await fetchNearbyListings(
-            listingData.map.latitude,
-            listingData.map.longitude
-          );
-        }
+      console.log("Final Listing Data:", listingData);
+      setListingData(listingData);
+
+      // Fetch nearby listings if we have coordinates
+      console.log("Checking coordinates:", listingData?.map);
+      if (listingData?.map?.latitude && listingData?.map?.longitude) {
+        await fetchNearbyListings(
+          listingData.map.latitude,
+          listingData.map.longitude
+        );
+      } else {
+        console.log("No coordinates available for nearby listings");
       }
 
       console.log("Form submitted:", data);
@@ -190,77 +354,89 @@ export function MarketInsightsByAddress() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Property Information</h2>
           <div className="grid grid-cols-1 gap-4">
-            <FormField
-              control={form.control}
-              name="mlsNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>MLS Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter MLS number" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Address Information</h2>
-          <div className="grid grid-cols-1 gap-4">
-            <FormField
-              control={form.control}
-              name="address.streetNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Street Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address.streetName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Street Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address.city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address.zip"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ZIP Code</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {by === "mls#" ? (
+              <FormField
+                control={form.control}
+                name="mlsNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>MLS Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter MLS number" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="address.streetNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Street Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="address.streetName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address.streetSuffix"
+                    render={({ field }) => {
+                      console.log("Current field value:", field.value);
+                      return (
+                        <FormItem>
+                          <FormLabel>Street Suffix</FormLabel>
+                          <FormControl>
+                            <Combobox
+                              options={STREET_SUFFIXES}
+                              value={field.value}
+                              onValueChange={(value) => {
+                                console.log("Combobox onValueChange:", value);
+                                field.onChange(value);
+                              }}
+                              placeholder="Select street suffix"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="address.city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
           </div>
         </div>
 
