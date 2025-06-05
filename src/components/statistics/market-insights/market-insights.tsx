@@ -188,6 +188,13 @@ export function MarketInsights({ by }: MarketInsightsProps) {
     const listingDate = new Date(dateString);
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    console.log("Date comparison:", {
+      listingDate: listingDate.toISOString(),
+      oneWeekAgo: oneWeekAgo.toISOString(),
+      isWithinLastWeek: listingDate >= oneWeekAgo,
+    });
+
     return listingDate >= oneWeekAgo;
   };
 
@@ -200,9 +207,10 @@ export function MarketInsights({ by }: MarketInsightsProps) {
 
   const fetchNearbyListings = async (lat: number, long: number) => {
     try {
+      console.log("Fetching nearby listings with coordinates:", { lat, long });
       // Fetch active listings
       const activeResponse = await fetch(
-        `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=2&status=A`,
+        `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=2&status=A&limit=100`,
         {
           headers: {
             "REPLIERS-API-KEY": apiKey,
@@ -218,19 +226,88 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       }
 
       const activeData = await activeResponse.json();
+      console.log("Active Listings API Response:", {
+        totalCount: activeData.count,
+        listingsCount: activeData.listings?.length,
+        sampleListing: activeData.listings?.[0],
+        allFields: activeData.listings?.[0]
+          ? Object.keys(activeData.listings[0])
+          : [],
+        propertyInfo: activeData.listings?.slice(0, 3).map((listing: any) => ({
+          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
+          price: listing.listPrice,
+          type: listing.type,
+          class: listing.class,
+          status: listing.status,
+          assignment: listing.assignment,
+          propertyType: listing.details?.propertyType,
+          transactionType:
+            listing.type === "Sale"
+              ? listing.assignment
+                ? "Assignment Sale"
+                : "Regular Sale"
+              : listing.type === "Lease"
+              ? "Lease"
+              : listing.type,
+          listingType: listing.listingType,
+          listDate: listing.listDate,
+          allKeys: Object.keys(listing),
+        })),
+      });
+
       const listings = activeData.listings || [];
       setNearbyListings(listings);
       setTotalNearbyCount(activeData.count || 0);
 
       // Filter recent listings
-      const recent = listings.filter((listing: any) =>
-        isWithinLastWeek(listing.listDate)
-      );
+      const recent = listings.filter((listing: any) => {
+        if (!listing.listDate) {
+          console.log("Listing missing listDate:", listing);
+          return false;
+        }
+        const isRecent = isWithinLastWeek(listing.listDate);
+        console.log("Listing date check:", {
+          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
+          listDate: listing.listDate,
+          isRecent,
+          listPrice: listing.listPrice,
+        });
+        return isRecent;
+      });
+
+      console.log("Recent listings summary:", {
+        totalListings: listings.length,
+        recentListings: recent.length,
+        dateRange: {
+          oldest:
+            recent.length > 0
+              ? new Date(
+                  Math.min(
+                    ...recent.map((l: { listDate: string }) =>
+                      new Date(l.listDate).getTime()
+                    )
+                  )
+                ).toISOString()
+              : null,
+          newest:
+            recent.length > 0
+              ? new Date(
+                  Math.max(
+                    ...recent.map((l: { listDate: string }) =>
+                      new Date(l.listDate).getTime()
+                    )
+                  )
+                ).toISOString()
+              : null,
+        },
+      });
+
       setRecentListings(recent);
 
       // Fetch sold listings
+      console.log("Fetching sold listings...");
       const soldResponse = await fetch(
-        `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=1&status=U`,
+        `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=2&status=U`,
         {
           headers: {
             "REPLIERS-API-KEY": apiKey,
@@ -246,12 +323,65 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       }
 
       const soldData = await soldResponse.json();
+      console.log("Sold Listings API Response:", {
+        totalCount: soldData.count,
+        listingsCount: soldData.listings?.length,
+        sampleListing: soldData.listings?.[0],
+        allFields: soldData.listings?.[0]
+          ? Object.keys(soldData.listings[0])
+          : [],
+        propertyInfo: soldData.listings?.slice(0, 3).map((listing: any) => ({
+          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
+          listPrice: listing.listPrice,
+          soldPrice: listing.soldPrice,
+          type: listing.type,
+          class: listing.class,
+          status: listing.status,
+          assignment: listing.assignment,
+          propertyType: listing.details?.propertyType,
+          transactionType:
+            listing.type === "Sale"
+              ? listing.assignment
+                ? "Assignment Sale"
+                : "Regular Sale"
+              : listing.type === "Lease"
+              ? "Lease"
+              : listing.type,
+          listingType: listing.listingType,
+          listDate: listing.listDate,
+          soldDate: listing.soldDate,
+          allKeys: Object.keys(listing),
+        })),
+      });
       const soldListings = soldData.listings || [];
 
       // Filter recent sold listings
-      const recentSold = soldListings.filter(
-        (listing: any) => listing.soldDate && isWithinLastWeek(listing.soldDate)
-      );
+      const recentSold = soldListings.filter((listing: any) => {
+        const isRecent = listing.soldDate && isWithinLastWeek(listing.soldDate);
+        console.log("Sold listing date check:", {
+          soldDate: listing.soldDate,
+          isRecent,
+          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
+          listPrice: listing.listPrice,
+          soldPrice: listing.soldPrice,
+        });
+        return isRecent;
+      });
+      console.log("Filtered recent sold listings:", {
+        totalSoldListings: soldListings.length,
+        recentSoldListings: recentSold.length,
+        recentSoldListingsData: recentSold.map((listing: any) => ({
+          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
+          listPrice: listing.listPrice,
+          soldPrice: listing.soldPrice,
+          listDate: listing.listDate,
+          soldDate: listing.soldDate,
+          daysOnMarket: calculateDaysOnMarket(
+            listing.listDate,
+            listing.soldDate
+          ),
+        })),
+      });
       setRecentSoldListings(recentSold);
     } catch (err) {
       console.error("Error fetching nearby listings:", err);
@@ -459,6 +589,18 @@ export function MarketInsights({ by }: MarketInsightsProps) {
               <p className="text-sm text-purple-700 mb-2">
                 Found {recentSoldListings.length} properties sold in the last 7
                 days within 2km radius
+                {recentSoldListings.length > 0 && (
+                  <span className="block mt-1">
+                    (
+                    {recentSoldListings.filter((l) => l.type === "Sale").length}{" "}
+                    Sales,{" "}
+                    {
+                      recentSoldListings.filter((l) => l.type === "Lease")
+                        .length
+                    }{" "}
+                    Leases shown)
+                  </span>
+                )}
               </p>
               <Button
                 variant="outline"
@@ -492,13 +634,26 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                 {recentSoldListings.map((listing, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-gray-50 rounded-md hover:bg-gray-100"
+                    className={`p-3 rounded-md hover:bg-gray-100 ${
+                      listing.type === "Lease" ? "bg-purple-50" : "bg-gray-50"
+                    }`}
                   >
-                    <p className="font-medium">
-                      {listing.address.streetNumber}{" "}
-                      {listing.address.streetName}{" "}
-                      {listing.address.streetSuffix}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium">
+                        {listing.address.streetNumber}{" "}
+                        {listing.address.streetName}{" "}
+                        {listing.address.streetSuffix}
+                      </p>
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${
+                          listing.type === "Lease"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {listing.type}
+                      </span>
+                    </div>
                     <div className="grid grid-cols-3 gap-4 mt-2">
                       <div>
                         <p className="text-sm text-gray-600">List Price</p>
@@ -537,6 +692,14 @@ export function MarketInsights({ by }: MarketInsightsProps) {
               <p className="text-sm text-green-700 mb-2">
                 Found {recentListings.length} new listings in the last 7 days
                 within 2km radius
+                {recentListings.length > 0 && (
+                  <span className="block mt-1">
+                    ({recentListings.filter((l) => l.type === "Sale").length}{" "}
+                    Sales,{" "}
+                    {recentListings.filter((l) => l.type === "Lease").length}{" "}
+                    Leases shown)
+                  </span>
+                )}
               </p>
               <Button
                 variant="outline"
@@ -572,13 +735,26 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                 {recentListings.map((listing, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-gray-50 rounded-md hover:bg-gray-100"
+                    className={`p-3 rounded-md hover:bg-gray-100 ${
+                      listing.type === "Lease" ? "bg-purple-50" : "bg-gray-50"
+                    }`}
                   >
-                    <p className="font-medium">
-                      {listing.address.streetNumber}{" "}
-                      {listing.address.streetName}{" "}
-                      {listing.address.streetSuffix}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium">
+                        {listing.address.streetNumber}{" "}
+                        {listing.address.streetName}{" "}
+                        {listing.address.streetSuffix}
+                      </p>
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${
+                          listing.type === "Lease"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {listing.type}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center mt-1">
                       <p className="text-sm text-gray-600">
                         ${listing.listPrice.toLocaleString()}
@@ -631,13 +807,26 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                 {nearbyListings.map((listing, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-gray-50 rounded-md hover:bg-gray-100"
+                    className={`p-3 rounded-md hover:bg-gray-100 ${
+                      listing.type === "Lease" ? "bg-purple-50" : "bg-gray-50"
+                    }`}
                   >
-                    <p className="font-medium">
-                      {listing.address.streetNumber}{" "}
-                      {listing.address.streetName}{" "}
-                      {listing.address.streetSuffix}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium">
+                        {listing.address.streetNumber}{" "}
+                        {listing.address.streetName}{" "}
+                        {listing.address.streetSuffix}
+                      </p>
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${
+                          listing.type === "Lease"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {listing.type}
+                      </span>
+                    </div>
                     <p className="text-sm text-gray-600">
                       ${listing.listPrice.toLocaleString()}
                     </p>
