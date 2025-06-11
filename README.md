@@ -52,6 +52,68 @@ bun storybook
 
 This will start Storybook on [http://localhost:6006](http://localhost:6006) where you can view and interact with your components in isolation.
 
+## Creating New Components
+
+This project includes a component generation script that automatically creates new components following the established organizational pattern.
+
+### Quick Start
+
+```bash
+# Create a component in the root components directory
+npm run create-component MyNewComponent
+
+# Create a component in a specific subdirectory
+npm run create-component MyNewComponent statistics
+npm run create-component MyNewComponent estimates
+```
+
+### What Gets Created
+
+The script automatically generates:
+
+1. **Component Directory**: `src/components/[path]/component-name/`
+2. **Component File**: `component-name.tsx` with TypeScript template
+3. **Storybook Story**: `component-name.stories.tsx` with comprehensive documentation
+
+### Examples
+
+```bash
+# Creates: src/components/user-profile/
+npm run create-component UserProfile
+
+# Creates: src/components/statistics/sales-report/
+npm run create-component SalesReport statistics
+
+# Creates: src/components/estimates/price-calculator/
+npm run create-component PriceCalculator estimates
+```
+
+### Generated Structure
+
+```
+src/components/my-component/
+├── my-component.tsx           # Main component file
+└── my-component.stories.tsx   # Storybook documentation
+```
+
+Each generated component includes:
+
+- ✅ TypeScript interface and proper typing
+- ✅ JSDoc documentation
+- ✅ Basic component structure with UI components
+- ✅ Comprehensive Storybook story with user stories, setup guide, and examples
+- ✅ Multiple story variants (Default, WithCustomClass, Example)
+
+### Component Organization Pattern
+
+Components follow a **component-per-directory** structure where each component has:
+
+- Main component file (`component-name.tsx`)
+- Storybook story file (`component-name.stories.tsx`)
+- Any additional helper files as needed
+
+This ensures consistency, discoverability, and maintainability across the codebase.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
