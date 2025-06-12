@@ -15,8 +15,13 @@ if (!componentName) {
   process.exit(1);
 }
 
+// Ensure component name is valid PascalCase (no hyphens, starts with capital)
+const pascalCaseName = componentName
+  .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""))
+  .replace(/^[a-z]/, (c) => c.toUpperCase());
+
 // Convert PascalCase to kebab-case for file/folder names
-const kebabCaseName = componentName
+const kebabCaseName = pascalCaseName
   .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
   .toLowerCase();
 
@@ -42,22 +47,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 // Types
-interface ${componentName}Props {
+interface ${pascalCaseName}Props {
   // Add your props here
   className?: string;
 }
 
 /**
- * ${componentName} Component
+ * ${pascalCaseName} Component
  * 
  * @description Add a description of what this component does
  * @param props - The component props
  * @returns JSX.Element
  */
-export function ${componentName}({ className, ...props }: ${componentName}Props) {
+export function ${pascalCaseName}({ className, ...props }: ${pascalCaseName}Props) {
   return (
     <div className={className}>
-      <h2 className="text-2xl font-bold mb-4">${componentName}</h2>
+      <h2 className="text-2xl font-bold mb-4">${pascalCaseName}</h2>
       <p className="text-gray-600">
         This is a new component. Start building your UI here!
       </p>
@@ -74,7 +79,7 @@ export function ${componentName}({ className, ...props }: ${componentName}Props)
 
 // Generate the story file content
 const storyFileContent = `import type { Meta, StoryObj } from "@storybook/react";
-import { ${componentName} } from "./${kebabCaseName}";
+import { ${pascalCaseName} } from "./${kebabCaseName}";
 
 /**
  * ## 👤 User Story
@@ -95,12 +100,12 @@ import { ${componentName} } from "./${kebabCaseName}";
  *
  * 2. Import and use the component:
  * \`\`\`tsx
- * import { ${componentName} } from "./components/${kebabCaseName}";
+ * import { ${pascalCaseName} } from "./components/${kebabCaseName}";
  *
  * function App() {
  *   return (
  *     <div className="container mx-auto p-4">
- *       <${componentName} />
+ *       <${pascalCaseName} />
  *     </div>
  *   );
  * }
@@ -120,9 +125,9 @@ import { ${componentName} } from "./${kebabCaseName}";
  *
  */
 
-const meta: Meta<typeof ${componentName}> = {
-  title: "Components/${componentName}",
-  component: ${componentName},
+const meta: Meta<typeof ${pascalCaseName}> = {
+  title: "Components/${pascalCaseName}",
+  component: ${pascalCaseName},
   parameters: {
     layout: "centered",
   },
@@ -136,7 +141,7 @@ const meta: Meta<typeof ${componentName}> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof ${componentName}>;
+type Story = StoryObj<typeof ${pascalCaseName}>;
 
 export const Default: Story = {
   args: {
@@ -168,7 +173,12 @@ const storyFilePath = path.join(basePath, `${kebabCaseName}.stories.tsx`);
 fs.writeFileSync(storyFilePath, storyFileContent);
 console.log(`✅ Created story file: ${storyFilePath}`);
 
-console.log(`\n🎉 Component ${componentName} created successfully!`);
+console.log(`\n🎉 Component ${pascalCaseName} created successfully!`);
+if (componentName !== pascalCaseName) {
+  console.log(
+    `📝 Note: Component name was converted from "${componentName}" to "${pascalCaseName}" for valid JavaScript syntax.`
+  );
+}
 console.log(`\nFiles created:`);
 console.log(`- ${componentFilePath}`);
 console.log(`- ${storyFilePath}`);

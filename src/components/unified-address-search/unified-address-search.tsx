@@ -1,34 +1,296 @@
-import React from "react";
-
-// UI Components
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useEffect, useRef, useState } from "react";
 
 // Types
-interface unified-address-searchProps {
-  // Add your props here
-  className?: string;
+interface AddressComponents {
+  city: string;
+  streetNumber: string;
+  streetName: string;
+  streetSuffix: string;
+  state: string;
+  postalCode: string;
+  country: string;
 }
 
+interface GoogleAddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
+interface PlaceDetails {
+  address: AddressComponents;
+  formattedAddress: string;
+  placeId: string;
+  geometry?: {
+    lat: number;
+    lng: number;
+  };
+}
+
+interface UnifiedAddressSearchProps {
+  onPlaceSelect: (place: PlaceDetails) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+  displayAddressComponents?: boolean;
+}
+
+// Declare Google Maps types
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
+// Hardcoded API key (restricted to specific domains)
+const GOOGLE_PLACES_API_KEY = "AIzaSyAkALV-9G0hTknIRh-EODtSxA9XYFG3buo";
+
 /**
- * unified-address-search Component
- * 
- * @description Add a description of what this component does
+ * UnifiedAddressSearch Component
+ *
+ * @description Address autocomplete component using Google Places API
  * @param props - The component props
  * @returns JSX.Element
  */
-export function unified-address-search({ className, ...props }: unified-address-searchProps) {
+export function UnifiedAddressSearch({
+  onPlaceSelect,
+  placeholder = "Enter an address...",
+  className,
+  disabled = false,
+  displayAddressComponents = false,
+}: UnifiedAddressSearchProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const autocompleteRef = useRef<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<PlaceDetails | null>(null);
+
+  // Load Google Maps API
+  useEffect(() => {
+    const loadGoogleMapsAPI = async () => {
+      if (window.google?.maps?.places) {
+        setIsGoogleLoaded(true);
+        return;
+      }
+
+      try {
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_PLACES_API_KEY}&libraries=places&loading=async&v=weekly`;
+        script.async = true;
+        script.defer = true;
+
+        const loadPromise = new Promise<void>((resolve, reject) => {
+          script.onload = () => {
+            setTimeout(() => resolve(), 100);
+          };
+          script.onerror = () => {
+            reject(new Error("Failed to load Google Maps API"));
+          };
+        });
+
+        document.head.appendChild(script);
+        await loadPromise;
+        setIsGoogleLoaded(true);
+      } catch (error) {
+        console.error("Error loading Google Maps API:", error);
+      }
+    };
+
+    loadGoogleMapsAPI();
+
+    return () => {
+      const existingScript = document.querySelector(
+        `script[src*="maps.googleapis.com"]`
+      );
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
+
+  // Initialize autocomplete
+  useEffect(() => {
+    if (!isGoogleLoaded || !containerRef.current || autocompleteRef.current) {
+      return;
+    }
+
+    try {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = placeholder;
+      input.className = "w-full px-3 py-2 border rounded-md";
+      input.disabled = disabled;
+
+      const autocomplete = new window.google.maps.places.Autocomplete(input, {
+        types: ["address"],
+        fields: [
+          "address_components",
+          "formatted_address",
+          "place_id",
+          "geometry",
+        ],
+      });
+
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+        containerRef.current.appendChild(input);
+        autocompleteRef.current = autocomplete;
+      }
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+
+        if (!place.address_components) {
+          return;
+        }
+
+        const addressComponents: AddressComponents = {
+          city: "",
+          streetNumber: "",
+          streetName: "",
+          streetSuffix: "",
+          state: "",
+          postalCode: "",
+          country: "",
+        };
+
+        place.address_components.forEach(
+          (component: GoogleAddressComponent) => {
+            const types = component.types;
+            const value = component.long_name;
+
+            if (types.includes("street_number")) {
+              addressComponents.streetNumber = value;
+            } else if (types.includes("route")) {
+              const parts = value.split(" ");
+              if (parts.length > 1) {
+                const lastPart = parts[parts.length - 1].toLowerCase();
+                const commonSuffixes = [
+                  "street",
+                  "st",
+                  "avenue",
+                  "ave",
+                  "road",
+                  "rd",
+                  "boulevard",
+                  "blvd",
+                  "lane",
+                  "ln",
+                  "drive",
+                  "dr",
+                  "court",
+                  "ct",
+                  "circle",
+                  "cir",
+                  "way",
+                  "place",
+                  "pl",
+                  "terrace",
+                  "ter",
+                  "trail",
+                  "trl",
+                  "parkway",
+                  "pkwy",
+                ];
+
+                if (commonSuffixes.includes(lastPart)) {
+                  addressComponents.streetSuffix = parts.pop() || "";
+                  addressComponents.streetName = parts.join(" ");
+                } else {
+                  addressComponents.streetName = value;
+                }
+              } else {
+                addressComponents.streetName = value;
+              }
+            } else if (types.includes("locality")) {
+              addressComponents.city = value;
+            } else if (types.includes("administrative_area_level_1")) {
+              addressComponents.state = value;
+            } else if (types.includes("postal_code")) {
+              addressComponents.postalCode = value;
+            } else if (types.includes("country")) {
+              addressComponents.country = value;
+            }
+          }
+        );
+
+        const placeDetails: PlaceDetails = {
+          address: addressComponents,
+          formattedAddress: place.formatted_address || "",
+          placeId: place.place_id || "",
+          geometry: place.geometry
+            ? {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+              }
+            : undefined,
+        };
+
+        setSavedAddress(placeDetails);
+        onPlaceSelect(placeDetails);
+      });
+
+      return () => {
+        if (autocomplete) {
+          window.google.maps.event.clearInstanceListeners(autocomplete);
+        }
+      };
+    } catch (error) {
+      console.error("Error initializing autocomplete:", error);
+    }
+  }, [isGoogleLoaded, onPlaceSelect, placeholder, disabled]);
+
   return (
     <div className={className}>
-      <h2 className="text-2xl font-bold mb-4">unified-address-search</h2>
-      <p className="text-gray-600">
-        This is a new component. Start building your UI here!
-      </p>
-      
-      {/* Add your component content here */}
-      <div className="mt-4 space-y-2">
-        <Input placeholder="Example input" />
-        <Button>Example Button</Button>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="address-search" className="text-sm font-medium">
+            Search Address
+          </label>
+          <div className="min-w-[400px] w-auto">
+            <div ref={containerRef}>
+              {!isGoogleLoaded && (
+                <div className="text-muted-foreground">Loading...</div>
+              )}
+            </div>
+            {isLoading && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {displayAddressComponents && savedAddress && (
+          <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+            <h3 className="text-sm font-medium mb-2">Address Components</h3>
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dt className="font-medium text-gray-600">Street Number:</dt>
+              <dd>{savedAddress.address.streetNumber}</dd>
+
+              <dt className="font-medium text-gray-600">Street Name:</dt>
+              <dd>{savedAddress.address.streetName}</dd>
+
+              <dt className="font-medium text-gray-600">Street Suffix:</dt>
+              <dd>{savedAddress.address.streetSuffix}</dd>
+
+              <dt className="font-medium text-gray-600">City:</dt>
+              <dd>{savedAddress.address.city}</dd>
+
+              <dt className="font-medium text-gray-600">State:</dt>
+              <dd>{savedAddress.address.state}</dd>
+
+              <dt className="font-medium text-gray-600">Postal Code:</dt>
+              <dd>{savedAddress.address.postalCode}</dd>
+
+              <dt className="font-medium text-gray-600">Country:</dt>
+              <dd>{savedAddress.address.country}</dd>
+
+              <dt className="font-medium text-gray-600">Formatted Address:</dt>
+              <dd className="col-span-2">{savedAddress.formattedAddress}</dd>
+            </dl>
+          </div>
+        )}
       </div>
     </div>
   );
