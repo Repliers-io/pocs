@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
+import { UnifiedAddressSearch } from "@/components/unified-address-search/unified-address-search";
 
 // Types
 type FormValues = z.infer<typeof formSchema>;
@@ -36,20 +37,26 @@ interface MarketInsightsProps {
 const formSchema = z.object({
   mlsNumber: z.string().optional(),
   address: z.object({
-    city: z.string(),
+    streetNumber: z.string(),
     streetName: z.string(),
     streetSuffix: z.string(),
-    streetNumber: z.string(),
+    city: z.string(),
+    state: z.string(),
+    postalCode: z.string(),
+    country: z.string(),
   }),
 });
 
 const initialValues: FormValues = {
   mlsNumber: "",
   address: {
-    city: "toronto",
-    streetName: "citation",
-    streetSuffix: "dr",
-    streetNumber: "77",
+    streetNumber: "",
+    streetName: "",
+    streetSuffix: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
   },
 };
 
@@ -189,12 +196,6 @@ export function MarketInsights({ by }: MarketInsightsProps) {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    console.log("Date comparison:", {
-      listingDate: listingDate.toISOString(),
-      oneWeekAgo: oneWeekAgo.toISOString(),
-      isWithinLastWeek: listingDate >= oneWeekAgo,
-    });
-
     return listingDate >= oneWeekAgo;
   };
 
@@ -207,7 +208,6 @@ export function MarketInsights({ by }: MarketInsightsProps) {
 
   const fetchNearbyListings = async (lat: number, long: number) => {
     try {
-      console.log("Fetching nearby listings with coordinates:", { lat, long });
       // Fetch active listings
       const activeResponse = await fetch(
         `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=2&status=A&limit=100`,
@@ -226,34 +226,6 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       }
 
       const activeData = await activeResponse.json();
-      console.log("Active Listings API Response:", {
-        totalCount: activeData.count,
-        listingsCount: activeData.listings?.length,
-        sampleListing: activeData.listings?.[0],
-        allFields: activeData.listings?.[0]
-          ? Object.keys(activeData.listings[0])
-          : [],
-        propertyInfo: activeData.listings?.slice(0, 3).map((listing: any) => ({
-          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
-          price: listing.listPrice,
-          type: listing.type,
-          class: listing.class,
-          status: listing.status,
-          assignment: listing.assignment,
-          propertyType: listing.details?.propertyType,
-          transactionType:
-            listing.type === "Sale"
-              ? listing.assignment
-                ? "Assignment Sale"
-                : "Regular Sale"
-              : listing.type === "Lease"
-              ? "Lease"
-              : listing.type,
-          listingType: listing.listingType,
-          listDate: listing.listDate,
-          allKeys: Object.keys(listing),
-        })),
-      });
 
       const listings = activeData.listings || [];
       setNearbyListings(listings);
@@ -262,50 +234,15 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       // Filter recent listings
       const recent = listings.filter((listing: any) => {
         if (!listing.listDate) {
-          console.log("Listing missing listDate:", listing);
           return false;
         }
         const isRecent = isWithinLastWeek(listing.listDate);
-        console.log("Listing date check:", {
-          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
-          listDate: listing.listDate,
-          isRecent,
-          listPrice: listing.listPrice,
-        });
         return isRecent;
-      });
-
-      console.log("Recent listings summary:", {
-        totalListings: listings.length,
-        recentListings: recent.length,
-        dateRange: {
-          oldest:
-            recent.length > 0
-              ? new Date(
-                  Math.min(
-                    ...recent.map((l: { listDate: string }) =>
-                      new Date(l.listDate).getTime()
-                    )
-                  )
-                ).toISOString()
-              : null,
-          newest:
-            recent.length > 0
-              ? new Date(
-                  Math.max(
-                    ...recent.map((l: { listDate: string }) =>
-                      new Date(l.listDate).getTime()
-                    )
-                  )
-                ).toISOString()
-              : null,
-        },
       });
 
       setRecentListings(recent);
 
       // Fetch sold listings
-      console.log("Fetching sold listings...");
       const soldResponse = await fetch(
         `https://api.repliers.io/listings?lat=${lat}&long=${long}&radius=2&status=U`,
         {
@@ -323,70 +260,50 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       }
 
       const soldData = await soldResponse.json();
-      console.log("Sold Listings API Response:", {
-        totalCount: soldData.count,
-        listingsCount: soldData.listings?.length,
-        sampleListing: soldData.listings?.[0],
-        allFields: soldData.listings?.[0]
-          ? Object.keys(soldData.listings[0])
-          : [],
-        propertyInfo: soldData.listings?.slice(0, 3).map((listing: any) => ({
-          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
-          listPrice: listing.listPrice,
-          soldPrice: listing.soldPrice,
-          type: listing.type,
-          class: listing.class,
-          status: listing.status,
-          assignment: listing.assignment,
-          propertyType: listing.details?.propertyType,
-          transactionType:
-            listing.type === "Sale"
-              ? listing.assignment
-                ? "Assignment Sale"
-                : "Regular Sale"
-              : listing.type === "Lease"
-              ? "Lease"
-              : listing.type,
-          listingType: listing.listingType,
-          listDate: listing.listDate,
-          soldDate: listing.soldDate,
-          allKeys: Object.keys(listing),
-        })),
-      });
       const soldListings = soldData.listings || [];
 
       // Filter recent sold listings
       const recentSold = soldListings.filter((listing: any) => {
         const isRecent = listing.soldDate && isWithinLastWeek(listing.soldDate);
-        console.log("Sold listing date check:", {
-          soldDate: listing.soldDate,
-          isRecent,
-          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
-          listPrice: listing.listPrice,
-          soldPrice: listing.soldPrice,
-        });
         return isRecent;
-      });
-      console.log("Filtered recent sold listings:", {
-        totalSoldListings: soldListings.length,
-        recentSoldListings: recentSold.length,
-        recentSoldListingsData: recentSold.map((listing: any) => ({
-          address: `${listing.address.streetNumber} ${listing.address.streetName} ${listing.address.streetSuffix}`,
-          listPrice: listing.listPrice,
-          soldPrice: listing.soldPrice,
-          listDate: listing.listDate,
-          soldDate: listing.soldDate,
-          daysOnMarket: calculateDaysOnMarket(
-            listing.listDate,
-            listing.soldDate
-          ),
-        })),
       });
       setRecentSoldListings(recentSold);
     } catch (err) {
       console.error("Error fetching nearby listings:", err);
     }
   };
+
+  const handlePlaceSelect = React.useCallback(
+    (place: any) => {
+      // Ensure we have the address components
+      if (!place.address) {
+        return;
+      }
+
+      const addressData = {
+        streetNumber: place.address.streetNumber || "",
+        streetName: place.address.streetName || "",
+        streetSuffix: place.address.streetSuffix || "",
+        city: place.address.city || "",
+        state: place.address.state || "",
+        postalCode: place.address.postalCode || "",
+        country: place.address.country || "",
+      };
+
+      // Set each field individually to ensure proper form updates
+      form.setValue("address.streetNumber", addressData.streetNumber);
+      form.setValue("address.streetName", addressData.streetName);
+      form.setValue("address.streetSuffix", addressData.streetSuffix);
+      form.setValue("address.city", addressData.city);
+      form.setValue("address.state", addressData.state);
+      form.setValue("address.postalCode", addressData.postalCode);
+      form.setValue("address.country", addressData.country);
+
+      // Trigger form validation
+      form.trigger();
+    },
+    [form]
+  );
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -416,17 +333,16 @@ export function MarketInsights({ by }: MarketInsightsProps) {
           city: data.address.city,
           streetNumber: data.address.streetNumber,
           streetName: data.address.streetName,
-          streetSuffix: data.address.streetSuffix,
         });
-        response = await fetch(
-          `https://api.repliers.io/listings?${params.toString()}`,
-          {
-            headers: {
-              "REPLIERS-API-KEY": apiKey,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+
+        const url = `https://api.repliers.io/listings?${params.toString()}`;
+
+        response = await fetch(url, {
+          headers: {
+            "REPLIERS-API-KEY": apiKey,
+            "Content-Type": "application/json",
+          },
+        });
       }
 
       if (!response.ok) {
@@ -434,7 +350,6 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       }
 
       const responseData = await response.json();
-      console.log("Full API Response:", responseData);
 
       // Handle both response formats
       let listingData;
@@ -453,24 +368,17 @@ export function MarketInsights({ by }: MarketInsightsProps) {
         throw new Error("No listing found with the provided information");
       }
 
-      console.log("Final Listing Data:", listingData);
       setListingData(listingData);
 
       // Fetch nearby listings if we have coordinates
-      console.log("Checking coordinates:", listingData?.map);
       if (listingData?.map?.latitude && listingData?.map?.longitude) {
         await fetchNearbyListings(
           listingData.map.latitude,
           listingData.map.longitude
         );
-      } else {
-        console.log("No coordinates available for nearby listings");
       }
-
-      console.log("Form submitted:", data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      console.error("Error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -499,73 +407,24 @@ export function MarketInsights({ by }: MarketInsightsProps) {
                 )}
               />
             ) : (
-              <>
-                <FormField
-                  control={form.control}
-                  name="address.streetNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="address.streetName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Street Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address.streetSuffix"
-                    render={({ field }) => {
-                      console.log("Current field value:", field.value);
-                      return (
-                        <FormItem>
-                          <FormLabel>Street Suffix</FormLabel>
-                          <FormControl>
-                            <Combobox
-                              options={STREET_SUFFIXES}
-                              value={field.value}
-                              onValueChange={(value) => {
-                                console.log("Combobox onValueChange:", value);
-                                field.onChange(value);
-                              }}
-                              placeholder="Select street suffix"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="address.city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
+              <FormField
+                control={form.control}
+                name="address"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Property Address</FormLabel>
+                    <FormControl>
+                      <UnifiedAddressSearch
+                        onPlaceSelect={handlePlaceSelect}
+                        displayAddressComponents={false}
+                        placeholder="Enter property address..."
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
           </div>
         </div>

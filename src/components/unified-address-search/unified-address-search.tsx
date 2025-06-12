@@ -43,7 +43,7 @@ declare global {
 }
 
 // Hardcoded API key (restricted to specific domains)
-const GOOGLE_PLACES_API_KEY = "AIzaSyAkALV-9G0hTknIRh-EODtSxA9XYFG3buo";
+const GOOGLE_PLACES_API_KEY = "AIzaSyBqlRCVfRWu5PagapW3CsV1VVba9fIdknA";
 
 /**
  * UnifiedAddressSearch Component
