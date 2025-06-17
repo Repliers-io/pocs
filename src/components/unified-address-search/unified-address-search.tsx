@@ -61,14 +61,15 @@ export function UnifiedAddressSearch({
 }: UnifiedAddressSearchProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const [savedAddress, setSavedAddress] = useState<PlaceDetails | null>(null);
 
   // Load Google Maps API
   useEffect(() => {
     const loadGoogleMapsAPI = async () => {
-      if (window.google?.maps?.places) {
+      if (window.google?.maps?.places?.Autocomplete) {
+        console.log("Google Maps API already loaded");
         setIsGoogleLoaded(true);
         return;
       }
@@ -81,39 +82,64 @@ export function UnifiedAddressSearch({
 
         const loadPromise = new Promise<void>((resolve, reject) => {
           script.onload = () => {
-            setTimeout(() => resolve(), 100);
+            // Wait for Google Maps to be fully initialized
+            const checkGoogleMaps = () => {
+              if (window.google?.maps?.places?.Autocomplete) {
+                console.log("Google Maps API loaded successfully");
+                resolve();
+              } else {
+                setTimeout(checkGoogleMaps, 100);
+              }
+            };
+            checkGoogleMaps();
           };
-          script.onerror = () => {
-            reject(new Error("Failed to load Google Maps API"));
+          script.onerror = (error) => {
+            console.error("Script loading failed:", error);
+            reject(new Error("Failed to load Google Maps API script"));
           };
         });
 
         document.head.appendChild(script);
         await loadPromise;
         setIsGoogleLoaded(true);
+        setLoadingError(null);
       } catch (error) {
         console.error("Error loading Google Maps API:", error);
+        setIsGoogleLoaded(false);
+        setLoadingError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load Google Maps API"
+        );
       }
     };
 
     loadGoogleMapsAPI();
-
-    return () => {
-      const existingScript = document.querySelector(
-        `script[src*="maps.googleapis.com"]`
-      );
-      if (existingScript) {
-        document.head.removeChild(existingScript);
-      }
-    };
   }, []);
 
   // Initialize autocomplete
   useEffect(() => {
+    console.log("Autocomplete effect:", {
+      isGoogleLoaded,
+      hasContainer: !!containerRef.current,
+      hasAutocomplete: !!autocompleteRef.current,
+      googleMapsAvailable: !!window.google?.maps?.places?.Autocomplete,
+    });
+
     if (!isGoogleLoaded || !containerRef.current || autocompleteRef.current) {
       return;
     }
 
+    // Double-check that Google Maps is actually available
+    if (!window.google?.maps?.places?.Autocomplete) {
+      console.error(
+        "Google Maps Autocomplete not available even though isGoogleLoaded is true"
+      );
+      setIsGoogleLoaded(false);
+      return;
+    }
+
+    console.log("Creating autocomplete input...");
     try {
       const input = document.createElement("input");
       input.type = "text";
@@ -135,9 +161,10 @@ export function UnifiedAddressSearch({
         containerRef.current.innerHTML = "";
         containerRef.current.appendChild(input);
         autocompleteRef.current = autocomplete;
+        console.log("Input appended to container");
       }
 
-      autocomplete.addListener("place_changed", () => {
+      const handlePlaceChanged = () => {
         const place = autocomplete.getPlace();
 
         if (!place.address_components) {
@@ -162,6 +189,7 @@ export function UnifiedAddressSearch({
             if (types.includes("street_number")) {
               addressComponents.streetNumber = value;
             } else if (types.includes("route")) {
+              // Parse street name and suffix
               const parts = value.split(" ");
               if (parts.length > 1) {
                 const lastPart = parts[parts.length - 1].toLowerCase();
@@ -191,6 +219,10 @@ export function UnifiedAddressSearch({
                   "trl",
                   "parkway",
                   "pkwy",
+                  "square",
+                  "sq",
+                  "highway",
+                  "hwy",
                 ];
 
                 if (commonSuffixes.includes(lastPart)) {
@@ -228,11 +260,16 @@ export function UnifiedAddressSearch({
 
         setSavedAddress(placeDetails);
         onPlaceSelect(placeDetails);
-      });
+      };
+
+      autocomplete.addListener("place_changed", handlePlaceChanged);
 
       return () => {
-        if (autocomplete) {
-          window.google.maps.event.clearInstanceListeners(autocomplete);
+        if (autocompleteRef.current) {
+          window.google.maps.event.clearInstanceListeners(
+            autocompleteRef.current
+          );
+          autocompleteRef.current = null;
         }
       };
     } catch (error) {
@@ -249,15 +286,17 @@ export function UnifiedAddressSearch({
           </label>
           <div className="min-w-[400px] w-auto">
             <div ref={containerRef}>
-              {!isGoogleLoaded && (
-                <div className="text-muted-foreground">Loading...</div>
+              {!isGoogleLoaded && !loadingError && (
+                <div className="text-muted-foreground">
+                  Loading Google Maps...
+                </div>
+              )}
+              {loadingError && (
+                <div className="text-red-500 text-sm p-2 border border-red-300 rounded">
+                  Error: {loadingError}
+                </div>
               )}
             </div>
-            {isLoading && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-              </div>
-            )}
           </div>
         </div>
 
