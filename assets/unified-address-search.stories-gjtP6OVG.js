@@ -1,4 +1,4 @@
-import{U as c}from"./unified-address-search-Cm9IIVEE.js";import"./jsx-runtime-CBjAUaf4.js";import"./jsx-runtime-B2VJbz7C.js";import"./index-CoAThXCU.js";const u={title:"Components/Useful Components/Unified Address Search",component:c,parameters:{layout:"centered",docs:{description:{component:`## 👤 User Story
+import{U as c}from"./unified-address-search-Czsw31PV.js";import"./jsx-runtime-CBjAUaf4.js";import"./jsx-runtime-B2VJbz7C.js";import"./index-CoAThXCU.js";const u={title:"Components/Useful Components/Unified Address Search",component:c,parameters:{layout:"centered",docs:{description:{component:`## 👤 User Story
 
 As a user, I want to search for and select addresses with proper validation and formatting.
 
