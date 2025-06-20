@@ -69,7 +69,6 @@ export function UnifiedAddressSearch({
   useEffect(() => {
     const loadGoogleMapsAPI = async () => {
       if (window.google?.maps?.places?.Autocomplete) {
-        console.log("Google Maps API already loaded");
         setIsGoogleLoaded(true);
         return;
       }
@@ -85,7 +84,6 @@ export function UnifiedAddressSearch({
             // Wait for Google Maps to be fully initialized
             const checkGoogleMaps = () => {
               if (window.google?.maps?.places?.Autocomplete) {
-                console.log("Google Maps API loaded successfully");
                 resolve();
               } else {
                 setTimeout(checkGoogleMaps, 100);
@@ -119,13 +117,6 @@ export function UnifiedAddressSearch({
 
   // Initialize autocomplete
   useEffect(() => {
-    console.log("Autocomplete effect:", {
-      isGoogleLoaded,
-      hasContainer: !!containerRef.current,
-      hasAutocomplete: !!autocompleteRef.current,
-      googleMapsAvailable: !!window.google?.maps?.places?.Autocomplete,
-    });
-
     if (!isGoogleLoaded || !containerRef.current || autocompleteRef.current) {
       return;
     }
@@ -139,7 +130,6 @@ export function UnifiedAddressSearch({
       return;
     }
 
-    console.log("Creating autocomplete input...");
     try {
       const input = document.createElement("input");
       input.type = "text";
@@ -161,7 +151,6 @@ export function UnifiedAddressSearch({
         containerRef.current.innerHTML = "";
         containerRef.current.appendChild(input);
         autocompleteRef.current = autocomplete;
-        console.log("Input appended to container");
       }
 
       const handlePlaceChanged = () => {

@@ -13,9 +13,10 @@ const config: StorybookConfig = {
     options: {},
   },
   staticDirs: ["../public"],
-  viteFinal: async (config) => {
+  viteFinal: async (config, { configType }) => {
     return {
       ...config,
+      base: configType === "PRODUCTION" ? "/pocs/" : "/",
       resolve: {
         ...config.resolve,
         alias: {

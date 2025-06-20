@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiInput } from "@/components/api-input/api-input";
+import { UnifiedAddressSearch } from "@/components/unified-address-search/unified-address-search";
 
 // Types
 type FormValues = z.infer<typeof formSchema>;
@@ -32,6 +33,8 @@ const formSchema = z.object({
     city: z.string(),
     streetName: z.string(),
     streetNumber: z.string(),
+    streetSuffix: z.string().optional(),
+    state: z.string().optional(),
     zip: z.string(),
   }),
   details: z.object({
@@ -63,10 +66,12 @@ const formSchema = z.object({
 
 const initialValues: FormValues = {
   address: {
-    city: "King City",
-    streetName: "Clearview Heights",
-    streetNumber: "106",
-    zip: "L7B 1H6",
+    city: "",
+    streetName: "",
+    streetNumber: "",
+    streetSuffix: "",
+    state: "",
+    zip: "",
   },
   details: {
     basement1: "Finished",
@@ -385,6 +390,27 @@ export function PropertyValueEstimator() {
     }
   }, [response]);
 
+  const handlePlaceSelect = React.useCallback(
+    (place: any) => {
+      // Ensure we have the address components
+      if (!place.address) {
+        return;
+      }
+
+      // Set each field individually to ensure proper form updates
+      form.setValue("address.streetNumber", place.address.streetNumber || "");
+      form.setValue("address.streetName", place.address.streetName || "");
+      form.setValue("address.streetSuffix", place.address.streetSuffix || "");
+      form.setValue("address.city", place.address.city || "");
+      form.setValue("address.state", place.address.state || "");
+      form.setValue("address.zip", place.address.postalCode || "");
+
+      // Trigger form validation
+      form.trigger("address");
+    },
+    [form]
+  );
+
   async function onSubmit(data: FormValues) {
     try {
       setIsLoading(true);
@@ -494,54 +520,20 @@ export function PropertyValueEstimator() {
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Address Information</h2>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-4">
             <FormField
               control={form.control}
-              name="address.streetNumber"
-              render={({ field }) => (
+              name="address"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Street Number</FormLabel>
+                  <FormLabel>Property Address</FormLabel>
                   <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address.streetName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Street Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address.city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address.zip"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ZIP Code</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
+                    <UnifiedAddressSearch
+                      onPlaceSelect={handlePlaceSelect}
+                      displayAddressComponents={true}
+                      placeholder="Enter property address..."
+                      disabled={isLoading}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

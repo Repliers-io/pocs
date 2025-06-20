@@ -38,12 +38,6 @@ export function ApiInput({
         },
       });
 
-      console.log("API Response Status:", response.status);
-      console.log(
-        "API Response Headers:",
-        Object.fromEntries(response.headers.entries())
-      );
-
       if (response.status === 401) {
         setValidationError(
           "Invalid API key. Please check your key and try again."
