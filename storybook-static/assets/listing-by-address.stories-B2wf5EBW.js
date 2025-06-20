@@ -1,4 +1,4 @@
-import{L as i}from"./listing-by-address-BB_rkcpP.js";import"./jsx-runtime-CBjAUaf4.js";import"./jsx-runtime-B2VJbz7C.js";import"./index-CoAThXCU.js";import"./api-input-Dr_LPgA6.js";import"./unified-address-search-Czsw31PV.js";const c={title:"POCS/Listings/ListingByAddress",component:i,parameters:{layout:"padded",docs:{description:{component:`
+import{j as t}from"./jsx-runtime-CBjAUaf4.js";import{L as i}from"./listing-by-address-BB_rkcpP.js";import"./jsx-runtime-B2VJbz7C.js";import"./index-CoAThXCU.js";import"./api-input-Dr_LPgA6.js";import"./unified-address-search-Czsw31PV.js";const g={title:"POCS/Listings/ListingByAddress",component:i,parameters:{layout:"padded",docs:{description:{component:`
 ## 🏠 ListingByAddress Component
 
 A comprehensive React component for searching and displaying property listings by address using Google Places API integration and the Repliers API.
@@ -147,6 +147,9 @@ function RealEstateApp() {
   );
 }
 \`\`\`
-        `}}},tags:["autodocs"]},e={args:{}};var t,s,o;e.parameters={...e.parameters,docs:{...(t=e.parameters)==null?void 0:t.docs,source:{originalSource:`{
-  args: {}
-}`,...(o=(s=e.parameters)==null?void 0:s.docs)==null?void 0:o.source}}};const m=["Default"];export{e as Default,m as __namedExportsOrder,c as default};
+        `}}},tags:["autodocs"]},e={args:{},decorators:[a=>t.jsx("div",{className:"container mx-auto max-w-4xl p-6",children:t.jsx(a,{})})]};var s,o,r;e.parameters={...e.parameters,docs:{...(s=e.parameters)==null?void 0:s.docs,source:{originalSource:`{
+  args: {},
+  decorators: [Story => <div className="container mx-auto max-w-4xl p-6">
+        <Story />
+      </div>]
+}`,...(r=(o=e.parameters)==null?void 0:o.docs)==null?void 0:r.source}}};const u=["Default"];export{e as Default,u as __namedExportsOrder,g as default};

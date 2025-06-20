@@ -183,4 +183,11 @@ type Story = StoryObj<typeof ListingByAddress>;
 
 export const Default: Story = {
   args: {},
+  decorators: [
+    (Story) => (
+      <div className="container mx-auto max-w-4xl p-6">
+        <Story />
+      </div>
+    ),
+  ],
 };
