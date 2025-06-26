@@ -1,7 +1,8 @@
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
+import { useApiKeys } from "@/lib/api-keys-context";
 
 interface ApiInputProps {
   onApiKeyChange: (apiKey: string) => void;
@@ -14,10 +15,15 @@ export function ApiInput({
   className,
   isEstimates,
 }: ApiInputProps) {
-  const [apiKey, setApiKey] = useState("");
+  const { repliersApiKey, setRepliersApiKey } = useApiKeys();
   const [showApiKey, setShowApiKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Sync with parent component when the persisted API key changes
+  useEffect(() => {
+    onApiKeyChange(repliersApiKey);
+  }, [repliersApiKey, onApiKeyChange]);
 
   const validateApiKey = async (key: string) => {
     if (!key) return;
@@ -61,7 +67,7 @@ export function ApiInput({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setApiKey(newValue);
+    setRepliersApiKey(newValue);
     onApiKeyChange(newValue);
 
     // Clear validation error when user starts typing
@@ -88,7 +94,7 @@ export function ApiInput({
           type={showApiKey ? "text" : "password"}
           placeholder="Enter your API key..."
           className="max-w-[300px]"
-          value={apiKey}
+          value={repliersApiKey}
           onChange={handleChange}
           required
         />
