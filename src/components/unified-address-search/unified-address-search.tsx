@@ -59,7 +59,7 @@ export function UnifiedAddressSearch({
   disabled = false,
   displayAddressComponents = false,
 }: UnifiedAddressSearchProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export function UnifiedAddressSearch({
 
   // Initialize autocomplete
   useEffect(() => {
-    if (!isGoogleLoaded || !containerRef.current || autocompleteRef.current) {
+    if (!isGoogleLoaded || !inputRef.current || autocompleteRef.current) {
       return;
     }
 
@@ -131,27 +131,20 @@ export function UnifiedAddressSearch({
     }
 
     try {
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = placeholder;
-      input.className = "w-full px-3 py-2 border rounded-md";
-      input.disabled = disabled;
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        {
+          types: ["address"],
+          fields: [
+            "address_components",
+            "formatted_address",
+            "place_id",
+            "geometry",
+          ],
+        }
+      );
 
-      const autocomplete = new window.google.maps.places.Autocomplete(input, {
-        types: ["address"],
-        fields: [
-          "address_components",
-          "formatted_address",
-          "place_id",
-          "geometry",
-        ],
-      });
-
-      if (containerRef.current) {
-        containerRef.current.innerHTML = "";
-        containerRef.current.appendChild(input);
-        autocompleteRef.current = autocomplete;
-      }
+      autocompleteRef.current = autocomplete;
 
       const handlePlaceChanged = () => {
         const place = autocomplete.getPlace();
@@ -264,7 +257,7 @@ export function UnifiedAddressSearch({
     } catch (error) {
       console.error("Error initializing autocomplete:", error);
     }
-  }, [isGoogleLoaded, onPlaceSelect, placeholder, disabled]);
+  }, [isGoogleLoaded, onPlaceSelect]);
 
   return (
     <div className={className}>
@@ -274,18 +267,24 @@ export function UnifiedAddressSearch({
             Search Address
           </label>
           <div className="min-w-[400px] w-auto">
-            <div ref={containerRef}>
-              {!isGoogleLoaded && !loadingError && (
-                <div className="text-muted-foreground">
-                  Loading Google Maps...
-                </div>
-              )}
-              {loadingError && (
-                <div className="text-red-500 text-sm p-2 border border-red-300 rounded">
-                  Error: {loadingError}
-                </div>
-              )}
-            </div>
+            {isGoogleLoaded ? (
+              <input
+                ref={inputRef}
+                id="address-search"
+                type="text"
+                placeholder={placeholder}
+                disabled={disabled}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-4 00 focus:border-blue-500"
+              />
+            ) : loadingError ? (
+              <div className="text-red-500 text-sm p-2 border border-red-300 rounded">
+                Error: {loadingError}
+              </div>
+            ) : (
+              <div className="text-muted-foreground px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                Loading Google Maps...
+              </div>
+            )}
           </div>
         </div>
 

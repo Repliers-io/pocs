@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
 // UI Components
 import { ApiInput } from "@/components/api-input/api-input";
@@ -71,6 +71,8 @@ export function ListingByAddress({
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showOnlyRecent, setShowOnlyRecent] = useState(true);
+  const [allListings, setAllListings] = useState<PropertyListing[]>([]);
 
   // Memoize field count to avoid render issues
   const validFieldCount = useMemo(() => {
@@ -79,6 +81,14 @@ export function ListingByAddress({
       ([, value]) => value !== null && value !== undefined
     ).length;
   }, [selectedListing]);
+
+  // Update displayed listings when filter changes
+  useEffect(() => {
+    if (allListings.length > 0) {
+      const recentListings = allListings.filter(isRecentListing);
+      setPropertyListings(showOnlyRecent ? recentListings : allListings);
+    }
+  }, [showOnlyRecent, allListings]);
 
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString()}`;
@@ -111,6 +121,22 @@ export function ListingByAddress({
     }
 
     return "Address not available";
+  };
+
+  const isRecentListing = (listing: PropertyListing) => {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    // Check listDate first, then soldDate as fallback
+    const relevantDate = listing.listDate || listing.soldDate;
+    if (!relevantDate) return false;
+
+    try {
+      const listingDate = new Date(relevantDate);
+      return listingDate >= threeMonthsAgo;
+    } catch {
+      return false;
+    }
   };
 
   const formatTimestamp = (timestamp: any) => {
@@ -304,7 +330,9 @@ export function ListingByAddress({
   const handleAddressSelect = async (place: PlaceDetails) => {
     setSelectedAddress(place);
     setPropertyListings([]);
+    setAllListings([]);
     setSelectedListing(null);
+    setShowOnlyRecent(true); // Reset filter to default
     setError(null);
 
     if (!apiKey.trim()) {
@@ -325,18 +353,18 @@ export function ListingByAddress({
         console.log("⚠️ No listings found");
         setError("No property listings found for this address.");
         setPropertyListings([]);
+        setAllListings([]);
         return;
       }
 
-      console.log("📋 Setting property listings:", listings);
-      setPropertyListings(listings);
+      console.log("📋 All listings found:", listings);
+      setAllListings(listings);
 
-      // If only one listing, select it automatically
-      if (listings.length === 1) {
-        console.log("🎯 Auto-selecting single listing:", listings[0]);
-        setSelectedListing(listings[0]);
-        onListingSelected?.(listings[0]);
-      }
+      // Filter to recent listings (last 3 months) by default
+      const recentListings = listings.filter(isRecentListing);
+      console.log("📋 Recent listings (last 3 months):", recentListings);
+
+      setPropertyListings(showOnlyRecent ? recentListings : listings);
     } catch (err) {
       console.error("💥 Error in handleAddressSelect:", err);
       setError(
@@ -345,6 +373,7 @@ export function ListingByAddress({
           : "Failed to fetch property listing. Please try again."
       );
       setPropertyListings([]);
+      setAllListings([]);
     } finally {
       setIsLoading(false);
     }
@@ -354,6 +383,19 @@ export function ListingByAddress({
     setSelectedListing(listing);
     onListingSelected?.(listing);
     setError(null);
+
+    // Scroll to the Selected Property section after a brief delay
+    setTimeout(() => {
+      const selectedPropertySection = document.querySelector(
+        "#selected-property-section"
+      );
+      if (selectedPropertySection) {
+        selectedPropertySection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 100);
   };
 
   return (
@@ -376,66 +418,306 @@ export function ListingByAddress({
           </div>
         )}
 
-        {/* Multiple Listings Selection */}
-        {propertyListings.length > 1 && !isLoading && (
+        {/* Listing Filter Status and Controls */}
+        {allListings.length > 0 && !isLoading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {(() => {
+              const recentListings = allListings.filter(isRecentListing);
+              const hasRecentListings = recentListings.length > 0;
+              const hasOnlyOlderListings =
+                allListings.length > 0 && recentListings.length === 0;
+
+              if (hasOnlyOlderListings) {
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span className="font-medium text-blue-900">
+                        No Recent Listings Found
+                      </span>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      No listings were found from the last 3 months. All
+                      available listings are older than 3 months.
+                    </p>
+                    <button
+                      onClick={() => setShowOnlyRecent(false)}
+                      className="text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Show All Listings ({allListings.length})
+                    </button>
+                  </div>
+                );
+              } else if (showOnlyRecent && hasRecentListings) {
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span className="font-medium text-blue-900">
+                        Recent Listings
+                      </span>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Showing {recentListings.length} listing
+                      {recentListings.length !== 1 ? "s" : ""} from the last 3
+                      months.
+                      {allListings.length > recentListings.length && (
+                        <span>
+                          {" "}
+                          {allListings.length - recentListings.length} older
+                          listing
+                          {allListings.length - recentListings.length !== 1
+                            ? "s"
+                            : ""}{" "}
+                          available.
+                        </span>
+                      )}
+                    </p>
+                    {allListings.length > recentListings.length && (
+                      <button
+                        onClick={() => setShowOnlyRecent(false)}
+                        className="text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        Show All Listings ({allListings.length})
+                      </button>
+                    )}
+                  </div>
+                );
+              } else if (!showOnlyRecent) {
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                        />
+                      </svg>
+                      <span className="font-medium text-blue-900">
+                        All Listings
+                      </span>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Showing all {allListings.length} listing
+                      {allListings.length !== 1 ? "s" : ""} (including older
+                      listings).
+                      {hasRecentListings && (
+                        <span>
+                          {" "}
+                          {recentListings.length} from the last 3 months.
+                        </span>
+                      )}
+                    </p>
+                    <button
+                      onClick={() => setShowOnlyRecent(true)}
+                      className="text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Show Only Recent Listings ({recentListings.length})
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
+
+        {/* Listings Selection */}
+        {propertyListings.length > 0 && !isLoading && (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold mb-2">
-                Multiple Listings Found ({propertyListings.length})
+                {propertyListings.length === 1
+                  ? "Property Listing Found"
+                  : `Multiple Listings Found (${propertyListings.length})`}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Please select the correct property listing:
+                {propertyListings.length === 1
+                  ? "Click to select this property listing:"
+                  : "Please select the correct property listing:"}
               </p>
             </div>
 
-            <div className="grid gap-3">
-              {propertyListings.map((listing, index) => (
-                <div
-                  key={listing.id || index}
-                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                    selectedListing?.id === listing.id
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                  onClick={() => handleListingSelect(listing)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {formatAddress(listing.address)}
-                      </h4>
-                      <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                        {listing.price && (
-                          <div>Price: {formatPrice(listing.price)}</div>
-                        )}
-                        {listing.beds && <div>Beds: {listing.beds}</div>}
-                        {listing.baths && <div>Baths: {listing.baths}</div>}
-                        {listing.sqft && (
-                          <div>Sqft: {listing.sqft.toLocaleString()}</div>
-                        )}
-                      </div>
-                      {listing.propertyType && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          Type: {listing.propertyType}
-                        </p>
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 ${
-                          selectedListing?.id === listing.id
-                            ? "border-blue-500 bg-blue-500"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {selectedListing?.id === listing.id && (
-                          <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
-                        )}
+            <div className="space-y-2">
+              {propertyListings.map((listing, index) => {
+                const isSelected = selectedListing?.id === listing.id;
+                console.log(
+                  `Listing ${index} (${listing.id}): isSelected = ${isSelected}, selectedListing.id = ${selectedListing?.id}`
+                );
+
+                return (
+                  <div
+                    key={listing.id || index}
+                    className={`border border-gray-200 rounded-lg p-3 cursor-pointer transition-all duration-200 bg-white ${
+                      isSelected
+                        ? "ring-2 ring-green-200"
+                        : "hover:border-green-400"
+                    }`}
+                    onClick={() => handleListingSelect(listing)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        {/* Header with address and selection indicator */}
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-gray-900 text-sm leading-tight">
+                            {formatAddress(listing.address)}
+                          </h4>
+                          <div className="flex items-center gap-2 ml-3">
+                            {/* Status badge */}
+                            {listing.status && (
+                              <span
+                                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                  listing.status === "A"
+                                    ? "bg-green-100 text-green-700"
+                                    : listing.status === "U"
+                                    ? "bg-gray-100 text-gray-700"
+                                    : "bg-blue-100 text-blue-700"
+                                }`}
+                              >
+                                {listing.status === "A"
+                                  ? "Available"
+                                  : listing.status === "U"
+                                  ? "Sold"
+                                  : listing.status}
+                              </span>
+                            )}
+                            {/* Selection indicator */}
+                            <div
+                              className={`w-3 h-3 rounded-full border-2 transition-all ${
+                                selectedListing?.id === listing.id
+                                  ? "border-green-500 bg-green-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {selectedListing?.id === listing.id && (
+                                <div className="w-1 h-1 bg-white rounded-full mx-auto mt-0.5"></div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Property details in compact format */}
+                        <div className="space-y-1">
+                          {/* Price and key details */}
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-4">
+                              {listing.listPrice && (
+                                <span className="font-semibold text-gray-900">
+                                  {formatPrice(listing.listPrice)}
+                                </span>
+                              )}
+                              {listing.soldPrice && (
+                                <span className="font-semibold text-green-600">
+                                  Sold: {formatPrice(listing.soldPrice)}
+                                </span>
+                              )}
+                            </div>
+                            {listing.type && (
+                              <span className="text-xs text-gray-500 capitalize">
+                                {listing.type}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Property characteristics */}
+                          <div className="flex items-center justify-between text-xs text-gray-600">
+                            <div className="flex items-center gap-3">
+                              {(listing.details?.numBedrooms ||
+                                listing.beds) && (
+                                <span>
+                                  {listing.details?.numBedrooms || listing.beds}{" "}
+                                  bed
+                                </span>
+                              )}
+                              {(listing.details?.numBathrooms ||
+                                listing.baths) && (
+                                <span>
+                                  {listing.details?.numBathrooms ||
+                                    listing.baths}{" "}
+                                  bath
+                                </span>
+                              )}
+                              {(listing.details?.sqft || listing.sqft) && (
+                                <span>
+                                  {(
+                                    listing.details?.sqft || listing.sqft
+                                  ).toLocaleString()}{" "}
+                                  sqft
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Listing date */}
+                            <div className="text-right">
+                              {(listing.listDate || listing.soldDate) && (
+                                <div>
+                                  <span className="text-gray-500">
+                                    {listing.listDate ? "Listed: " : "Sold: "}
+                                  </span>
+                                  <span className="font-medium">
+                                    {formatDate(
+                                      listing.listDate || listing.soldDate
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Property type and MLS number */}
+                          {(listing.details?.propertyType ||
+                            listing.propertyType ||
+                            listing.mlsNumber) && (
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              {(listing.details?.propertyType ||
+                                listing.propertyType) && (
+                                <span>
+                                  {listing.details?.propertyType ||
+                                    listing.propertyType}
+                                </span>
+                              )}
+                              {listing.mlsNumber && (
+                                <span>MLS# {listing.mlsNumber}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
