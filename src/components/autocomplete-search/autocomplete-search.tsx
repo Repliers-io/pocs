@@ -272,7 +272,7 @@ export function AutocompleteSearch({
         <div className="flex-1 duration-400 transition-[min-width] delay-100 ease-in min-w-[600px]">
           <div className="p-6 flex flex-col items-center w-full">
             {/* Search Bar */}
-            <div className="flex items-center bg-gray-100 rounded-md px-4 py-2 w-full mb-4">
+            <div className="relative flex items-center bg-gray-100 rounded-md px-4 py-2 w-full">
               <Search className="text-gray-400 w-5 h-5 mr-3" />
               <input
                 type="text"
@@ -287,162 +287,162 @@ export function AutocompleteSearch({
               <span className="text-gray-800 font-semibold text-sm px-2">
                 Search
               </span>
-            </div>
 
-            {/* Results Container */}
-            {showResults && (
-              <div className="space-y-4 w-full max-h-[500px] overflow-y-auto bg-white p-4 rounded-xl shadow">
-                {/* Error State */}
-                {error && (
-                  <div className="flex items-center gap-2 text-red-600 mb-4">
-                    <AlertCircle className="w-4 h-4" />
-                    <span className="text-sm">{error}</span>
-                  </div>
-                )}
-
-                {/* Loading State */}
-                {isLoading && (
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-4 animate-pulse"
-                      >
-                        {/* Image Skeleton */}
-                        <div className="w-24 h-16 bg-gray-200 rounded-md"></div>
-
-                        {/* Content Skeleton */}
-                        <div className="flex-grow">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="h-6 bg-gray-200 rounded w-32"></div>
-                            <div className="h-5 bg-gray-200 rounded w-16"></div>
-                          </div>
-                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                          <div className="flex space-x-3">
-                            <div className="h-4 bg-gray-200 rounded w-20"></div>
-                            <div className="h-4 bg-gray-200 rounded w-16"></div>
-                            <div className="h-4 bg-gray-200 rounded w-18"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Pending State */}
-                {isPending && !isLoading && (
-                  <div className="space-y-4">
-                    {[...Array(2)].map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-4 animate-pulse"
-                      >
-                        {/* Image Skeleton */}
-                        <div className="w-24 h-16 bg-gray-100 rounded-md"></div>
-
-                        {/* Content Skeleton */}
-                        <div className="flex-grow">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="h-6 bg-gray-100 rounded w-32"></div>
-                            <div className="h-5 bg-gray-100 rounded w-16"></div>
-                          </div>
-                          <div className="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
-                          <div className="flex space-x-3">
-                            <div className="h-4 bg-gray-100 rounded w-20"></div>
-                            <div className="h-4 bg-gray-100 rounded w-16"></div>
-                            <div className="h-4 bg-gray-100 rounded w-18"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* No Results */}
-                {!isLoading &&
-                  !isPending &&
-                  !error &&
-                  !hasResults &&
-                  query.trim() && (
-                    <div className="text-center py-8">
-                      <Frown className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                        No results found
-                      </h3>
-                      <p className="text-gray-500 mb-2">
-                        There aren't any search results that match your query.
-                      </p>
-                      <p className="text-gray-500">
-                        Try searching for a different property.
-                      </p>
+              {/* Results Container */}
+              {showResults && (
+                <div className="absolute top-full left-0 right-0 mt-2 space-y-4 w-full max-h-[500px] overflow-y-auto bg-white p-4 rounded-xl shadow-lg z-50 mt-4">
+                  {/* Error State */}
+                  {error && (
+                    <div className="flex items-center gap-2 text-red-600 mb-4">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{error}</span>
                     </div>
                   )}
 
-                {/* Listing Results */}
-                {!isLoading && results.length > 0 && (
-                  <>
-                    {results.map((listing, idx) => (
-                      <div
-                        key={listing.mlsNumber || idx}
-                        className="flex items-center gap-4"
-                      >
-                        {/* Image or Placeholder */}
-                        <div className="w-24 h-16 bg-gray-100 rounded-md overflow-hidden">
-                          {listing.images?.[0] ? (
-                            <img
-                              src={`https://cdn.repliers.io/${listing.images[0]}?class=small`}
-                              alt="Property"
-                              className="object-cover w-full h-full"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                              No Image
-                            </div>
-                          )}
-                        </div>
+                  {/* Loading State */}
+                  {isLoading && (
+                    <div className="space-y-4">
+                      {[...Array(3)].map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-4 animate-pulse"
+                        >
+                          {/* Image Skeleton */}
+                          <div className="w-24 h-16 bg-gray-200 rounded-md"></div>
 
-                        {/* Listing Info */}
-                        <div className="flex-grow">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-semibold text-lg">
-                              {listing.listPrice
-                                ? formatPrice(listing.listPrice)
-                                : "Price N/A"}
-                            </h3>
-                            <StatusTag status={listing.status} />
+                          {/* Content Skeleton */}
+                          <div className="flex-grow">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="h-6 bg-gray-200 rounded w-32"></div>
+                              <div className="h-5 bg-gray-200 rounded w-16"></div>
+                            </div>
+                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="flex space-x-3">
+                              <div className="h-4 bg-gray-200 rounded w-20"></div>
+                              <div className="h-4 bg-gray-200 rounded w-16"></div>
+                              <div className="h-4 bg-gray-200 rounded w-18"></div>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600">
-                            {`${listing.address?.streetNumber || ""} ${
-                              listing.address?.streetName || ""
-                            } ${listing.address?.streetSuffix || ""}, ${
-                              listing.address?.city || ""
-                            }`}{" "}
-                            | {listing.mlsNumber}
-                          </p>
-                          <div className="flex items-center text-sm text-gray-500 mt-1 space-x-3 flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <BedDouble className="w-4 h-4" />
-                              {formatBedrooms(listing.details)} Bedroom
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Bath className="w-4 h-4" />
-                              {formatBathrooms(listing.details)} Bath
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Car className="w-4 h-4" />
-                              {formatParking(listing.details)} Garage
-                            </span>
-                            {listing.details?.propertyType && (
-                              <span>| {listing.details.propertyType}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Pending State */}
+                  {isPending && !isLoading && (
+                    <div className="space-y-4">
+                      {[...Array(2)].map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-4 animate-pulse"
+                        >
+                          {/* Image Skeleton */}
+                          <div className="w-24 h-16 bg-gray-100 rounded-md"></div>
+
+                          {/* Content Skeleton */}
+                          <div className="flex-grow">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="h-6 bg-gray-100 rounded w-32"></div>
+                              <div className="h-5 bg-gray-100 rounded w-16"></div>
+                            </div>
+                            <div className="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
+                            <div className="flex space-x-3">
+                              <div className="h-4 bg-gray-100 rounded w-20"></div>
+                              <div className="h-4 bg-gray-100 rounded w-16"></div>
+                              <div className="h-4 bg-gray-100 rounded w-18"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* No Results */}
+                  {!isLoading &&
+                    !isPending &&
+                    !error &&
+                    !hasResults &&
+                    query.trim() && (
+                      <div className="text-center py-8">
+                        <Frown className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                          No results found
+                        </h3>
+                        <p className="text-gray-500 mb-2">
+                          There aren't any search results that match your query.
+                        </p>
+                        <p className="text-gray-500">
+                          Try searching for a different property.
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Listing Results */}
+                  {!isLoading && results.length > 0 && (
+                    <>
+                      {results.map((listing, idx) => (
+                        <div
+                          key={listing.mlsNumber || idx}
+                          className="flex items-center gap-4"
+                        >
+                          {/* Image or Placeholder */}
+                          <div className="w-24 h-16 bg-gray-100 rounded-md overflow-hidden">
+                            {listing.images?.[0] ? (
+                              <img
+                                src={`https://cdn.repliers.io/${listing.images[0]}?class=small`}
+                                alt="Property"
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-xs text-gray-400">
+                                No Image
+                              </div>
                             )}
                           </div>
+
+                          {/* Listing Info */}
+                          <div className="flex-grow">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-semibold text-lg">
+                                {listing.listPrice
+                                  ? formatPrice(listing.listPrice)
+                                  : "Price N/A"}
+                              </h3>
+                              <StatusTag status={listing.status} />
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {`${listing.address?.streetNumber || ""} ${
+                                listing.address?.streetName || ""
+                              } ${listing.address?.streetSuffix || ""}, ${
+                                listing.address?.city || ""
+                              }`}{" "}
+                              | {listing.mlsNumber}
+                            </p>
+                            <div className="flex items-center text-sm text-gray-500 mt-1 space-x-3 flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <BedDouble className="w-4 h-4" />
+                                {formatBedrooms(listing.details)} Bedroom
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Bath className="w-4 h-4" />
+                                {formatBathrooms(listing.details)} Bath
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Car className="w-4 h-4" />
+                                {formatParking(listing.details)} Garage
+                              </span>
+                              {listing.details?.propertyType && (
+                                <span>| {listing.details.propertyType}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
