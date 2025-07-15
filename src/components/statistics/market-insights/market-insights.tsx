@@ -16,14 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiInput } from "@/components/api-input/api-input";
 import { MLSReport } from "@/components/statistics/market-insights/mls-report";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Combobox } from "@/components/ui/combobox";
 import { UnifiedAddressSearch } from "@/components/unified-address-search/unified-address-search";
 
 // Types
@@ -59,118 +51,6 @@ const initialValues: FormValues = {
     country: "",
   },
 };
-
-const STREET_SUFFIXES = [
-  "st",
-  "rd",
-  "ave",
-  "blvd",
-  "dr",
-  "ln",
-  "ct",
-  "pl",
-  "cir",
-  "way",
-  "ter",
-  "pkwy",
-  "sq",
-  "hwy",
-  "expy",
-  "trl",
-  "rdg",
-  "run",
-  "path",
-  "pt",
-  "cres",
-  "crt",
-  "cove",
-  "grv",
-  "hill",
-  "hls",
-  "holw",
-  "isles",
-  "isle",
-  "jct",
-  "knls",
-  "knl",
-  "lk",
-  "lks",
-  "land",
-  "lndg",
-  "mdws",
-  "ml",
-  "mews",
-  "mnt",
-  "mt",
-  "mtn",
-  "mtns",
-  "orch",
-  "oval",
-  "park",
-  "parks",
-  "pass",
-  "pike",
-  "plaza",
-  "plz",
-  "prt",
-  "prts",
-  "radl",
-  "ramp",
-  "rnch",
-  "row",
-  "rue",
-  "rvr",
-  "shl",
-  "shls",
-  "shr",
-  "shrs",
-  "skwy",
-  "spg",
-  "spgs",
-  "spur",
-  "spurs",
-  "sqr",
-  "sqrs",
-  "stn",
-  "str",
-  "stra",
-  "strav",
-  "strm",
-  "strt",
-  "sumit",
-  "terr",
-  "tpke",
-  "trce",
-  "trk",
-  "trks",
-  "trls",
-  "tunl",
-  "tunls",
-  "turnpike",
-  "un",
-  "vly",
-  "vlys",
-  "via",
-  "vis",
-  "vist",
-  "vsta",
-  "vl",
-  "vlg",
-  "vlgs",
-  "vlly",
-  "walk",
-  "walks",
-  "wall",
-  "way",
-  "ways",
-  "well",
-  "wells",
-  "xing",
-  "xrd",
-  "xrds",
-]
-  .sort((a, b) => a.localeCompare(b))
-  .map((suffix) => ({ value: suffix, label: suffix }));
 
 export function MarketInsights({ by }: MarketInsightsProps) {
   const [isLoading, setIsLoading] = React.useState(false);
@@ -269,7 +149,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
       });
       setRecentSoldListings(recentSold);
     } catch (err) {
-      console.error("Error fetching nearby listings:", err);
+      // Handle error silently or set error state if needed
     }
   };
 
@@ -335,7 +215,7 @@ export function MarketInsights({ by }: MarketInsightsProps) {
           streetName: data.address.streetName,
         });
 
-        const url = `https://api.repliers.io/listings?${params.toString()}`;
+        const url = `https://api.repliers.io/listings?${params.toString()}&status=A&status=U`;
 
         response = await fetch(url, {
           headers: {
