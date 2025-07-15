@@ -403,14 +403,14 @@ export function AutocompleteSearch({
                           {/* Listing Info */}
                           <div className="flex-grow">
                             <div className="flex justify-between items-start">
-                              <h3 className="font-semibold text-lg">
+                              <h3 className="font-semibold text-base">
                                 {listing.listPrice
                                   ? formatPrice(listing.listPrice)
                                   : "Price N/A"}
                               </h3>
                               <StatusTag status={listing.status} />
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs text-gray-600">
                               {`${listing.address?.streetNumber || ""} ${
                                 listing.address?.streetName || ""
                               } ${listing.address?.streetSuffix || ""}, ${
@@ -418,7 +418,7 @@ export function AutocompleteSearch({
                               }`}{" "}
                               | {listing.mlsNumber}
                             </p>
-                            <div className="flex items-center text-sm text-gray-500 mt-1 space-x-3 flex-wrap">
+                            <div className="flex items-center text-xs text-gray-500 mt-1 space-x-3 flex-wrap">
                               <span className="flex items-center gap-1">
                                 <BedDouble className="w-4 h-4" />
                                 {formatBedrooms(listing.details)} Bedroom
