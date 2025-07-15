@@ -84,7 +84,6 @@ type Story = StoryObj<typeof AutocompleteSearch>;
 
 export const Default: Story = {
   args: {
-    apiKey: "your-repliers-api-key-here",
     placeholder: "Search for properties, cities, or neighborhoods...",
   },
   parameters: {

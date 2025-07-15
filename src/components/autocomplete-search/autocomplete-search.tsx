@@ -47,8 +47,8 @@ export interface ListingResult {
 }
 
 export interface AutocompleteSearchProps {
-  /** Repliers API key - required for API calls */
-  apiKey: string;
+  /** Repliers API key - if not provided, uses NEXT_PUBLIC_REPLIERS_API_KEY from environment */
+  apiKey?: string;
   /** Placeholder text for the search input */
   placeholder?: string;
 }
@@ -65,6 +65,7 @@ export interface AutocompleteSearchProps {
  * - Error handling and no results states
  * - Mobile-responsive design
  * - Real property images and details
+ * - Environment variable support for API key (NEXT_PUBLIC_REPLIERS_API_KEY)
  *
  * @param props - The component props
  * @returns JSX.Element
@@ -73,6 +74,9 @@ export function AutocompleteSearch({
   apiKey,
   placeholder = "Search for properties...",
 }: AutocompleteSearchProps) {
+  // Use provided apiKey or fallback to environment variable
+  const effectiveApiKey = apiKey || process.env.NEXT_PUBLIC_REPLIERS_API_KEY;
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ListingResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -111,10 +115,12 @@ export function AutocompleteSearch({
     };
   }, [query]);
 
-  // Perform concurrent API searches
+  // Perform API search
   const performSearch = async (searchQuery: string) => {
-    if (!apiKey) {
-      setError("API key is required");
+    if (!effectiveApiKey) {
+      setError(
+        "API key is required. Please provide apiKey prop or set NEXT_PUBLIC_REPLIERS_API_KEY in your environment."
+      );
       return;
     }
 
@@ -122,76 +128,41 @@ export function AutocompleteSearch({
     setError(null);
 
     try {
-      // Focus on listings endpoint first - request more complete data
-      const listingsResponse = await fetch(
+      // Make API request to search listings
+      const response = await fetch(
         `https://dev.repliers.io/listings?search=${encodeURIComponent(
           searchQuery
-        )}&searchFields=address.streetNumber,address.streetName,mlsNumber,address.city&fuzzysearch=true`,
+        )}&searchFields=address.streetNumber,address.streetName,mlsNumber,address.city&fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,status,images&fuzzysearch=true`,
         {
           headers: {
-            "REPLIERS-API-KEY": apiKey,
+            "REPLIERS-API-KEY": effectiveApiKey,
             "Content-Type": "application/json",
           },
         }
       );
 
-      // Check for specific error responses
-      if (!listingsResponse.ok) {
-        const errorText = await listingsResponse.text();
-
-        if (listingsResponse.status === 401) {
+      // Handle API errors
+      if (!response.ok) {
+        if (response.status === 401) {
           throw new Error(
             "Invalid API key. Please check your Repliers API key."
           );
-        } else if (listingsResponse.status === 403) {
+        } else if (response.status === 403) {
           throw new Error("API key doesn't have permission for this endpoint.");
-        } else if (listingsResponse.status === 429) {
+        } else if (response.status === 429) {
           throw new Error(
             "Too many requests. Please wait a moment and try again."
           );
         } else {
-          throw new Error(
-            `API Error (${listingsResponse.status}): ${errorText}`
-          );
+          throw new Error(`API Error: ${response.status}`);
         }
       }
 
-      const listingsData = await listingsResponse.json();
-
-      setResults(listingsData.listings || []);
+      // Parse and set results
+      const data = await response.json();
+      setResults(data.listings || []);
     } catch (err) {
       console.error("Search error:", err);
-
-      // If the error is network-related, try just listings endpoint
-      if (err instanceof TypeError && err.message.includes("fetch")) {
-        try {
-          const fallbackResponse = await fetch(
-            `https://dev.repliers.io/listings?search=${encodeURIComponent(
-              searchQuery
-            )}&searchFields=address.streetNumber,address.streetName,mlsNumber,address.city&fields=address.*,mlsNumber,listPrice`,
-            {
-              headers: {
-                "REPLIERS-API-KEY": apiKey,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            setResults(
-              fallbackData.listings ||
-                fallbackData.data ||
-                fallbackData.results ||
-                []
-            );
-            return;
-          }
-        } catch (fallbackErr) {
-          console.error("Fallback also failed:", fallbackErr);
-        }
-      }
-
       const errorMessage =
         err instanceof Error
           ? err.message
