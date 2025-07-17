@@ -1,8 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# POCs
+
+This repository contains proof-of-concept (POC) components and features.
 
 ## Getting Started
-
-### Environment Setup
 
 1. Create a `.env.local` file in the root directory of the project:
 
@@ -12,11 +12,13 @@ touch .env.local
 
 2. Add your Repliers API key to the `.env.local` file:
 
-```
+```env
 NEXT_PUBLIC_REPLIERS_API_KEY=your_api_key_here
 ```
 
-3. Restart your development server after adding the environment variable.
+⚠️ **SECURITY WARNING**: Environment variables prefixed with `NEXT_PUBLIC_` are bundled into client-side code and become publicly accessible. Only use them for non-sensitive configuration. For production applications, always pass API keys as props to components rather than using environment variables.
+
+This setup is intended for local development only. Never commit real API keys to version control.
 
 ### Running the Next.js Development Server
 

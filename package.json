@@ -10,8 +10,9 @@
     "lint": "next lint",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "deploy-storybook": "storybook build && gh-pages -d storybook-static",
-    "create-component": "node scripts/create-component.js"
+    "deploy-storybook": "npm run build-storybook && npm run check-env-security && gh-pages -d storybook-static",
+    "create-component": "node scripts/create-component.js",
+    "check-env-security": "node scripts/check-env-security.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

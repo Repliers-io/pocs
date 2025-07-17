@@ -59,7 +59,7 @@ import { PropertyValueEstimator } from "./property-value-estimator";
  * - Get your API key from the dashboard
  * - Set up your environment variable:
  * ```env
- * NEXT_PUBLIC_REPLIERS_API_KEY=your_api_key_here
+ * NEXT_PUBLIC_REPLIERS_API_KEY=your_api_key_here  # For local development only
  * ```
  *
  * ### Google Places API Key (for Address Search)
@@ -249,12 +249,12 @@ import { PropertyValueEstimator } from "./property-value-estimator";
  *
  * 4. **Implement API Integration**
  * ```ts
- * const fetchEstimate = async (data: FormData) => {
+ * const fetchEstimate = async (data: FormData, apiKey: string) => {
  *   const response = await fetch("/api/estimates", {
  *     method: "POST",
  *     headers: {
  *       "Content-Type": "application/json",
- *       "REPLIERS-API-KEY": process.env.NEXT_PUBLIC_REPLIERS_API_KEY!,
+ *       "REPLIERS-API-KEY": apiKey,
  *     },
  *     body: JSON.stringify(data),
  *   });

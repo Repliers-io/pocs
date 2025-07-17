@@ -47,7 +47,7 @@ export interface ListingResult {
 }
 
 export interface AutocompleteSearchProps {
-  /** Repliers API key - if not provided, uses NEXT_PUBLIC_REPLIERS_API_KEY from environment */
+  /** Repliers API key - required for production use (env fallback only works in development) */
   apiKey?: string;
   /** Placeholder text for the search input */
   placeholder?: string;
@@ -65,7 +65,7 @@ export interface AutocompleteSearchProps {
  * - Error handling and no results states
  * - Mobile-responsive design
  * - Real property images and details
- * - Environment variable support for API key (NEXT_PUBLIC_REPLIERS_API_KEY)
+ * - Environment variable support for API key (NEXT_PUBLIC_REPLIERS_API_KEY) - development only
  *
  * @param props - The component props
  * @returns JSX.Element
@@ -74,8 +74,12 @@ export function AutocompleteSearch({
   apiKey,
   placeholder = "Search for properties...",
 }: AutocompleteSearchProps) {
-  // Use provided apiKey or fallback to environment variable
-  const effectiveApiKey = apiKey || process.env.NEXT_PUBLIC_REPLIERS_API_KEY;
+  // Use provided apiKey or fallback to environment variable (development only)
+  const effectiveApiKey =
+    apiKey ||
+    (process.env.NODE_ENV === "development"
+      ? process.env.NEXT_PUBLIC_REPLIERS_API_KEY
+      : undefined);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ListingResult[]>([]);
@@ -119,7 +123,7 @@ export function AutocompleteSearch({
   const performSearch = async (searchQuery: string) => {
     if (!effectiveApiKey) {
       setError(
-        "API key is required. Please provide apiKey prop or set NEXT_PUBLIC_REPLIERS_API_KEY in your environment."
+        "API key is required. Please provide the apiKey prop. Environment variable fallback only works in development mode."
       );
       return;
     }

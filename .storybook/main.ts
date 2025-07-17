@@ -31,6 +31,19 @@ const config: StorybookConfig = {
           "@hookform/resolvers/zod",
         ],
       },
+      define: {
+        // Explicitly prevent environment variables from being bundled
+        // Only define safe, non-sensitive values here
+        "process.env.NODE_ENV": JSON.stringify(
+          process.env.NODE_ENV || "development"
+        ),
+        // Never define NEXT_PUBLIC_ variables in production Storybook builds
+        ...(configType === "DEVELOPMENT" &&
+          {
+            // Only in development, allow specific environment variables if needed
+            // "process.env.NEXT_PUBLIC_SOME_SAFE_VAR": JSON.stringify(process.env.NEXT_PUBLIC_SOME_SAFE_VAR),
+          }),
+      },
     };
   },
 };
