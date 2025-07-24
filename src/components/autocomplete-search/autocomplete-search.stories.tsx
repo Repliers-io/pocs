@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { AutocompleteSearch } from "./autocomplete-search";
 
 const meta: Meta<typeof AutocompleteSearch> = {
-  title: "Components/Useful Components/AutocompleteSearch",
+  title: "Tutorials/Autocomplete Search",
   component: AutocompleteSearch,
   parameters: {
     layout: "centered",

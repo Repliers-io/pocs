@@ -7,6 +7,7 @@ import {
   Loader2,
   AlertCircle,
   Frown,
+  MapPin,
 } from "lucide-react";
 
 // Types based on actual Repliers API responses
@@ -14,18 +15,11 @@ export interface ListingResult {
   mlsNumber: string;
   listPrice: number;
   address: {
-    area?: string;
     city?: string;
-    country?: string;
-    district?: string;
-    majorIntersection?: string;
-    neighborhood?: string;
     streetDirection?: string;
     streetName?: string;
     streetNumber?: string;
     streetSuffix?: string;
-    unitNumber?: string;
-    zip?: string;
     state?: string;
   };
   details?: {
@@ -35,15 +29,29 @@ export interface ListingResult {
     numBathroomsPlus?: number;
     numGarageSpaces?: number;
     propertyType?: string;
-    sqft?: number;
   };
-  status?: string;
-  standardStatus?: string;
   images?: Array<string>;
-  resource?: string;
-  class?: string;
   type?: string;
-  photoCount?: number;
+  lastStatus?: string;
+}
+
+// Types for location autocomplete results
+export interface LocationResult {
+  name: string;
+  type: "city" | "neighborhood" | "area";
+  state?: string;
+  city?: string; // Legacy field - keeping for backward compatibility
+  address?: {
+    state?: string;
+    city?: string;
+  };
+}
+
+export interface SearchResults {
+  properties: ListingResult[];
+  cities: LocationResult[];
+  neighborhoods: LocationResult[];
+  areas: LocationResult[];
 }
 
 export interface AutocompleteSearchProps {
@@ -57,10 +65,11 @@ export interface AutocompleteSearchProps {
  * AutocompleteSearch Component
  *
  * @description A streamlined autocomplete search component that integrates with Repliers API
- * to search MLS listings with real-time results and beautiful UI.
+ * to search MLS listings and locations with real-time results and beautiful UI.
  *
  * Features:
- * - Debounced search (400ms) with fuzzy matching
+ * - Hybrid search combining listings and location autocomplete
+ * - Debounced search (400ms) with fuzzy matching, minimum 3 characters
  * - Skeleton loading states
  * - Error handling and no results states
  * - Mobile-responsive design
@@ -82,7 +91,12 @@ export function AutocompleteSearch({
       : undefined);
 
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ListingResult[]>([]);
+  const [results, setResults] = useState<SearchResults>({
+    properties: [],
+    cities: [],
+    neighborhoods: [],
+    areas: [],
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, setIsPending] = useState(false); // Track debounce state
   const [error, setError] = useState<string | null>(null);
@@ -90,15 +104,25 @@ export function AutocompleteSearch({
   // Debounced search effect
   useEffect(() => {
     if (!query.trim()) {
-      setResults([]);
+      setResults({
+        properties: [],
+        cities: [],
+        neighborhoods: [],
+        areas: [],
+      });
       setError(null);
       setIsPending(false);
       return;
     }
 
-    // Require minimum 3 characters as per API requirement
+    // Require minimum 3 characters for both locations and listings
     if (query.trim().length < 3) {
-      setResults([]);
+      setResults({
+        properties: [],
+        cities: [],
+        neighborhoods: [],
+        areas: [],
+      });
       setError(null);
       setIsPending(false);
       return;
@@ -119,7 +143,7 @@ export function AutocompleteSearch({
     };
   }, [query]);
 
-  // Perform API search
+  // Perform hybrid API search (both listings and locations)
   const performSearch = async (searchQuery: string) => {
     if (!effectiveApiKey) {
       setError(
@@ -132,41 +156,97 @@ export function AutocompleteSearch({
     setError(null);
 
     try {
-      // Make API request to search listings
-      const response = await fetch(
-        `https://dev.repliers.io/listings?search=${encodeURIComponent(
-          searchQuery
-        )}&searchFields=address.streetNumber,address.streetName,mlsNumber,address.city&fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,status,images&fuzzysearch=true`,
-        {
-          headers: {
-            "REPLIERS-API-KEY": effectiveApiKey,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // Prepare API calls - both endpoints require minimum 3 characters
+      const apiCalls = [
+        // Search locations with city context
+        fetch(
+          `https://dev.repliers.io/locations/autocomplete?search=${encodeURIComponent(
+            searchQuery
+          )}&addContext=city`,
+          {
+            headers: {
+              "REPLIERS-API-KEY": effectiveApiKey,
+              "Content-Type": "application/json",
+            },
+          }
+        ),
+        // Search listings
+        fetch(
+          `https://dev.repliers.io/listings?search=${encodeURIComponent(
+            searchQuery
+          )}&searchFields=address.streetNumber,address.streetName,mlsNumber,address.city&fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images&fuzzysearch=true&status=A&status=U`,
+          {
+            headers: {
+              "REPLIERS-API-KEY": effectiveApiKey,
+              "Content-Type": "application/json",
+            },
+          }
+        ),
+      ];
 
-      // Handle API errors
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error(
-            "Invalid API key. Please check your Repliers API key."
-          );
-        } else if (response.status === 403) {
-          throw new Error("API key doesn't have permission for this endpoint.");
-        } else if (response.status === 429) {
-          throw new Error(
-            "Too many requests. Please wait a moment and try again."
-          );
-        } else {
-          throw new Error(`API Error: ${response.status}`);
+      // Execute searches concurrently
+      const responses = await Promise.all(apiCalls);
+
+      // Handle API errors with specific endpoint identification
+      for (let i = 0; i < responses.length; i++) {
+        const response = responses[i];
+        if (!response.ok) {
+          const endpointName = i === 0 ? "locations" : "listings";
+
+          if (response.status === 400) {
+            // For locations endpoint, check if it requires minimum 3 characters
+            if (endpointName === "locations" && searchQuery.length < 3) {
+              // Set empty location results and continue without showing error to user
+              setResults({
+                properties: [],
+                cities: [],
+                neighborhoods: [],
+                areas: [],
+              });
+              setIsLoading(false);
+              return;
+            }
+            throw new Error(
+              `Bad request to ${endpointName} API. Please check your search query.`
+            );
+          } else if (response.status === 401) {
+            throw new Error(
+              "Invalid API key. Please check your Repliers API key."
+            );
+          } else if (response.status === 403) {
+            throw new Error(
+              `API key doesn't have permission for the ${endpointName} endpoint.`
+            );
+          } else if (response.status === 429) {
+            throw new Error(
+              "Too many requests. Please wait a moment and try again."
+            );
+          } else {
+            throw new Error(`${endpointName} API Error: ${response.status}`);
+          }
         }
       }
 
-      // Parse and set results
-      const data = await response.json();
-      setResults(data.listings || []);
+      // Parse responses
+      const [locationsData, listingsData] = await Promise.all([
+        responses[0].json(),
+        responses[1].json(),
+      ]);
+
+      // Categorize and set results
+      const locations = locationsData.locations || [];
+      const properties = listingsData.listings || [];
+
+      // Set results - neighborhoods now include city information from addContext=city
+      setResults({
+        properties,
+        cities: locations.filter((loc: LocationResult) => loc.type === "city"),
+        neighborhoods: locations.filter(
+          (loc: LocationResult) => loc.type === "neighborhood"
+        ),
+        areas: locations.filter((loc: LocationResult) => loc.type === "area"),
+      });
     } catch (err) {
-      console.error("Search error:", err);
       const errorMessage =
         err instanceof Error
           ? err.message
@@ -222,40 +302,98 @@ export function AutocompleteSearch({
   };
 
   // Status mapping helper
-  const getStatusLabel = (status?: string): string | null => {
-    if (!status) return null;
+  const getStatusLabel = (
+    type?: string,
+    lastStatus?: string
+  ): string | null => {
+    // If lastStatus is "New", "Pc" (Price Change), or "Ext" (Extension), show the type value
+    if (lastStatus === "New" || lastStatus === "Pc" || lastStatus === "Ext") {
+      if (type === "Sale") return "For Sale";
+      if (type === "Lease") return "For Lease";
+      return type || null;
+    }
 
-    const statusMap: Record<string, string> = {
-      A: "For Sale",
-      Active: "For Sale",
-      S: "Sold",
-      Sold: "Sold",
-      L: "Leased",
-      Lease: "Leased",
-      Leased: "Leased",
-      T: "Terminated",
-      Terminated: "Terminated",
-      Expired: "Terminated",
-      Cancelled: "Terminated",
+    // For any other lastStatus, show the mapped lastStatus value
+    if (!lastStatus) return null;
+
+    const lastStatusMap: Record<string, string> = {
+      Sus: "Suspended",
+      Exp: "Expired",
+      Sld: "Sold",
+      Ter: "Terminated",
+      Dft: "Deal Fell Through",
+      Lsd: "Leased",
+      Sc: "Sold Conditionally",
+      Sce: "Sold Conditionally (Escape Clause)",
+      Lc: "Leased Conditionally",
+      Cs: "Coming Soon",
     };
 
-    return statusMap[status] || status;
+    return lastStatusMap[lastStatus] || lastStatus;
   };
 
   // Status tag component
-  const StatusTag = ({ status }: { status?: string }) => {
-    const label = getStatusLabel(status);
+  const StatusTag = ({
+    type,
+    lastStatus,
+  }: {
+    type?: string;
+    lastStatus?: string;
+  }) => {
+    const label = getStatusLabel(type, lastStatus);
     if (!label) return null;
 
-    // Define styling based on status
-    let style = "bg-green-100 text-green-600"; // Default for "For Sale"
+    // Define styling based on status with comprehensive color coding
+    let style = "bg-green-100 text-green-600"; // Default for active listings
 
-    if (label === "Sold") {
-      style = "bg-blue-100 text-blue-600";
-    } else if (label === "Leased") {
-      style = "bg-purple-100 text-purple-600";
-    } else if (label === "Terminated") {
-      style = "bg-gray-100 text-gray-500";
+    switch (label) {
+      // Active listings - green
+      case "For Sale":
+      case "For Lease":
+        style = "bg-green-100 text-green-600";
+        break;
+
+      // Sold/Completed - blue
+      case "Sold":
+        style = "bg-blue-100 text-blue-600";
+        break;
+
+      // Leased - purple
+      case "Leased":
+        style = "bg-purple-100 text-purple-600";
+        break;
+
+      // Conditional/Pending - yellow/amber
+      case "Sold Conditionally":
+      case "Sold Conditionally (Escape Clause)":
+      case "Leased Conditionally":
+        style = "bg-amber-100 text-amber-600";
+        break;
+
+      // Coming Soon - indigo
+      case "Coming Soon":
+        style = "bg-indigo-100 text-indigo-600";
+        break;
+
+      // Suspended - orange
+      case "Suspended":
+        style = "bg-orange-100 text-orange-600";
+        break;
+
+      // Expired - gray
+      case "Expired":
+        style = "bg-gray-100 text-gray-500";
+        break;
+
+      // Terminated/Failed - red
+      case "Terminated":
+      case "Deal Fell Through":
+        style = "bg-red-100 text-red-600";
+        break;
+
+      // Default fallback
+      default:
+        style = "bg-gray-100 text-gray-500";
     }
 
     return (
@@ -265,193 +403,309 @@ export function AutocompleteSearch({
     );
   };
 
-  const hasResults = results.length > 0;
+  const hasResults =
+    results.properties.length > 0 ||
+    results.cities.length > 0 ||
+    results.neighborhoods.length > 0 ||
+    results.areas.length > 0;
+  const hasLocationResults =
+    results.cities.length > 0 ||
+    results.neighborhoods.length > 0 ||
+    results.areas.length > 0;
   const showResults =
     query.trim() &&
     (hasResults || isLoading || isPending || error || query.trim().length >= 3);
 
   return (
-    <div className={`flex`}>
-      <div className="relative flex items-center justify-end gap-1 py-0 lg:py-4">
-        <div className="flex-1 duration-400 transition-[min-width] delay-100 ease-in min-w-[600px]">
-          <div className="p-6 flex flex-col items-center w-full">
-            {/* Search Bar */}
-            <div className="relative flex items-center bg-gray-100 rounded-md px-4 py-2 w-full">
-              <Search className="text-gray-400 w-5 h-5 mr-3" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={placeholder}
-                className="flex-grow bg-transparent outline-none text-gray-700 placeholder-gray-500"
-              />
-              {isLoading && (
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400 mr-2" />
-              )}
-              <span className="text-gray-800 font-semibold text-sm px-2">
-                Search
-              </span>
+    <div className="relative w-full">
+      {/* Search Bar */}
+      <div className="relative flex items-center bg-gray-100 rounded-md px-4 py-2 w-full">
+        <Search className="text-gray-400 w-5 h-5 mr-3" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          className="flex-grow bg-transparent outline-none text-gray-700 placeholder-gray-500"
+        />
+        {isLoading && (
+          <Loader2 className="w-4 h-4 animate-spin text-gray-400 mr-2" />
+        )}
+        <span className="text-gray-800 font-semibold text-sm px-2">Search</span>
 
-              {/* Results Container */}
-              {showResults && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg z-50">
-                  <div className="max-h-[500px] overflow-y-auto p-4 space-y-4">
-                    {/* Error State */}
-                    {error && (
-                      <div className="flex items-center gap-2 text-red-600 mb-4">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="text-sm">{error}</span>
-                      </div>
-                    )}
-
-                    {/* Loading State */}
-                    {isLoading && (
-                      <div className="space-y-4">
-                        {[...Array(3)].map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-4 animate-pulse"
-                          >
-                            {/* Image Skeleton */}
-                            <div className="w-24 h-16 bg-gray-200 rounded-md"></div>
-
-                            {/* Content Skeleton */}
-                            <div className="flex-grow">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="h-6 bg-gray-200 rounded w-32"></div>
-                                <div className="h-5 bg-gray-200 rounded w-16"></div>
-                              </div>
-                              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                              <div className="flex space-x-3">
-                                <div className="h-4 bg-gray-200 rounded w-20"></div>
-                                <div className="h-4 bg-gray-200 rounded w-16"></div>
-                                <div className="h-4 bg-gray-200 rounded w-18"></div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Pending State */}
-                    {isPending && !isLoading && (
-                      <div className="space-y-4">
-                        {[...Array(2)].map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-4 animate-pulse"
-                          >
-                            {/* Image Skeleton */}
-                            <div className="w-24 h-16 bg-gray-100 rounded-md"></div>
-
-                            {/* Content Skeleton */}
-                            <div className="flex-grow">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="h-6 bg-gray-100 rounded w-32"></div>
-                                <div className="h-5 bg-gray-100 rounded w-16"></div>
-                              </div>
-                              <div className="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
-                              <div className="flex space-x-3">
-                                <div className="h-4 bg-gray-100 rounded w-20"></div>
-                                <div className="h-4 bg-gray-100 rounded w-16"></div>
-                                <div className="h-4 bg-gray-100 rounded w-18"></div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* No Results */}
-                    {!isLoading &&
-                      !isPending &&
-                      !error &&
-                      !hasResults &&
-                      query.trim() && (
-                        <div className="text-center py-8">
-                          <Frown className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-                          <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                            No results found
-                          </h3>
-                          <p className="text-gray-500 mb-2">
-                            There aren't any search results that match your
-                            query.
-                          </p>
-                          <p className="text-gray-500">
-                            Try searching for a different property.
-                          </p>
-                        </div>
-                      )}
-
-                    {/* Listing Results */}
-                    {!isLoading && results.length > 0 && (
-                      <>
-                        {results.map((listing, idx) => (
-                          <div
-                            key={listing.mlsNumber || idx}
-                            className="flex items-center gap-4"
-                          >
-                            {/* Image or Placeholder */}
-                            <div className="w-24 h-16 bg-gray-100 rounded-md overflow-hidden">
-                              {listing.images?.[0] ? (
-                                <img
-                                  src={`https://cdn.repliers.io/${listing.images[0]}?class=small`}
-                                  alt="Property"
-                                  className="object-cover w-full h-full"
-                                />
-                              ) : (
-                                <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                                  No Image
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Listing Info */}
-                            <div className="flex-grow">
-                              <div className="flex justify-between items-start">
-                                <h3 className="font-semibold text-base">
-                                  {listing.listPrice
-                                    ? formatPrice(listing.listPrice)
-                                    : "Price N/A"}
-                                </h3>
-                                <StatusTag status={listing.status} />
-                              </div>
-                              <p className="text-xs text-gray-600">
-                                {`${listing.address?.streetNumber || ""} ${
-                                  listing.address?.streetName || ""
-                                } ${listing.address?.streetSuffix || ""}, ${
-                                  listing.address?.city || ""
-                                }`}{" "}
-                                | {listing.mlsNumber}
-                              </p>
-                              <div className="flex items-center text-xs text-gray-500 mt-1 space-x-3 flex-wrap">
-                                <span className="flex items-center gap-1">
-                                  <BedDouble className="w-4 h-4" />
-                                  {formatBedrooms(listing.details)} Bedroom
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Bath className="w-4 h-4" />
-                                  {formatBathrooms(listing.details)} Bath
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Car className="w-4 h-4" />
-                                  {formatParking(listing.details)} Garage
-                                </span>
-                                {listing.details?.propertyType && (
-                                  <span>| {listing.details.propertyType}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
+        {/* Results Container */}
+        {showResults && (
+          <div className="absolute top-full left-0 w-full min-w-[500px] max-w-lg mt-2 bg-white rounded-xl shadow-lg z-50">
+            <div className="max-h-[500px] overflow-y-auto p-4 space-y-4">
+              {/* Error State */}
+              {error && (
+                <div className="flex items-center gap-2 text-red-600 mb-4">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-sm">{error}</span>
                 </div>
+              )}
+
+              {/* Loading State */}
+              {isLoading && (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-4 animate-pulse"
+                    >
+                      {/* Image Skeleton */}
+                      <div className="w-24 h-16 bg-gray-200 rounded-md"></div>
+
+                      {/* Content Skeleton */}
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="h-6 bg-gray-200 rounded w-32"></div>
+                          <div className="h-5 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="flex space-x-3">
+                          <div className="h-4 bg-gray-200 rounded w-20"></div>
+                          <div className="h-4 bg-gray-200 rounded w-16"></div>
+                          <div className="h-4 bg-gray-200 rounded w-18"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pending State */}
+              {isPending && !isLoading && (
+                <div className="space-y-4">
+                  {[...Array(2)].map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-4 animate-pulse"
+                    >
+                      {/* Image Skeleton */}
+                      <div className="w-24 h-16 bg-gray-100 rounded-md"></div>
+
+                      {/* Content Skeleton */}
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="h-6 bg-gray-100 rounded w-32"></div>
+                          <div className="h-5 bg-gray-100 rounded w-16"></div>
+                        </div>
+                        <div className="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
+                        <div className="flex space-x-3">
+                          <div className="h-4 bg-gray-100 rounded w-20"></div>
+                          <div className="h-4 bg-gray-100 rounded w-16"></div>
+                          <div className="h-4 bg-gray-100 rounded w-18"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* No Results */}
+              {!isLoading &&
+                !isPending &&
+                !error &&
+                !hasResults &&
+                query.trim() && (
+                  <div className="text-center py-8">
+                    <Frown className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+                    <h3 className="text-md font-semibold text-gray-700 mb-2">
+                      No results found
+                    </h3>
+                    <p className="text-gray-500 mb-2">
+                      There aren't any search results that match your query.
+                    </p>
+                    <p className="text-gray-500">
+                      Try searching for a different property.
+                    </p>
+                  </div>
+                )}
+
+              {/* Location Results */}
+              {!isLoading &&
+                !isPending &&
+                !error &&
+                (results.cities.length > 0 ||
+                  results.neighborhoods.length > 0 ||
+                  results.areas.length > 0) && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                      Locations
+                    </h4>
+
+                    <div className="space-y-0">
+                      {/* Cities */}
+                      {results.cities.map((city, idx) => {
+                        // Get state from the address object or fallback to legacy state field
+                        const state = city.address?.state || city.state;
+
+                        return (
+                          <div
+                            key={`city-${city.name}-${idx}`}
+                            className="flex items-center gap-3 px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-4 h-4 text-gray-600" />
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-grow">
+                              <span className="font-medium text-gray-800 text-sm leading-tight">
+                                {city.name}
+                              </span>
+                              <span className="text-xs text-gray-500 leading-tight">
+                                City{state && ` in ${state}`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Neighborhoods */}
+                      {results.neighborhoods.map((neighborhood, idx) => {
+                        // Get city from the new address object or fallback to legacy city field
+                        const city =
+                          neighborhood.address?.city || neighborhood.city;
+                        const state =
+                          neighborhood.address?.state || neighborhood.state;
+
+                        return (
+                          <div
+                            key={`neighborhood-${neighborhood.name}-${idx}`}
+                            className="flex items-center gap-3 px-3 py-2 hover:bg-green-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-4 h-4 text-gray-600" />
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-grow">
+                              <span className="font-medium text-gray-800 text-sm leading-tight">
+                                {neighborhood.name}
+                              </span>
+                              <span className="text-xs text-gray-500 leading-tight">
+                                Neighborhood{city && ` in ${city}`}
+                                {city && state && `, ${state}`}
+                                {!city && state && ` in ${state}`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Areas */}
+                      {results.areas.map((area, idx) => {
+                        // Get state from the address object or fallback to legacy state field
+                        const state = area.address?.state || area.state;
+
+                        return (
+                          <div
+                            key={`area-${area.name}-${idx}`}
+                            className="flex items-center gap-3 px-3 py-2 hover:bg-purple-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-4 h-4 text-gray-600" />
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-grow">
+                              <span className="font-medium text-gray-800 text-sm leading-tight">
+                                {area.name}
+                              </span>
+                              <span className="text-xs text-gray-500 leading-tight">
+                                Area{state && ` in ${state}`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+              {/* Listing Results */}
+              {!isLoading && results.properties.length > 0 && (
+                <>
+                  {/* Properties Section Header (only show if there are also locations) */}
+                  {hasLocationResults && (
+                    <div className="pt-2">
+                      <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+                        Properties
+                      </h4>
+                    </div>
+                  )}
+
+                  {results.properties.map((listing, idx) => (
+                    <div
+                      key={listing.mlsNumber || idx}
+                      className="flex items-center gap-4"
+                    >
+                      {/* Image or Placeholder */}
+                      <div className="w-24 h-16 bg-gray-100 rounded-md overflow-hidden">
+                        {listing.images?.[0] ? (
+                          <img
+                            src={`https://cdn.repliers.io/${listing.images[0]}?class=small`}
+                            alt="Property"
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-xs text-gray-400">
+                            No Image
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Listing Info */}
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-base">
+                              {listing.listPrice
+                                ? formatPrice(listing.listPrice)
+                                : "Price N/A"}
+                            </h3>
+                            <span className="text-gray-400">|</span>
+                            <span className="text-sm text-gray-600">
+                              {listing.mlsNumber}
+                            </span>
+                          </div>
+                          <StatusTag
+                            type={listing.type}
+                            lastStatus={listing.lastStatus}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {`${listing.address?.streetNumber || ""} ${
+                            listing.address?.streetName || ""
+                          } ${listing.address?.streetSuffix || ""}, ${
+                            listing.address?.city || ""
+                          }${
+                            listing.address?.state
+                              ? `, ${listing.address.state}`
+                              : ""
+                          }`}
+                        </p>
+                        <div className="flex items-center text-xs text-gray-500 mt-1 space-x-3 flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <BedDouble className="w-4 h-4" />
+                            {formatBedrooms(listing.details)} Bedroom
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Bath className="w-4 h-4" />
+                            {formatBathrooms(listing.details)} Bath
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Car className="w-4 h-4" />
+                            {formatParking(listing.details)} Garage
+                          </span>
+                          {listing.details?.propertyType && (
+                            <span>| {listing.details.propertyType}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -118,6 +118,61 @@ This ensures consistency, discoverability, and maintainability across the codeba
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Troubleshooting
+
+### Tailwind CSS Not Working (Styles Missing)
+
+**Problem**: Landing page shows unstyled HTML (fonts work but no colors, spacing, etc.) while Storybook styles work correctly.
+
+**Symptoms**:
+
+- Font loads correctly (Inter)
+- No background colors, spacing, or Tailwind utility classes
+- Browser developer tools show CSS file with only font definitions
+- Storybook components appear styled correctly
+
+**Root Cause**: Missing or incorrect PostCSS configuration file format.
+
+**Solution**:
+
+1. **Check for PostCSS config**: Ensure you have `postcss.config.js` (not `.mjs`) in your project root:
+
+```javascript
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+2. **If you have `postcss.config.mjs`**, delete it and create `postcss.config.js` instead:
+
+```bash
+rm postcss.config.mjs
+```
+
+3. **Clear Next.js cache and restart**:
+
+```bash
+rm -rf .next
+npm run dev
+```
+
+4. **Verify the fix**: Check that CSS file includes Tailwind classes:
+
+```bash
+curl -s http://localhost:3000/_next/static/css/app/layout.css | grep "bg-gray-50"
+```
+
+**Why This Happens**:
+
+- Next.js has better compatibility with CommonJS format (`.js`) for PostCSS configuration
+- The `.mjs` ES module format can cause Next.js PostCSS loader to not process Tailwind directives
+- Storybook uses a different build system (Vite) that handles ES modules differently
+
+**Prevention**: When using `create-next-app` with Tailwind, stick with the default generated configuration files and avoid manual changes unless necessary.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
