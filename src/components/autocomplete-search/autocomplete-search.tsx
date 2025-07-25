@@ -160,7 +160,7 @@ export function AutocompleteSearch({
       const apiCalls = [
         // Search locations with city context
         fetch(
-          `https://dev.repliers.io/locations/autocomplete?search=${encodeURIComponent(
+          `https://api.repliers.io/locations/autocomplete?search=${encodeURIComponent(
             searchQuery
           )}&addContext=city`,
           {
@@ -172,7 +172,7 @@ export function AutocompleteSearch({
         ),
         // Search listings
         fetch(
-          `https://dev.repliers.io/listings?search=${encodeURIComponent(
+          `https://api.repliers.io/listings?search=${encodeURIComponent(
             searchQuery
           )}&searchFields=address.streetNumber,address.streetName,mlsNumber,address.city&fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images&fuzzysearch=true&status=A&status=U`,
           {
@@ -417,7 +417,7 @@ export function AutocompleteSearch({
     (hasResults || isLoading || isPending || error || query.trim().length >= 3);
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full max-w-[600px]">
       {/* Search Bar */}
       <div className="relative flex items-center bg-gray-100 rounded-md px-4 py-2 w-full">
         <Search className="text-gray-400 w-5 h-5 mr-3" />
@@ -435,7 +435,7 @@ export function AutocompleteSearch({
 
         {/* Results Container */}
         {showResults && (
-          <div className="absolute top-full left-0 w-full min-w-[500px] max-w-lg mt-2 bg-white rounded-xl shadow-lg z-50">
+          <div className="absolute top-full left-0 w-full min-w-[500px] max-w-[600px] mt-2 bg-white rounded-xl shadow-lg z-50">
             <div className="max-h-[500px] overflow-y-auto p-4 space-y-4">
               {/* Error State */}
               {error && (
