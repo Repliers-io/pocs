@@ -7,12 +7,21 @@ const config: StorybookConfig = {
     "@storybook/addon-essentials",
     "@chromatic-com/storybook",
     "@storybook/experimental-addon-test",
+    "@storybook/addon-links",
+    "@storybook/addon-interactions",
   ],
   framework: {
-    name: "@storybook/experimental-nextjs-vite",
+    name: "@storybook/nextjs",
     options: {},
   },
+  docs: {
+    autodocs: "tag",
+  },
   staticDirs: ["../public"],
+  managerHead: (head) => `
+    ${head}
+    <link rel="icon" type="image/png" href="/favicon.png" />
+  `,
   viteFinal: async (config, { configType }) => {
     return {
       ...config,
@@ -32,17 +41,10 @@ const config: StorybookConfig = {
         ],
       },
       define: {
-        // Explicitly prevent environment variables from being bundled
-        // Only define safe, non-sensitive values here
         "process.env.NODE_ENV": JSON.stringify(
           process.env.NODE_ENV || "development"
         ),
-        // Never define NEXT_PUBLIC_ variables in production Storybook builds
-        ...(configType === "DEVELOPMENT" &&
-          {
-            // Only in development, allow specific environment variables if needed
-            // "process.env.NEXT_PUBLIC_SOME_SAFE_VAR": JSON.stringify(process.env.NEXT_PUBLIC_SOME_SAFE_VAR),
-          }),
+        ...(configType === "DEVELOPMENT" && {}),
       },
     };
   },

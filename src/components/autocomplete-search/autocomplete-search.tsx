@@ -143,6 +143,89 @@ export function AutocompleteSearch({
     };
   }, [query]);
 
+  // Mock data for demo purposes
+  const getMockData = (searchQuery: string) => {
+    const mockListings: ListingResult[] = [
+      {
+        mlsNumber: "X12151945",
+        listPrice: 1250000,
+        address: {
+          streetNumber: "123",
+          streetName: "Demo Street",
+          city: "Toronto",
+          state: "ON",
+        },
+        details: {
+          numBedrooms: 3,
+          numBathrooms: 2,
+          numGarageSpaces: 2,
+          propertyType: "Single Family",
+        },
+        images: ["sample1.jpg"],
+        type: "Sale",
+        lastStatus: "New",
+      },
+      {
+        mlsNumber: "X12151946",
+        listPrice: 890000,
+        address: {
+          streetNumber: "456",
+          streetName: "Sample Avenue",
+          city: "Vancouver",
+          state: "BC",
+        },
+        details: {
+          numBedrooms: 2,
+          numBathrooms: 1,
+          numGarageSpaces: 1,
+          propertyType: "Condo",
+        },
+        images: ["sample2.jpg"],
+        type: "Sale",
+        lastStatus: "New",
+      },
+    ];
+
+    const mockLocations: LocationResult[] = [
+      {
+        name: "Toronto",
+        type: "city",
+        address: { state: "ON", city: "Toronto" },
+      },
+      {
+        name: "Downtown Toronto",
+        type: "neighborhood",
+        address: { state: "ON", city: "Toronto" },
+      },
+      {
+        name: "Greater Toronto Area",
+        type: "area",
+        address: { state: "ON" },
+      },
+    ];
+
+    // Filter based on search query
+    const filteredListings = mockListings.filter(
+      (listing) =>
+        listing.address.city
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        listing.address.streetName
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        listing.mlsNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredLocations = mockLocations.filter((location) =>
+      location.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return {
+      listings: filteredListings,
+      locations: filteredLocations,
+    };
+  };
+
   // Perform hybrid API search (both listings and locations)
   const performSearch = async (searchQuery: string) => {
     if (!effectiveApiKey) {
@@ -155,6 +238,27 @@ export function AutocompleteSearch({
     setIsLoading(true);
     setError(null);
 
+    // Use mock data for demo/sample API key
+    if (effectiveApiKey === "your_sample_api_key_here") {
+      // Simulate API delay for demo
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const mockData = getMockData(searchQuery);
+      const locations = mockData.locations;
+      const properties = mockData.listings;
+
+      setResults({
+        properties,
+        cities: locations.filter((loc: LocationResult) => loc.type === "city"),
+        neighborhoods: locations.filter(
+          (loc: LocationResult) => loc.type === "neighborhood"
+        ),
+        areas: locations.filter((loc: LocationResult) => loc.type === "area"),
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Prepare API calls - both endpoints require minimum 3 characters
       const apiCalls = [
@@ -162,7 +266,7 @@ export function AutocompleteSearch({
         fetch(
           `https://api.repliers.io/locations/autocomplete?search=${encodeURIComponent(
             searchQuery
-          )}&addContext=city`,
+          )}`,
           {
             headers: {
               "REPLIERS-API-KEY": effectiveApiKey,

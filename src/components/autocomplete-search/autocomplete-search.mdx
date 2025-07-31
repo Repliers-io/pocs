@@ -1,0 +1,428 @@
+import { Meta, Story, Canvas } from "@storybook/addon-docs";
+import * as AutocompleteSearchStories from "./autocomplete-search.stories";
+
+<Meta of={AutocompleteSearchStories} />
+
+# Configuring AutocompleteSearch with the Repliers API
+
+[**View the component code repository on GitHub**](https://github.com/Repliers-io/pocs/blob/main/src/components/autocomplete-search/autocomplete-search.tsx)
+
+This tutorial focuses on understanding the API calls, requests, and responses involved in building a real estate autocomplete search. The UI component is already fully designed and coded out for you—feel free to use or adapt it in your own projects!
+
+## Live Example
+
+Try the component below - start typing a city name, address, or MLS number to see the autocomplete in action. This demo uses real API data:
+
+<Canvas of={AutocompleteSearchStories.WorkingExample} />
+
+## Why Autocomplete Search Matters
+
+Autocomplete search is essential for real estate applications because it:
+
+- **Searches the database of listings** - Users can find specific properties by address, MLS number, or partial matches
+- **Helps with regional searches** - When users want to browse listings in a certain area but don't know exact addresses, location autocomplete provides cities, neighborhoods, and areas
+- **Improves user experience** - Reduces typing, prevents errors, and provides instant feedback
+
+## Tech Stack Overview
+
+This tutorial uses:
+
+- **React 18** with TypeScript for type safety
+- **Next.js 14** for the development environment
+- **Tailwind CSS** for styling
+- **Lucide React** for icons
+- **Repliers API** for real estate data ✨✨✨
+
+## Component Architecture
+
+The autocomplete search follows this flow:
+
+```
+User Input (3+ chars)
+    ↓
+Debounce (400ms)
+    ↓
+Concurrent API Calls
+    ├── Listings API (/listings)
+    └── Locations API (/locations/autocomplete)
+    ↓
+Promise.all() Resolution
+    ↓
+Results Categorization
+    ├── Properties
+    ├── Cities
+    ├── Neighborhoods
+    └── Areas
+    ↓
+UI Update with Results
+```
+
+## API Implementation
+
+The component makes concurrent API calls to two Repliers endpoints:
+
+### 1. Listings Endpoint
+
+```http
+GET https://api.repliers.io/listings
+  ?search={query}
+  &searchFields=address.streetNumber,address.streetName,mlsNumber,address.city
+  &fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images
+  &status=A
+  &status=U
+  &fuzzysearch=true
+```
+
+**What we're requesting:**
+
+_Search Fields_
+
+```
+  &searchFields=address.streetNumber,address.streetName,mlsNumber,address.city
+```
+
+We want our search query to only search within the street number, street name, city and MLS number. This will allow listings to be returned when the user types an MLS number like 'CX9924729742', an adress like '123 Main St' or a city like 'Houston'.
+
+_Returned Fields_
+
+```
+fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images
+```
+
+<div style={{ textAlign: "center", margin: "2rem 0" }}>
+  <img
+    src="./images/autocomplete-listings.jpg"
+    alt="Demo of autocomplete search results for listings"
+    style={{
+      display: "block",
+      margin: "auto",
+      maxWidth: "600px",
+      width: "100%",
+      height: "auto",
+      borderRadius: "8px",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+    }}
+  />
+</div>
+
+We want to the results to match perfectly with our UI - we use the fields parameter to ensure only the necessary data is retuned:
+
+- `address.*` - the complete address
+- `mlsNumber` - the MLS number
+- `listPrice` - the list price
+- `details.numBedrooms` - number of bedrooms
+- `details.numBedroomsPlus` - indicates a den or a room that does not fit the legal requirements to be classified as a full bedroom
+- `details.numBathrooms` - number of bathrooms
+- `details.numBathroomsPlus` - number of half bathrooms
+- `details.numGarageSpaces` - number of garage spaces
+- `details.propertyType` - the property type (residential, condo, etc)
+- `type` - the listing type (for sale, for lease)
+- `lastStatus` - what is the last status of the listing (sold, leased, expired, terminated)
+- `images` - the images, we will use the title image to populate the component
+
+_Search Optimization_
+
+```
+&status=A
+&status=U
+&fuzzysearch=true
+```
+
+- `status=A` means we will search through all active listing
+- `status=U` means we will search through all unlisted listings
+- `fuzzysearch=true` means we want to the search squery to be loose, so a search for 'Mian St' will still return 'Main St'
+
+### 2. Locations Autocomplete Endpoint
+
+```http
+GET https://api.repliers.io/locations/autocomplete
+  ?search={query}
+```
+
+**What we're requesting:**
+
+- Search for cities, neighborhoods, and areas - anything we deem to be a 'Location'
+- We will take the results along with city and state data to display the results in this UI:
+
+<div style={{ textAlign: "center", margin: "2rem 0" }}>
+  <img
+    src="./images/autocomplete-locations.jpg"
+    alt="Demo of autocomplete search results for locations"
+    style={{
+      display: "block",
+      margin: "auto",
+      maxWidth: "600px",
+      width: "100%",
+      height: "auto",
+      borderRadius: "8px",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+    }}
+  />
+</div>
+
+Both requests execute simultaneously using `Promise.all()` with a 400ms debounce to prevent excessive API calls.
+
+## Tutorial Steps
+
+### Step 1: Clone and Setup the Repository
+
+First, you'll need to clone this repository to your local machine:
+
+1. **Fork the repository** on GitHub by clicking the "Fork" button in the top right
+2. **Clone your fork** locally:
+
+```bash
+git clone https://github.com/Repliers-io/pocs.git
+cd pocs
+```
+
+3. **Set up the remote** to track the original repository:
+
+```bash
+git remote add upstream https://github.com/Repliers-io/pocs.git
+```
+
+4. **Install dependencies**:
+
+```bash
+npm install
+```
+
+**Resources:**
+
+- [GitHub's Forking Guide](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+- [Git Clone Documentation](https://git-scm.com/docs/git-clone)
+
+### Step 2: Local Development Setup
+
+1. **Create environment file**:
+
+```bash
+touch .env.local
+```
+
+2. **Add your Repliers API key** to `.env.local`:
+
+```env
+NEXT_PUBLIC_REPLIERS_API_KEY=your_api_key_here
+```
+
+3. **Start the development server**:
+
+```bash
+npm run dev
+```
+
+**Important:** The component automatically looks for the API key in `NEXT_PUBLIC_REPLIERS_API_KEY` environment variable during development.
+
+The local deployment should deploy in the shell listing site I built out for you:
+
+<div style={{ textAlign: "center", margin: "2rem 0" }}>
+  <img
+    src="./images/autocomplete-local.jpg"
+    alt="Demo of autocomplete search example in local deployment"
+    style={{
+      display: "block",
+      margin: "auto",
+      maxWidth: "800px",
+      width: "100%",
+      height: "auto",
+      borderRadius: "8px",
+      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+    }}
+  />
+</div>
+
+## Error Handling & Edge Cases
+
+The component handles various error scenarios that you should be aware of:
+
+### Common Error States
+
+**1. Invalid API Key:**
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid API key provided"
+}
+```
+
+_What happens:_ Component shows "Failed to load results" message and logs error to console.
+
+**2. Network/Connection Errors:**
+
+```javascript
+// Network timeout or connection failure
+fetch: NetworkError when attempting to fetch resource
+```
+
+_What happens:_ Graceful fallback with error message, search remains functional for retry.
+
+**3. Rate Limiting (429 Too Many Requests):**
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Too many requests. Try again in 60 seconds.",
+  "retryAfter": 60
+}
+```
+
+_What happens:_ Component displays rate limit message and suggests retry timing.
+
+**4. Malformed Query Response:**
+
+```javascript
+// When API returns unexpected data structure
+TypeError: Cannot read property 'listings' of undefined
+```
+
+_What happens:_ Component safely handles missing data and shows "No results found" instead of crashing.
+
+### Error Handling Implementation
+
+The component uses try-catch blocks and validates API responses:
+
+```typescript
+try {
+  const [listingsResponse, locationsResponse] = await Promise.all([
+    fetch(listingsUrl, { headers }),
+    fetch(locationsUrl, { headers }),
+  ]);
+
+  // Check for HTTP errors
+  if (!listingsResponse.ok || !locationsResponse.ok) {
+    throw new Error("API request failed");
+  }
+
+  const [listingsData, locationsData] = await Promise.all([
+    listingsResponse.json(),
+    locationsResponse.json(),
+  ]);
+
+  // Validate response structure
+  const listings = listingsData?.listings || [];
+  const locations = locationsData?.locations || [];
+} catch (error) {
+  console.error("Search error:", error);
+  // Show user-friendly error message
+  setError("Failed to load results. Please try again.");
+}
+```
+
+## Performance Considerations
+
+### Why 400ms Debounce?
+
+The component uses a 400ms debounce delay, which is carefully chosen based on:
+
+**User Experience Research:**
+
+- **Too fast (< 200ms)**: Creates excessive API calls as users type quickly
+- **Too slow (> 600ms)**: Feels unresponsive and sluggish to users
+- **Sweet spot (300-500ms)**: Balances responsiveness with API efficiency
+
+**Technical Benefits:**
+
+- **Reduces API costs**: Prevents calls on every keystroke
+- **Improves performance**: Fewer network requests = better browser performance
+- **Respects rate limits**: Helps stay within API quotas
+- **Battery friendly**: Fewer network requests on mobile devices
+
+**Real-world Impact:**
+
+```javascript
+// Without debouncing: User types "toronto"
+// Triggers 7 API calls: t, to, tor, toro, toron, toront, toronto
+
+// With 400ms debouncing: User types "toronto"
+// Triggers 1 API call: toronto (only after user stops typing)
+```
+
+### API Rate Limiting Guidelines
+
+**Repliers API Limits:**
+
+- **Development**: 1,000 requests/hour per API key
+- **Production**: Contact support for higher limits
+- **Burst limit**: 10 requests/second maximum
+
+**Best Practices:**
+
+- Implement exponential backoff for rate limit errors
+- Cache results locally for repeated searches
+- Use fuzzy search to reduce need for multiple queries
+- Monitor usage with analytics to optimize debounce timing
+
+**Rate Limit Handling:**
+
+```typescript
+if (response.status === 429) {
+  const retryAfter = response.headers.get("Retry-After");
+  // Wait before retrying, show user feedback
+  setTimeout(() => retrySearch(), (retryAfter || 60) * 1000);
+}
+```
+
+### Production Security Best Practices
+
+**API Key Management:**
+
+- **Never expose keys in client-side code** - Use server-side proxy endpoints
+- **Use environment variables** - Keep keys out of version control
+- **Implement key rotation** - Regularly update API keys
+- **Monitor usage** - Set up alerts for unusual activity
+
+**Recommended Architecture for Production:**
+
+```
+Client App → Your API Server → Repliers API
+    ↓              ↓              ↓
+No API key    Has API key    Validates key
+```
+
+**Implementation Example:**
+
+```typescript
+// Instead of direct API calls from client:
+// ❌ fetch('https://api.repliers.io/listings', {
+//     headers: { 'REPLIERS-API-KEY': exposedKey }
+//   })
+
+// ✅ Use your own API endpoint:
+fetch("/api/search", {
+  method: "POST",
+  body: JSON.stringify({ query }),
+  headers: { Authorization: "Bearer " + userToken },
+});
+```
+
+**Additional Security Measures:**
+
+- Implement request signing for sensitive operations
+- Use HTTPS everywhere (never HTTP)
+- Validate and sanitize all user inputs
+- Set up CORS policies appropriately
+- Log and monitor API usage patterns
+
+## Key Implementation Details
+
+- **Debouncing**: 400ms delay prevents excessive API calls
+- **Minimum query length**: 3 characters required for both endpoints
+- **Error handling**: Comprehensive error states for API failures
+- **Loading states**: Skeleton loaders during API calls
+- **Categorized results**: Properties, Cities, Neighborhoods, Areas
+- **Mobile responsive**: Works on all device sizes
+
+## Next Steps
+
+This tutorial provides a foundation for building real estate search features. You can extend this by:
+
+- Adding click handlers for result selection
+- Implementing search history
+- Adding filters for price range, property type, etc.
+- Integrating with mapping services
+- Building saved searches functionality
+
+For more information, see the [official Repliers API documentation](https://help.repliers.com/en/article/building-an-autocomplete-search-feature-with-repliers-apis-1eaoxyl/).
