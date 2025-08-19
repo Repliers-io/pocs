@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { AutocompleteSearch } from "./autocomplete-search";
 
-const SAMPLE_API_KEY = "DUelBJ0uublEQrLO9ajRVcPVJmToDP";
+const SAMPLE_API_KEY = "pxI19UMy9zfw9vz5lRxoGpjJWXrMnm";
 
 const meta: Meta<typeof AutocompleteSearch> = {
   title:

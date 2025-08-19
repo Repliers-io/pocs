@@ -64,7 +64,7 @@ The component makes concurrent API calls to two Repliers endpoints:
 ### 1. Listings Endpoint
 
 ```http
-GET https://api.repliers.io/listings
+GET https://csr-api.repliers.io/listings
   ?search={query}
   &searchFields=address.streetNumber,address.streetName,mlsNumber,address.city
   &fields=address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images
@@ -135,7 +135,7 @@ _Search Optimization_
 ### 2. Locations Autocomplete Endpoint
 
 ```http
-GET https://api.repliers.io/locations/autocomplete
+GET https://csr-api.repliers.io/locations/autocomplete
   ?search={query}
 ```
 
@@ -168,18 +168,18 @@ Both requests execute simultaneously using `Promise.all()` with a 400ms debounce
 
 First, you'll need to clone this repository to your local machine:
 
-1. **Fork the repository** on GitHub by clicking the "Fork" button in the top right
+1. **Fork the repository** on GitHub by clicking the "Fork" button in the top right from the [POCs repo here!](https://github.com/Repliers-io/pocs)
 2. **Clone your fork** locally:
 
 ```bash
-git clone https://github.com/Repliers-io/pocs.git
+git clone https://github.com/{yourName}/pocs.git
 cd pocs
 ```
 
 3. **Set up the remote** to track the original repository:
 
 ```bash
-git remote add upstream https://github.com/Repliers-io/pocs.git
+git remote add upstream https://github.com/{yourName}/pocs.git
 ```
 
 4. **Install dependencies**:
@@ -425,4 +425,4 @@ This tutorial provides a foundation for building real estate search features. Yo
 - Integrating with mapping services
 - Building saved searches functionality
 
-For more information, see the [official Repliers API documentation](https://help.repliers.com/en/article/building-an-autocomplete-search-feature-with-repliers-apis-1eaoxyl/).
+For more information, see the [official Repliers API documentation](https://docs.repliers.io/reference/why-use-this-api).
