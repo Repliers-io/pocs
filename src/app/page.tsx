@@ -44,6 +44,12 @@ export default function Home() {
                   <a href="#" className="text-gray-600 hover:text-blue-600">
                     Rent
                   </a>
+                  <a href="/storybook-static/index.html?path=/docs/tutorials-map-search-with-property-clustering-using-mapbox-and-repliers-api--docs" 
+                     className="text-gray-600 hover:text-blue-600" 
+                     target="_blank"
+                     rel="noopener noreferrer">
+                    Map Search
+                  </a>
                   <a href="#" className="text-gray-600 hover:text-blue-600">
                     Agents
                   </a>
@@ -92,6 +98,15 @@ export default function Home() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Rent
+                </a>
+                <a
+                  href="/storybook-static/index.html?path=/docs/tutorials-map-search-with-property-clustering-using-mapbox-and-repliers-api--docs"
+                  className="text-gray-600 hover:text-blue-600 py-2 px-4 hover:bg-gray-50 rounded"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Map Search
                 </a>
                 <a
                   href="#"

@@ -1,0 +1,344 @@
+import { Meta, Story, Canvas } from "@storybook/addon-docs";
+import * as MapListingsStories from "./map-listings.stories";
+
+<Meta of={MapListingsStories} />
+
+# Configuring MapListings with the Repliers API
+
+[**View the component code repository on GitHub**](https://github.com/Repliers-io/pocs/blob/main/src/components/map-listings/map-listings.tsx)
+
+This tutorial focuses on building a high-performance real estate map that displays clustered property listings using the Repliers API. The component uses advanced server-side clustering and zoom-based precision for optimal performance with large datasets.
+
+## Live Example
+
+Try the component below - start by exploring the clustered listings on the map. Click clusters to zoom in and drill down to individual properties:
+
+<Canvas of={MapListingsStories.Part1_BasicListings} />
+
+### Why Server-Side Clustering Matters
+
+Server-side clustering is essential for real estate maps because it:
+
+- **Handles massive datasets** - Display thousands of properties without browser performance issues
+- **Optimizes network requests** - Single API call per map view instead of fetching individual properties
+- **Provides hierarchical navigation** - Users can drill down from city-level to individual properties
+- **Reduces data transfer** - Only sends necessary cluster data based on zoom level
+
+## Tech Stack Overview
+
+This tutorial uses:
+
+- **React 18** with TypeScript for type safety
+- **Next.js 14** for the development environment
+- **MapBox GL JS** for interactive mapping
+- **Repliers API** for real estate clustering data ✨✨✨
+
+## Component Architecture
+
+The map listings component follows this data flow:
+
+```
+Map Movement Event
+    ↓
+Get Current Bounds + Zoom Level
+    ↓
+Calculate Cluster Precision
+    ↓
+API Request to Repliers
+    ├── Cluster data (zoom < 14)
+    └── Individual properties (zoom ≥ 14)
+    ↓
+Process & Display Results
+    ├── Render cluster circles with counts
+    └── Render individual property dots
+```
+
+## API Implementation Details
+
+### Core Clustering Endpoint
+
+The component makes requests to the Repliers clustering API:
+
+```http
+GET https://api.repliers.io/listings
+  ?cluster=true
+  &clusterPrecision={dynamicPrecision}
+  &clusterLimit=200
+  &status=A
+  &map={boundingBoxPolygon}
+  &key={apiKey}
+```
+
+**Dynamic Precision Calculation:**
+
+The component automatically adjusts cluster precision based on zoom level:
+
+```typescript
+const getClusterPrecision = (zoom: number): number => {
+  if (zoom <= 8) return 5;   // City level - very large clusters
+  if (zoom <= 10) return 8;  // District level
+  if (zoom <= 12) return 12; // Neighborhood level  
+  if (zoom <= 14) return 16; // Street level
+  return 20;                 // Individual properties
+};
+```
+
+**Key Parameters:**
+
+- `cluster=true` - Enables server-side clustering
+- `clusterPrecision` - Controls cluster granularity (5-20)
+- `clusterLimit=200` - Maximum clusters per response
+- `status=A` - Only active listings
+- `map` - Geographic bounding box as polygon coordinates
+
+### Individual Property Details
+
+At high zoom levels (≥14), the component also fetches individual properties:
+
+```http
+GET https://api.repliers.io/listings
+  ?cluster=true
+  &clusterPrecision=20
+  &listings=true
+  &clusterFields=mlsNumber,listPrice,coordinates
+  &pageSize=200
+  &map={boundingBoxPolygon}
+  &key={apiKey}
+```
+
+This provides detailed property information for street-level viewing with popup details.
+
+## Performance Optimizations
+
+### Zoom-Based Data Loading
+
+The component implements intelligent data loading:
+
+- **Zoom 1-8**: City/regional clusters (500-5000+ properties per cluster)
+- **Zoom 9-10**: District clusters (100-500 properties per cluster)  
+- **Zoom 11-12**: Neighborhood clusters (50-100 properties per cluster)
+- **Zoom 13-14**: Street-level clusters (10-50 properties per cluster)
+- **Zoom 15+**: Individual properties with full details
+
+### Network Request Optimization
+
+**Single API Call Strategy:**
+- Only one request per map movement
+- Bounds-based queries prevent over-fetching
+- Automatic debouncing prevents excessive calls during rapid map movements
+
+**Response Data Processing:**
+```typescript
+// Efficient feature processing
+const clusterFeatures = clusters.map((cluster, index) => ({
+  type: "Feature",
+  properties: {
+    count: cluster.count,
+    precision: cluster.precision,
+    id: `cluster-${index}`
+  },
+  geometry: {
+    type: "Point", 
+    coordinates: [cluster.longitude, cluster.latitude]
+  }
+}));
+```
+
+## Tutorial Steps
+
+### Step 1: Clone and Setup the Repository
+
+First, you'll need to clone this repository to your local machine:
+
+1. **Fork the repository** on GitHub by clicking the "Fork" button in the top right from the [POCs repo here!](https://github.com/Repliers-io/pocs)
+2. **Clone your fork** locally:
+
+```bash
+git clone https://github.com/{yourName}/pocs.git
+cd pocs
+```
+
+3. **Set up the remote** to track the original repository:
+
+```bash
+git remote add upstream https://github.com/Repliers-io/pocs.git
+```
+
+4. **Install dependencies**:
+
+```bash
+npm install
+```
+
+**Resources:**
+
+- [GitHub's Forking Guide](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+- [Git Clone Documentation](https://git-scm.com/docs/git-clone)
+
+### Step 2: Local Development Setup
+
+1. **Create environment file**:
+
+```bash
+touch .env.local
+```
+
+2. **Add your Repliers API key and MapBox token** to `.env.local`:
+
+```env
+NEXT_PUBLIC_REPLIERS_API_KEY=your_repliers_api_key_here
+NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
+```
+
+3. **Start the development server**:
+
+```bash
+npm run dev
+```
+
+4. **Run Storybook** to see the component tutorials:
+
+```bash
+npm run storybook
+```
+
+**Important:** The component requires both a Repliers API key for property data and a MapBox access token for the map display.
+
+## Error Handling & Edge Cases
+
+The component handles various error scenarios:
+
+### Common Error States
+
+**1. Invalid API Key:**
+
+```json
+{
+  "error": "Unauthorized",
+  "message": "Invalid API key provided"
+}
+```
+
+_What happens:_ Component shows error message in bottom overlay and stops making requests.
+
+**2. MapBox Token Issues:**
+
+```javascript
+// Invalid or expired MapBox token
+Error: Unauthorized - Invalid token
+```
+
+_What happens:_ Map fails to initialize, showing MapBox error overlay.
+
+**3. Network/Connection Errors:**
+
+```javascript
+// Network timeout or connection failure  
+fetch: NetworkError when attempting to fetch resource
+```
+
+_What happens:_ Component shows loading state, retries on next map movement.
+
+**4. Malformed API Response:**
+
+```javascript
+// When API returns unexpected data structure
+TypeError: Cannot read property 'clusters' of undefined
+```
+
+_What happens:_ Component safely handles missing data and shows empty map state.
+
+## Advanced Implementation Ideas
+
+### Property Filtering Extensions
+
+The component can be extended with filter props:
+
+```typescript
+interface ExtendedMapListingsProps extends MapListingsProps {
+  // Price filters
+  minPrice?: number;
+  maxPrice?: number;
+  
+  // Property characteristics  
+  minBedrooms?: number;
+  minBathrooms?: number;
+  propertyTypes?: string[];
+  
+  // Location filters
+  schoolDistricts?: string[];
+  walkScore?: number;
+}
+```
+
+### Multi-Query Implementation
+
+For comparative analysis across regions:
+
+```typescript
+const fetchMultiRegionData = async (regions: Region[]) => {
+  const promises = regions.map(region => 
+    fetch(`https://api.repliers.io/listings`, {
+      // Region-specific parameters
+    })
+  );
+  
+  const responses = await Promise.all(promises);
+  return responses.map(r => r.json());
+};
+```
+
+### Custom Polygon Searches
+
+Beyond rectangular bounds, support custom search areas:
+
+```typescript
+const customPolygon = [
+  [-79.4, 43.6], [-79.3, 43.6], 
+  [-79.3, 43.7], [-79.4, 43.7], 
+  [-79.4, 43.6]
+];
+
+url.searchParams.set("polygon", JSON.stringify(customPolygon));
+```
+
+## Production Considerations
+
+### API Key Security
+
+- **Never expose keys in client-side code** - Use server-side proxy endpoints
+- **Implement request signing** for sensitive operations
+- **Monitor usage** - Set up alerts for unusual activity patterns
+
+### Performance Monitoring
+
+```typescript
+// Track API response times
+const startTime = performance.now();
+const response = await fetch(apiUrl);
+const responseTime = performance.now() - startTime;
+
+// Log slow requests
+if (responseTime > 1000) {
+  console.warn(`Slow API request: ${responseTime}ms`);
+}
+```
+
+### Caching Strategies
+
+- **In-memory caching** for recently viewed map areas
+- **Local storage** for user preferences and saved searches
+- **Service worker caching** for offline map tiles
+
+## Next Steps
+
+This tutorial provides a foundation for building real estate mapping applications. You can extend this by:
+
+- Adding property detail modals with more information
+- Implementing saved searches and user favorites  
+- Building comparative market analysis tools
+- Integrating with mortgage calculators
+- Adding draw tools for custom search areas
+- Implementing real-time listing updates via WebSockets
+
+For more information, see the [official Repliers API documentation](https://docs.repliers.io/reference/why-use-this-api).
