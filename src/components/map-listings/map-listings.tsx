@@ -7,9 +7,9 @@ export interface MapListingsProps {
   apiKey: string;
   /** MapBox access token - required */
   mapboxToken: string;
-  /** Initial map center coordinates [lng, lat] */
+  /** Initial map center coordinates [lng, lat] - auto-detects if not provided */
   initialCenter?: [number, number];
-  /** Initial zoom level */
+  /** Initial zoom level - auto-calculates if not provided */
   initialZoom?: number;
   /** Map container height */
   height?: string;
@@ -45,6 +45,202 @@ interface PropertyFeature {
   };
 }
 
+interface Coordinate {
+  lat: number;
+  lng: number;
+}
+
+interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+interface AutoCenterData {
+  center: [number, number];
+  zoom: number;
+}
+
+// Utility functions for auto-centering
+
+/**
+ * Extract coordinates from various API response formats
+ */
+const extractCoordinates = (listing: any): Coordinate | null => {
+  // Try different coordinate formats
+  if (listing.coordinates?.lat && listing.coordinates?.lng) {
+    return { lat: listing.coordinates.lat, lng: listing.coordinates.lng };
+  }
+  if (listing.latitude && listing.longitude) {
+    return { lat: listing.latitude, lng: listing.longitude };
+  }
+  if (listing.map?.latitude && listing.map?.longitude) {
+    return { lat: listing.map.latitude, lng: listing.map.longitude };
+  }
+  // Also check cluster coordinate formats
+  if (listing.location?.latitude && listing.location?.longitude) {
+    return { lat: listing.location.latitude, lng: listing.location.longitude };
+  }
+  if (listing.center?.lat && listing.center?.lng) {
+    return { lat: listing.center.lat, lng: listing.center.lng };
+  }
+  return null;
+};
+
+/**
+ * Calculate bounds from an array of coordinates
+ */
+const getPolygonBounds = (coordinates: Coordinate[]): MapBounds | null => {
+  if (coordinates.length === 0) return null;
+
+  let north = coordinates[0].lat;
+  let south = coordinates[0].lat;
+  let east = coordinates[0].lng;
+  let west = coordinates[0].lng;
+
+  coordinates.forEach((coord) => {
+    north = Math.max(north, coord.lat);
+    south = Math.min(south, coord.lat);
+    east = Math.max(east, coord.lng);
+    west = Math.min(west, coord.lng);
+  });
+
+  return { north, south, east, west };
+};
+
+/**
+ * Calculate center and optimal zoom from bounds
+ */
+const calculateCenterAndZoom = (bounds: MapBounds): AutoCenterData => {
+  const { north, south, east, west } = bounds;
+  
+  const center: [number, number] = [
+    (east + west) / 2, // longitude
+    (north + south) / 2, // latitude
+  ];
+
+  // Calculate zoom based on bounds span
+  const latSpan = north - south;
+  const lngSpan = east - west;
+  const maxSpan = Math.max(latSpan, lngSpan);
+
+  // Zoom calculation based on span (rough approximation)
+  let zoom = 10; // default
+  if (maxSpan > 50) zoom = 3;
+  else if (maxSpan > 20) zoom = 4;
+  else if (maxSpan > 10) zoom = 5;
+  else if (maxSpan > 5) zoom = 6;
+  else if (maxSpan > 2) zoom = 7;
+  else if (maxSpan > 1) zoom = 8;
+  else if (maxSpan > 0.5) zoom = 9;
+  else if (maxSpan > 0.25) zoom = 10;
+  else if (maxSpan > 0.1) zoom = 11;
+  else if (maxSpan > 0.05) zoom = 12;
+  else zoom = 13;
+
+  return { center, zoom };
+};
+
+/**
+ * Cache management for auto-center data
+ */
+const getCachedAutoCenter = (apiKey: string): AutoCenterData | null => {
+  try {
+    const cached = localStorage.getItem(`mapListings-autoCenter-${apiKey}`);
+    if (cached) {
+      const data = JSON.parse(cached);
+      // Check if cache is less than 24 hours old
+      if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+        return { center: data.center, zoom: data.zoom };
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to retrieve cached auto-center data:", error);
+  }
+  return null;
+};
+
+const setCachedAutoCenter = (apiKey: string, data: AutoCenterData): void => {
+  try {
+    const cacheData = {
+      ...data,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(`mapListings-autoCenter-${apiKey}`, JSON.stringify(cacheData));
+  } catch (error) {
+    console.warn("Failed to cache auto-center data:", error);
+  }
+};
+
+/**
+ * Auto-detect optimal map center and zoom from listings data
+ */
+const detectAutoCenter = async (apiKey: string): Promise<AutoCenterData | null> => {
+  try {
+    console.log("🎯 Auto-detecting map center from listings data...");
+
+    // Make API call to get a sample of listings for center detection
+    const url = new URL("https://api.repliers.io/listings");
+    url.searchParams.set("cluster", "false");
+    url.searchParams.set("listings", "true");
+    url.searchParams.set("pageSize", "500"); // Get more listings for better center calculation
+    url.searchParams.set("status", "A");
+    url.searchParams.set("key", apiKey);
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        "REPLIERS-API-KEY": apiKey,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Auto-center API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const listings = data.listings || data.results || [];
+
+    if (!listings || listings.length === 0) {
+      console.warn("⚠️ No listings found for auto-center detection");
+      return null;
+    }
+
+    // Extract coordinates from listings
+    const coordinates: Coordinate[] = [];
+    listings.forEach((listing: any) => {
+      const coord = extractCoordinates(listing);
+      if (coord) {
+        coordinates.push(coord);
+      }
+    });
+
+    if (coordinates.length === 0) {
+      console.warn("⚠️ No valid coordinates found in listings");
+      return null;
+    }
+
+    // Calculate bounds and center
+    const bounds = getPolygonBounds(coordinates);
+    if (!bounds) {
+      console.warn("⚠️ Could not calculate bounds from coordinates");
+      return null;
+    }
+
+    const autoCenter = calculateCenterAndZoom(bounds);
+    console.log(`✅ Auto-center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}] at zoom ${autoCenter.zoom} from ${coordinates.length} properties`);
+
+    // Cache the result
+    setCachedAutoCenter(apiKey, autoCenter);
+
+    return autoCenter;
+  } catch (error) {
+    console.error("❌ Auto-center detection failed:", error);
+    return null;
+  }
+};
+
 /**
  * MapListings Component
  *
@@ -62,8 +258,8 @@ interface PropertyFeature {
 export function MapListings({
   apiKey,
   mapboxToken,
-  initialCenter = [-98.5795, 39.8283], // Continental USA center
-  initialZoom = 4,
+  initialCenter,
+  initialZoom,
   height = "100%",
   width = "100%",
   mapStyle = "mapbox://styles/mapbox/streets-v12",
@@ -74,6 +270,44 @@ export function MapListings({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(initialCenter || null);
+  const [mapZoom, setMapZoom] = useState<number | null>(initialZoom || null);
+  const [isDetectingCenter, setIsDetectingCenter] = useState(!initialCenter);
+
+  // Auto-center detection effect
+  useEffect(() => {
+    const performAutoCenter = async () => {
+      if (mapCenter && mapZoom) return; // Already have center/zoom
+      
+      setIsDetectingCenter(true);
+      
+      // Check cache first
+      const cached = getCachedAutoCenter(apiKey);
+      if (cached) {
+        console.log("📦 Using cached auto-center data:", cached);
+        setMapCenter(cached.center);
+        setMapZoom(cached.zoom);
+        setIsDetectingCenter(false);
+        return;
+      }
+      
+      // Perform detection
+      const detected = await detectAutoCenter(apiKey);
+      if (detected) {
+        setMapCenter(detected.center);
+        setMapZoom(detected.zoom);
+      } else {
+        // Fallback to default
+        console.log("🗺️ Using fallback center: Continental USA");
+        setMapCenter([-98.5795, 39.8283]);
+        setMapZoom(4);
+      }
+      
+      setIsDetectingCenter(false);
+    };
+    
+    performAutoCenter();
+  }, [apiKey, mapCenter, mapZoom]);
 
   // Get cluster precision based on zoom level
   const getClusterPrecision = useCallback((zoom: number): number => {
@@ -250,15 +484,15 @@ export function MapListings({
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || !mapCenter || mapZoom === null) return;
 
     mapboxgl.accessToken = mapboxToken;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: mapStyle,
-      center: initialCenter,
-      zoom: initialZoom,
+      center: mapCenter,
+      zoom: mapZoom,
     });
 
     map.current.on("load", () => {
@@ -409,14 +643,18 @@ export function MapListings({
 
       // Initial data fetch
       const bounds = map.current.getBounds();
-      fetchClusters(bounds);
+      if (bounds) {
+        fetchClusters(bounds);
+      }
     });
 
     // Update data on map move
     map.current.on("moveend", () => {
       if (!map.current) return;
       const bounds = map.current.getBounds();
-      fetchClusters(bounds);
+      if (bounds) {
+        fetchClusters(bounds);
+      }
     });
 
     return () => {
@@ -425,7 +663,7 @@ export function MapListings({
         map.current = null;
       }
     };
-  }, [mapboxToken, mapStyle, initialCenter, initialZoom, fetchClusters]);
+  }, [mapboxToken, mapStyle, mapCenter, mapZoom, fetchClusters]);
 
   return (
     <div style={{ width, height, position: "relative" }}>
@@ -435,6 +673,34 @@ export function MapListings({
         style={{ width: "100%", height: "100%" }}
         className="rounded-lg overflow-hidden"
       />
+      
+      {/* Auto-centering overlay */}
+      {isDetectingCenter && (
+        <div
+          style={{
+            position: "absolute",
+            top: "0",
+            left: "0",
+            right: "0",
+            bottom: "0",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "6px",
+            zIndex: 1000,
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px", color: "#374151" }}>
+              Detecting optimal map center...
+            </div>
+            <div style={{ fontSize: "14px", color: "#6b7280" }}>
+              Analyzing property locations
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Property Count Display */}
       <div
@@ -451,7 +717,9 @@ export function MapListings({
           color: "#374151",
         }}
       >
-        {isLoading ? (
+        {isDetectingCenter ? (
+          <span style={{ color: "#6b7280" }}>Auto-centering...</span>
+        ) : isLoading ? (
           <span style={{ color: "#6b7280" }}>Loading...</span>
         ) : error ? (
           <span style={{ color: "#ef4444" }}>Error</span>
