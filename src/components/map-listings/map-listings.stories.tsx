@@ -74,8 +74,7 @@ export const Part1_BasicListings: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
-    initialCenter: [-98.5795, 39.8283], // Continental USA center
-    initialZoom: 4,
+    initialZoom: 8,
     height: "100vh",
     width: "100vw",
     mapStyle: "mapbox://styles/mapbox/streets-v12",
