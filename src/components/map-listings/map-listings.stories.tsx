@@ -125,7 +125,7 @@ compare with the busiest city method.
  */
 export const Part2_AverageCenter: Story = {
   args: {
-    apiKey: "9F9oOgiUJylmCyRFzb8YkfLOpdcwkp",
+    apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
     centerCalculation: "city",
     initialZoom: 10,
