@@ -47,6 +47,12 @@ const meta: Meta<typeof MapListings> = {
       ],
       description: "MapBox map style",
     },
+    centerCalculation: {
+      control: "select",
+      options: ["average", "city"],
+      description:
+        "Center calculation method: 'average' uses density-weighted center, 'city' finds busiest city",
+    },
   },
 };
 
@@ -74,6 +80,7 @@ export const Part1_BasicListings: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
+    centerCalculation: "average",
     initialZoom: 8,
     height: "100vh",
     width: "100vw",
@@ -83,19 +90,26 @@ export const Part1_BasicListings: Story = {
     docs: {
       description: {
         story: `
-🎯 **This is the main interactive demo!** This example demonstrates server-side clustering 
-with the Repliers API. The component automatically adjusts cluster precision based on zoom level:
+🎯 **This is the main interactive demo!** This example demonstrates server-side clustering
+with the Repliers API using the default 'average' center calculation method.
 
-- **Zoom 8 and below**: City-level clusters (thousands of properties)
-- **Zoom 9-10**: District-level clusters  
-- **Zoom 11-12**: Neighborhood-level clusters
-- **Zoom 13-14**: Street-level clusters
-- **Zoom 15+**: Individual properties
+**Cluster Precision Levels:**
+- **Zoom 6 and below**: Continental-level clusters (precision 3)
+- **Zoom 7-8**: State/Province-level clusters (precision 5)
+- **Zoom 9-10**: Metropolitan-level clusters (precision 8)
+- **Zoom 11-12**: City-level clusters (precision 12)
+- **Zoom 13-14**: District-level clusters (precision 16)
+- **Zoom 15+**: Street-level clusters (precision 20)
+
+**Center Calculation:**
+Uses 'average' method by default - finds the densest area using a 20x20 grid analysis
+of 500 sample listings. Try switching the \`centerCalculation\` control to 'city' to
+compare with the busiest city method.
 
 **Performance Features:**
 - Server-side clustering reduces data transfer
 - Only one API call per map movement
-- Automatic precision adjustment optimizes performance
+- Cluster limit reduced to 100 for better distribution
         `,
       },
     },
@@ -103,40 +117,109 @@ with the Repliers API. The component automatically adjusts cluster precision bas
 };
 
 /**
- * **Part 2: Alternative Dataset Comparison**
+ * **Part 2: Average Center Calculation (Density-Weighted)**
  *
- * This example uses a different API key to demonstrate how the same component
- * can display different property datasets. Perfect for comparing different
- * data sources or testing API key configurations.
+ * This example demonstrates the 'average' center calculation method, which uses
+ * a density grid approach to find the area with the highest concentration of
+ * listings. This method is ideal for finding hotspots that might be between cities.
  */
-export const Part2_AlternativeDataset: Story = {
+export const Part2_AverageCenter: Story = {
   args: {
-    apiKey: SAMPLE_API_KEY,
+    apiKey: "9F9oOgiUJylmCyRFzb8YkfLOpdcwkp",
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
-    initialCenter: [-98.5795, 39.8283], // Continental USA center
-    initialZoom: 4,
+    centerCalculation: "city",
+    initialZoom: 10,
     height: "100vh",
     width: "100vw",
     mapStyle: "mapbox://styles/mapbox/streets-v12",
   },
   parameters: {
     docs: {
-      disable: true, // Hide from docs
+      description: {
+        story: `
+🎯 **Average Center Calculation**
+
+This method uses a 20x20 density grid to analyze 500 sample listings and finds the
+geographic area with the highest concentration of properties.
+
+**How it works:**
+- Fetches 500 sample listings from your API key's dataset
+- Divides the area into a 400-cell grid (20x20)
+- Counts listings in each grid cell
+- Centers the map on the densest grid cell
+
+**Best for:**
+- Finding hotspots between multiple cities
+- Density-based centering regardless of city boundaries
+- When you want to focus on listing concentration patterns
+
+**Console output:** \`📍 Density-weighted center: [-79.3832, 43.6532] (density: 0.42)\`
+        `,
+      },
     },
   },
 };
 
 /**
- * **Part 3: Custom Filters and Multi-Query Setup**
+ * **Part 3: City Center Calculation (Busiest City)**
+ *
+ * This example demonstrates the 'city' center calculation method, which uses
+ * city aggregates to find the actual city with the most listings and centers
+ * the map on that specific city location.
+ */
+export const Part3_CityCenter: Story = {
+  args: {
+    apiKey: SAMPLE_API_KEY,
+    mapboxToken: SAMPLE_MAPBOX_TOKEN,
+    centerCalculation: "city",
+    initialZoom: 10,
+    height: "100vh",
+    width: "100vw",
+    mapStyle: "mapbox://styles/mapbox/streets-v12",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+🏙️ **City Center Calculation**
+
+This method uses the Repliers API city aggregates to identify the actual city
+with the most listings and centers the map precisely on that city.
+
+**How it works:**
+- Calls \`/listings?aggregates=address.city\` to get city listing counts
+- Identifies the city with the highest number of listings
+- Calls \`/listings?address.city=BusiestCity\` to get coordinates
+- Centers the map on that city's location
+
+**Best for:**
+- Focusing on actual city centers with most activity
+- When you want to avoid centering between cities
+- Clear city-based geographic targeting
+
+**Example process:**
+1. 🏆 Busiest city: Toronto with 24,938 listings
+2. 🎯 City center for Toronto: [-79.3832, 43.6532]
+
+**Console output:** \`🏆 Busiest city: Toronto with 24938 listings\` → \`🎯 City center for Toronto: [-79.3832, 43.6532]\`
+        `,
+      },
+    },
+  },
+};
+
+/**
+ * **Part 4: Custom Filters and Multi-Query Setup**
  *
  * This placeholder demonstrates how the component could be extended with
  * property filters (bedrooms, bathrooms, price range) and multi-query
  * functionality for complex search scenarios.
  */
-export const Part3_FilteredSearch: Story = {
+export const Part4_FilteredSearch: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
+    centerCalculation: "average",
     initialCenter: [-98.5795, 39.8283], // Continental USA center
     initialZoom: 4,
     height: "100vh",

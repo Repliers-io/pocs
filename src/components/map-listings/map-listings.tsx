@@ -37,6 +37,7 @@ interface PropertyFeature {
   properties: {
     mlsNumber: string;
     listPrice?: number;
+    propertyType?: string; // "Sale" or "Lease"
     isProperty: true;
   };
   geometry: {
@@ -59,8 +60,9 @@ interface MapBounds {
 
 interface AutoCenterData {
   center: [number, number];
-  zoom: number;
 }
+
+// Price formatting is handled by Mapbox GL expressions in the price-text layer
 
 // Utility functions for auto-centering
 
@@ -110,36 +112,153 @@ const getPolygonBounds = (coordinates: Coordinate[]): MapBounds | null => {
 };
 
 /**
- * Calculate center and optimal zoom from bounds
+ * Calculate density-weighted center from coordinates (original grid method)
  */
-const calculateCenterAndZoom = (bounds: MapBounds): AutoCenterData => {
+const calculateAverageCenter = (
+  coordinates: Coordinate[],
+  bounds: MapBounds
+): [number, number] => {
   const { north, south, east, west } = bounds;
-  
-  const center: [number, number] = [
-    (east + west) / 2, // longitude
-    (north + south) / 2, // latitude
-  ];
 
-  // Calculate zoom based on bounds span
-  const latSpan = north - south;
-  const lngSpan = east - west;
-  const maxSpan = Math.max(latSpan, lngSpan);
+  // Create a density grid to find the densest area
+  const gridSize = 20; // 20x20 grid for density calculation
+  const latStep = (north - south) / gridSize;
+  const lngStep = (east - west) / gridSize;
 
-  // Zoom calculation based on span (rough approximation)
-  let zoom = 10; // default
-  if (maxSpan > 50) zoom = 3;
-  else if (maxSpan > 20) zoom = 4;
-  else if (maxSpan > 10) zoom = 5;
-  else if (maxSpan > 5) zoom = 6;
-  else if (maxSpan > 2) zoom = 7;
-  else if (maxSpan > 1) zoom = 8;
-  else if (maxSpan > 0.5) zoom = 9;
-  else if (maxSpan > 0.25) zoom = 10;
-  else if (maxSpan > 0.1) zoom = 11;
-  else if (maxSpan > 0.05) zoom = 12;
-  else zoom = 13;
+  // Initialize density grid
+  const densityGrid: number[][] = Array(gridSize)
+    .fill(0)
+    .map(() => Array(gridSize).fill(0));
 
-  return { center, zoom };
+  // Count listings in each grid cell
+  coordinates.forEach((coord) => {
+    const latIndex = Math.floor((coord.lat - south) / latStep);
+    const lngIndex = Math.floor((coord.lng - west) / lngStep);
+
+    // Ensure indices are within bounds
+    const safeLatIndex = Math.max(0, Math.min(gridSize - 1, latIndex));
+    const safeLngIndex = Math.max(0, Math.min(gridSize - 1, lngIndex));
+
+    densityGrid[safeLatIndex][safeLngIndex]++;
+  });
+
+  // Find the densest grid cell
+  let maxDensity = 0;
+  let densestLat = 0;
+  let densestLng = 0;
+
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
+      if (densityGrid[i][j] > maxDensity) {
+        maxDensity = densityGrid[i][j];
+        densestLat = south + (i + 0.5) * latStep; // Center of grid cell
+        densestLng = west + (j + 0.5) * lngStep;
+      }
+    }
+  }
+
+  // If no dense area found, fall back to geometric center
+  const center: [number, number] =
+    maxDensity > 0
+      ? [densestLng, densestLat]
+      : [(east + west) / 2, (north + south) / 2];
+
+  const totalListings = coordinates.length;
+  const densityRatio = maxDensity / totalListings;
+
+  console.log(
+    `📍 Density-weighted center: [${center[0].toFixed(4)}, ${center[1].toFixed(
+      4
+    )}] (density: ${densityRatio.toFixed(2)})`
+  );
+
+  return center;
+};
+
+/**
+ * Find the largest cluster and center on it
+ */
+const calculateLargestClusterCenter = async (
+  apiKey: string
+): Promise<[number, number] | null> => {
+  try {
+    console.log("🎯 Finding largest cluster center...");
+
+    // Get clusters with low precision to see the biggest ones
+    const url = new URL("https://api.repliers.io/listings");
+    url.searchParams.set("cluster", "true");
+    url.searchParams.set("clusterPrecision", "8"); // Low precision = bigger clusters
+    url.searchParams.set("clusterLimit", "50");
+    url.searchParams.set("status", "A");
+    url.searchParams.set("key", apiKey);
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        "REPLIERS-API-KEY": apiKey,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Largest cluster API Error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    const clusters = data.aggregates?.map?.clusters || data.clusters || [];
+
+    if (!clusters || clusters.length === 0) {
+      console.warn("⚠️ No clusters found");
+      return null;
+    }
+
+    // Find the cluster with the most listings
+    let largestCluster = null;
+    let maxCount = 0;
+
+    clusters.forEach((cluster: any) => {
+      const count = cluster.count || 0;
+      if (count > maxCount) {
+        maxCount = count;
+        largestCluster = cluster;
+      }
+    });
+
+    if (!largestCluster) {
+      console.warn("⚠️ No valid cluster found");
+      return null;
+    }
+
+    // Extract coordinates from the largest cluster
+    const coordinates = [
+      largestCluster.location?.longitude ||
+        largestCluster.coordinates?.lng ||
+        largestCluster.longitude ||
+        largestCluster.center?.lng,
+      largestCluster.location?.latitude ||
+        largestCluster.coordinates?.lat ||
+        largestCluster.latitude ||
+        largestCluster.center?.lat,
+    ];
+
+    if (!coordinates[0] || !coordinates[1]) {
+      console.warn("⚠️ No coordinates found for largest cluster");
+      return null;
+    }
+
+    const center: [number, number] = [coordinates[0], coordinates[1]];
+    console.log(
+      `🏆 Largest cluster: ${maxCount} listings at [${center[0].toFixed(
+        4
+      )}, ${center[1].toFixed(4)}]`
+    );
+
+    return center;
+  } catch (error) {
+    console.error("❌ Largest cluster detection failed:", error);
+    return null;
+  }
 };
 
 /**
@@ -152,7 +271,7 @@ const getCachedAutoCenter = (apiKey: string): AutoCenterData | null => {
       const data = JSON.parse(cached);
       // Check if cache is less than 24 hours old
       if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
-        return { center: data.center, zoom: data.zoom };
+        return { center: data.center };
       }
     }
   } catch (error) {
@@ -167,19 +286,46 @@ const setCachedAutoCenter = (apiKey: string, data: AutoCenterData): void => {
       ...data,
       timestamp: Date.now(),
     };
-    localStorage.setItem(`mapListings-autoCenter-${apiKey}`, JSON.stringify(cacheData));
+    localStorage.setItem(
+      `mapListings-autoCenter-${apiKey}`,
+      JSON.stringify(cacheData)
+    );
   } catch (error) {
     console.warn("Failed to cache auto-center data:", error);
   }
 };
 
 /**
- * Auto-detect optimal map center and zoom from listings data
+ * Auto-detect optimal map center from listings data
  */
-const detectAutoCenter = async (apiKey: string): Promise<AutoCenterData | null> => {
+const detectAutoCenter = async (
+  apiKey: string,
+  method: "average" | "city" = "average"
+): Promise<AutoCenterData | null> => {
   try {
-    console.log("🎯 Auto-detecting map center from listings data...");
+    console.log(`🎯 Auto-detecting map center using ${method} method...`);
 
+    if (method === "city") {
+      // Use largest cluster method
+      const clusterCenter = await calculateLargestClusterCenter(apiKey);
+      if (clusterCenter) {
+        const autoCenter: AutoCenterData = { center: clusterCenter };
+        console.log(
+          `✅ Largest cluster center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}]`
+        );
+
+        // Cache the result with method-specific key
+        setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
+        return autoCenter;
+      } else {
+        console.warn(
+          "⚠️ Largest cluster method failed, falling back to average method"
+        );
+        // Fall through to average method
+      }
+    }
+
+    // Average method (or fallback)
     // Make API call to get a sample of listings for center detection
     const url = new URL("https://api.repliers.io/listings");
     url.searchParams.set("cluster", "false");
@@ -196,7 +342,9 @@ const detectAutoCenter = async (apiKey: string): Promise<AutoCenterData | null> 
     });
 
     if (!response.ok) {
-      throw new Error(`Auto-center API Error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Auto-center API Error: ${response.status} ${response.statusText}`
+      );
     }
 
     const data = await response.json();
@@ -221,18 +369,21 @@ const detectAutoCenter = async (apiKey: string): Promise<AutoCenterData | null> 
       return null;
     }
 
-    // Calculate bounds and center
+    // Calculate bounds and center using average method
     const bounds = getPolygonBounds(coordinates);
     if (!bounds) {
       console.warn("⚠️ Could not calculate bounds from coordinates");
       return null;
     }
 
-    const autoCenter = calculateCenterAndZoom(bounds);
-    console.log(`✅ Auto-center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}] at zoom ${autoCenter.zoom} from ${coordinates.length} properties`);
+    const center = calculateAverageCenter(coordinates, bounds);
+    const autoCenter: AutoCenterData = { center };
+    console.log(
+      `✅ Average-based center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}] from ${coordinates.length} properties`
+    );
 
-    // Cache the result
-    setCachedAutoCenter(apiKey, autoCenter);
+    // Cache the result with method-specific key
+    setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
 
     return autoCenter;
   } catch (error) {
@@ -263,6 +414,7 @@ export function MapListings({
   height = "100%",
   width = "100%",
   mapStyle = "mapbox://styles/mapbox/streets-v12",
+  centerCalculation = "average",
 }: MapListingsProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -270,7 +422,9 @@ export function MapListings({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [mapCenter, setMapCenter] = useState<[number, number] | null>(initialCenter || null);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(
+    initialCenter || null
+  );
   const [mapZoom, setMapZoom] = useState<number | null>(initialZoom || null);
   const [isDetectingCenter, setIsDetectingCenter] = useState(!initialCenter);
 
@@ -278,44 +432,48 @@ export function MapListings({
   useEffect(() => {
     const performAutoCenter = async () => {
       if (mapCenter && mapZoom) return; // Already have center/zoom
-      
+
       setIsDetectingCenter(true);
-      
-      // Check cache first
-      const cached = getCachedAutoCenter(apiKey);
+
+      // Check cache first with method-specific key
+      const cached = getCachedAutoCenter(`${apiKey}-${centerCalculation}`);
       if (cached) {
-        console.log("📦 Using cached auto-center data:", cached);
+        console.log(
+          `📦 Using cached ${centerCalculation} auto-center data:`,
+          cached
+        );
         setMapCenter(cached.center);
-        setMapZoom(cached.zoom);
+        setMapZoom(initialZoom || 10); // Use prop or fallback
         setIsDetectingCenter(false);
         return;
       }
-      
+
       // Perform detection
-      const detected = await detectAutoCenter(apiKey);
+      const detected = await detectAutoCenter(apiKey, centerCalculation);
       if (detected) {
         setMapCenter(detected.center);
-        setMapZoom(detected.zoom);
+        setMapZoom(initialZoom || 10); // Use prop or fallback
       } else {
         // Fallback to default
         console.log("🗺️ Using fallback center: Continental USA");
         setMapCenter([-98.5795, 39.8283]);
-        setMapZoom(4);
+        setMapZoom(initialZoom || 10); // Use prop or fallback
       }
-      
+
       setIsDetectingCenter(false);
     };
-    
-    performAutoCenter();
-  }, [apiKey, mapCenter, mapZoom]);
 
-  // Get cluster precision based on zoom level
+    performAutoCenter();
+  }, [apiKey, mapCenter, mapZoom, centerCalculation, initialZoom]);
+
+  // Get cluster precision based on zoom level (more aggressive to break up large clusters)
   const getClusterPrecision = useCallback((zoom: number): number => {
-    if (zoom <= 8) return 5; // City level - very large clusters
-    if (zoom <= 10) return 8; // District level
-    if (zoom <= 12) return 12; // Neighborhood level
-    if (zoom <= 14) return 16; // Street level
-    return 20; // Individual properties
+    if (zoom <= 6) return 5; // Continental level (increased from 3)
+    if (zoom <= 8) return 8; // State/Province level (increased from 5)
+    if (zoom <= 10) return 12; // Metropolitan level (increased from 8)
+    if (zoom <= 12) return 16; // City level (increased from 12)
+    if (zoom <= 14) return 20; // District level (increased from 16)
+    return 25; // Street level (increased from 20, max precision for fine-grained clustering)
   }, []);
 
   // Convert bounds to polygon format for Repliers API
@@ -344,7 +502,7 @@ export function MapListings({
       console.log(
         `🔍 Fetching clusters - zoom: ${zoom.toFixed(
           1
-        )}, precision: ${precision}`
+        )}, precision: ${precision} (updated from legacy values for better cluster distribution)`
       );
 
       setIsLoading(true);
@@ -354,13 +512,13 @@ export function MapListings({
         const url = new URL("https://api.repliers.io/listings");
         url.searchParams.set("cluster", "true");
         url.searchParams.set("clusterPrecision", precision.toString());
-        url.searchParams.set("clusterLimit", "200");
+        url.searchParams.set("clusterLimit", "100");
         url.searchParams.set("status", "A");
         url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
         url.searchParams.set("key", apiKey);
 
         // At high zoom levels, also get individual properties
-        if (zoom >= 14) {
+        if (zoom >= 13) {
           url.searchParams.set("listings", "true");
           url.searchParams.set(
             "clusterFields",
@@ -389,29 +547,84 @@ export function MapListings({
 
         // Process clusters - they're nested under aggregates.map.clusters
         const clusters = data.aggregates?.map?.clusters || data.clusters || [];
-        const clusterFeatures: ClusterFeature[] = clusters.map(
-          (cluster: any, index: number) => ({
-            type: "Feature" as const,
-            properties: {
-              count: cluster.count || 1,
-              precision: cluster.precision || precision,
-              id: `cluster-${index}`,
-            },
-            geometry: {
-              type: "Point" as const,
-              coordinates: [
-                cluster.location?.longitude ||
-                  cluster.coordinates?.lng ||
-                  cluster.longitude ||
-                  cluster.center?.lng,
-                cluster.location?.latitude ||
-                  cluster.coordinates?.lat ||
-                  cluster.latitude ||
-                  cluster.center?.lat,
-              ],
-            },
-          })
-        );
+        const clusterFeatures: ClusterFeature[] = [];
+        const singlePropertyFeatures: PropertyFeature[] = [];
+
+        clusters.forEach((cluster: any, index: number) => {
+          const originalCoordinates = [
+            cluster.location?.longitude ||
+              cluster.coordinates?.lng ||
+              cluster.longitude ||
+              cluster.center?.lng,
+            cluster.location?.latitude ||
+              cluster.coordinates?.lat ||
+              cluster.latitude ||
+              cluster.center?.lat,
+          ];
+
+          // If cluster has only 1 property, treat as individual property
+          if (cluster.count === 1) {
+            singlePropertyFeatures.push({
+              type: "Feature" as const,
+              properties: {
+                mlsNumber: cluster.mlsNumber || `single-${index}`,
+                listPrice: cluster.listPrice,
+                propertyType: cluster.propertyType || cluster.status || "Sale",
+                isProperty: true as const,
+              },
+              geometry: {
+                type: "Point" as const,
+                coordinates: [
+                  originalCoordinates[0],
+                  originalCoordinates[1],
+                ] as [number, number],
+              },
+            });
+          } else {
+            // For multi-property clusters, try to position bubble over densest sub-area
+            let clusterCoordinates = originalCoordinates;
+
+            // If we have sub-cluster data or property list, find densest position
+            if (cluster.properties && Array.isArray(cluster.properties)) {
+              const subCoords: Coordinate[] = [];
+              cluster.properties.forEach((prop: any) => {
+                const coord = extractCoordinates(prop);
+                if (coord) subCoords.push(coord);
+              });
+
+              if (subCoords.length > 0) {
+                // Find densest sub-area within this cluster using average method
+                const clusterBounds = getPolygonBounds(subCoords);
+                if (clusterBounds) {
+                  const avgCenter = calculateAverageCenter(
+                    subCoords,
+                    clusterBounds
+                  );
+                  clusterCoordinates = avgCenter;
+                  console.log(
+                    `🎯 Adjusted cluster ${index} position for density (${subCoords.length} properties)`
+                  );
+                }
+              }
+            }
+
+            clusterFeatures.push({
+              type: "Feature" as const,
+              properties: {
+                count: cluster.count || 1,
+                precision: cluster.precision || precision,
+                id: `cluster-${index}`,
+              },
+              geometry: {
+                type: "Point" as const,
+                coordinates: [clusterCoordinates[0], clusterCoordinates[1]] as [
+                  number,
+                  number
+                ],
+              },
+            });
+          }
+        });
 
         // Process individual properties (at high zoom)
         const propertyFeatures: PropertyFeature[] = (data.listings || []).map(
@@ -420,6 +633,7 @@ export function MapListings({
             properties: {
               mlsNumber: listing.mlsNumber,
               listPrice: listing.listPrice,
+              propertyType: listing.propertyType || listing.status || "Sale",
               isProperty: true as const,
             },
             geometry: {
@@ -427,13 +641,17 @@ export function MapListings({
               coordinates: [
                 listing.coordinates?.lng || listing.longitude,
                 listing.coordinates?.lat || listing.latitude,
-              ],
+              ] as [number, number],
             },
           })
         );
 
         // Combine features
-        const allFeatures = [...clusterFeatures, ...propertyFeatures];
+        const allFeatures = [
+          ...clusterFeatures,
+          ...singlePropertyFeatures,
+          ...propertyFeatures,
+        ];
 
         console.log("🔧 Debug info:");
         console.log("- Raw clusters from API:", clusters);
@@ -484,7 +702,8 @@ export function MapListings({
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current || !mapCenter || mapZoom === null) return;
+    if (!mapContainer.current || map.current || !mapCenter || mapZoom === null)
+      return;
 
     mapboxgl.accessToken = mapboxToken;
 
@@ -517,24 +736,24 @@ export function MapListings({
           "circle-color": [
             "step",
             ["get", "count"],
-            "#51bbd6", // 0-49: Blue
+            "#51bbd6", // 1-49: Blue
             50,
             "#f1c40f", // 50-499: Yellow
             500,
-            "#f28cb1", // 500-1999: Pink
-            2000,
-            "#e74c3c", // 2000+: Red
+            "#f28cb1", // 500-1499: Pink
+            1500,
+            "#e74c3c", // 1500-2000: Red
           ],
           "circle-radius": [
             "step",
             ["get", "count"],
-            15, // 0-49
+            10, // 1-49: Small (10px)
             50,
-            25, // 50-499
+            14, // 50-499: Medium (14px)
             500,
-            35, // 500-1999
-            2000,
-            45, // 2000+
+            18, // 500-1499: Large (18px)
+            1500,
+            22, // 1500-2000: Extra Large (22px)
           ],
           "circle-stroke-width": 2,
           "circle-stroke-color": "#fff",
@@ -554,13 +773,13 @@ export function MapListings({
           "text-size": [
             "step",
             ["get", "count"],
-            12, // 0-49
+            10, // 1-49: Small text (10px)
             50,
-            14, // 50-499
+            12, // 50-499: Medium text (12px)
             500,
-            16, // 500-1999
-            2000,
-            18, // 2000+
+            14, // 500-1499: Large text (14px)
+            1500,
+            16, // 1500-2000: Extra large text (16px)
           ],
         },
         paint: {
@@ -568,18 +787,104 @@ export function MapListings({
         },
       });
 
-      // Add individual property layer
+      // Add individual property dots layer (small circles)
       map.current.addLayer({
-        id: "properties",
+        id: "property-dots",
         type: "circle",
         source: "listings",
         filter: ["has", "isProperty"],
         paint: {
-          "circle-color": "#3b82f6",
-          "circle-radius": 6,
-          "circle-stroke-width": 2,
+          "circle-color": "#374151",
+          "circle-radius": 3,
+          "circle-stroke-width": 1,
           "circle-stroke-color": "#fff",
-          "circle-opacity": 0.8,
+          "circle-opacity": 0.9,
+        },
+      });
+
+      // Add price text layer with formatted pricing
+      map.current.addLayer({
+        id: "price-text",
+        type: "symbol",
+        source: "listings",
+        filter: ["all", ["has", "isProperty"], ["has", "listPrice"]],
+        layout: {
+          "text-field": [
+            "case",
+            ["==", ["get", "propertyType"], "Lease"],
+            [
+              "concat",
+              "$",
+              [
+                "case",
+                [">=", ["get", "listPrice"], 1000],
+                [
+                  "concat",
+                  ["to-string", ["round", ["/", ["get", "listPrice"], 1000]]],
+                  "K",
+                ],
+                ["to-string", ["get", "listPrice"]],
+              ],
+            ],
+            // Sale pricing (default)
+            [
+              "concat",
+              "$",
+              [
+                "case",
+                [">=", ["get", "listPrice"], 1000000],
+                [
+                  "concat",
+                  ["to-string", ["round", ["/", ["get", "listPrice"], 100000]]], // Divide by 100k to get tenths of millions
+                  [
+                    "case",
+                    [
+                      "==",
+                      ["%", ["round", ["/", ["get", "listPrice"], 100000]], 10],
+                      0,
+                    ],
+                    "M", // If it's a whole number (e.g., 1.0M), just show "M"
+                    [
+                      "concat",
+                      ".",
+                      [
+                        "to-string",
+                        [
+                          "%",
+                          ["round", ["/", ["get", "listPrice"], 100000]],
+                          10,
+                        ],
+                      ],
+                      "M",
+                    ],
+                  ],
+                ],
+                [">=", ["get", "listPrice"], 1000],
+                [
+                  "concat",
+                  ["to-string", ["round", ["/", ["get", "listPrice"], 1000]]],
+                  "K",
+                ],
+                ["to-string", ["get", "listPrice"]],
+              ],
+            ],
+          ],
+          "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 16, 12],
+          "text-offset": [0, -1.5], // Position above dots
+          "text-anchor": "bottom",
+          "symbol-sort-key": 2, // Render on top of background
+        },
+        paint: {
+          "text-color": "#ffffff",
+          "text-halo-color": [
+            "case",
+            ["==", ["get", "propertyType"], "Lease"],
+            "#a855f7", // Purple for lease
+            "#22c55e", // Green for sale (default)
+          ],
+          "text-halo-width": 3,
+          "text-opacity": 1.0,
         },
       });
 
@@ -593,24 +898,29 @@ export function MapListings({
 
         // Calculate zoom level to drill down
         const currentZoom = map.current.getZoom();
-        const targetZoom = Math.min(currentZoom + 2, 16);
+        const targetZoom = Math.min(currentZoom + 4, 16);
 
         map.current.easeTo({
           center: coordinates,
           zoom: targetZoom,
-          duration: 800,
+          duration: 1000,
+          easing: (t) => t * (2 - t), // Smooth ease-out animation
         });
       });
 
-      // Click handler for individual properties
-      map.current.on("click", "properties", (e) => {
+      // Click handler for individual properties (both dots and text)
+      const handlePropertyClick = (
+        e: mapboxgl.MapMouseEvent & {
+          features?: mapboxgl.MapboxGeoJSONFeature[] | undefined;
+        }
+      ) => {
         if (!e.features?.[0]) return;
 
         const feature = e.features[0];
         const properties = feature.properties;
         const coordinates = (feature.geometry as any).coordinates;
 
-        const popup = new mapboxgl.Popup()
+        new mapboxgl.Popup()
           .setLngLat(coordinates)
           .setHTML(
             `
@@ -621,11 +931,19 @@ export function MapListings({
                   ? `<br>Price: $${properties.listPrice.toLocaleString()}`
                   : ""
               }
+              ${
+                properties?.propertyType
+                  ? `<br>Type: ${properties.propertyType}`
+                  : ""
+              }
             </div>
           `
           )
           .addTo(map.current!);
-      });
+      };
+
+      map.current.on("click", "property-dots", handlePropertyClick);
+      map.current.on("click", "price-text", handlePropertyClick);
 
       // Hover cursors
       map.current.on("mouseenter", "clusters", () => {
@@ -634,10 +952,16 @@ export function MapListings({
       map.current.on("mouseleave", "clusters", () => {
         if (map.current) map.current.getCanvas().style.cursor = "";
       });
-      map.current.on("mouseenter", "properties", () => {
+      map.current.on("mouseenter", "property-dots", () => {
         if (map.current) map.current.getCanvas().style.cursor = "pointer";
       });
-      map.current.on("mouseleave", "properties", () => {
+      map.current.on("mouseleave", "property-dots", () => {
+        if (map.current) map.current.getCanvas().style.cursor = "";
+      });
+      map.current.on("mouseenter", "price-text", () => {
+        if (map.current) map.current.getCanvas().style.cursor = "pointer";
+      });
+      map.current.on("mouseleave", "price-text", () => {
         if (map.current) map.current.getCanvas().style.cursor = "";
       });
 
@@ -673,7 +997,7 @@ export function MapListings({
         style={{ width: "100%", height: "100%" }}
         className="rounded-lg overflow-hidden"
       />
-      
+
       {/* Auto-centering overlay */}
       {isDetectingCenter && (
         <div
@@ -692,7 +1016,14 @@ export function MapListings({
           }}
         >
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px", color: "#374151" }}>
+            <div
+              style={{
+                fontSize: "16px",
+                fontWeight: "600",
+                marginBottom: "8px",
+                color: "#374151",
+              }}
+            >
               Detecting optimal map center...
             </div>
             <div style={{ fontSize: "14px", color: "#6b7280" }}>
