@@ -427,6 +427,7 @@ export function MapListings({
   );
   const [mapZoom, setMapZoom] = useState<number | null>(initialZoom || null);
   const [isDetectingCenter, setIsDetectingCenter] = useState(!initialCenter);
+  const currentZoomLevel = useRef<number | null>(null);
 
   // Auto-center detection effect
   useEffect(() => {
@@ -499,10 +500,20 @@ export function MapListings({
       const zoom = map.current.getZoom();
       const precision = getClusterPrecision(zoom);
 
+      // Track zoom level changes and detect threshold crossing
+      const wasHighZoom = currentZoomLevel.current !== null && currentZoomLevel.current >= 13;
+      const isHighZoom = zoom >= 13;
+
+      if (currentZoomLevel.current !== null && wasHighZoom !== isHighZoom) {
+        console.log(`🎚️ Zoom threshold crossed: ${wasHighZoom ? 'HIGH→LOW' : 'LOW→HIGH'} (${currentZoomLevel.current.toFixed(1)} → ${zoom.toFixed(1)})`);
+      }
+
+      currentZoomLevel.current = zoom;
+
       console.log(
         `🔍 Fetching clusters - zoom: ${zoom.toFixed(
           1
-        )}, precision: ${precision} (updated from legacy values for better cluster distribution)`
+        )}, precision: ${precision}, enhanced: ${zoom >= 13 ? 'YES' : 'NO'}`
       );
 
       setIsLoading(true);
@@ -520,6 +531,10 @@ export function MapListings({
         // At high zoom levels, also get individual properties
         if (zoom >= 13) {
           url.searchParams.set("listings", "true");
+          url.searchParams.set(
+            "fields",
+            "mlsNumber,listPrice,address,details.numBedrooms,details.numBathrooms,details.propertyType,images,status,class,type,lastStatus"
+          );
           url.searchParams.set(
             "clusterFields",
             "mlsNumber,listPrice,coordinates"
@@ -645,6 +660,17 @@ export function MapListings({
             },
           })
         );
+
+        // Log detailed property data when enhanced fields are available
+        if (zoom >= 13 && data.listings && data.listings.length > 0) {
+          console.log(`📊 Enhanced property data (${data.listings.length} listings):`, data.listings.slice(0, 3)); // Log first 3 for brevity
+          console.log(`🏠 Sample property fields:`, Object.keys(data.listings[0] || {}));
+          console.log(`💰 Sample prices:`, data.listings.slice(0, 3).map((l: any) => ({
+            mls: l.mlsNumber,
+            price: l.listPrice,
+            type: l.propertyType || l.type || l.status
+          })));
+        }
 
         // Combine features
         const allFeatures = [
@@ -802,7 +828,7 @@ export function MapListings({
         },
       });
 
-      // Add price text layer with formatted pricing
+      // Add price text layer with simplified formatting
       map.current.addLayer({
         id: "price-text",
         type: "symbol",
@@ -811,6 +837,7 @@ export function MapListings({
         layout: {
           "text-field": [
             "case",
+            // Lease properties (typically thousands)
             ["==", ["get", "propertyType"], "Lease"],
             [
               "concat",
@@ -820,13 +847,23 @@ export function MapListings({
                 [">=", ["get", "listPrice"], 1000],
                 [
                   "concat",
-                  ["to-string", ["round", ["/", ["get", "listPrice"], 1000]]],
-                  "K",
+                  [
+                    "case",
+                    ["==", ["%", ["get", "listPrice"], 1000], 0],
+                    ["to-string", ["/", ["get", "listPrice"], 1000]], // Whole thousands: 3K
+                    [
+                      "concat",
+                      ["to-string", ["round", ["/", ["get", "listPrice"], 100]]], // Round to tenths: 3.2K
+                      ["==", ["%", ["round", ["/", ["get", "listPrice"], 100]], 10], 0], "",
+                      ".", ["%", ["round", ["/", ["get", "listPrice"], 100]], 10]
+                    ]
+                  ],
+                  "K"
                 ],
-                ["to-string", ["get", "listPrice"]],
-              ],
+                ["to-string", ["get", "listPrice"]] // Under 1000: show full amount
+              ]
             ],
-            // Sale pricing (default)
+            // Sale properties (typically hundreds of thousands or millions)
             [
               "concat",
               "$",
@@ -835,45 +872,32 @@ export function MapListings({
                 [">=", ["get", "listPrice"], 1000000],
                 [
                   "concat",
-                  ["to-string", ["round", ["/", ["get", "listPrice"], 100000]]], // Divide by 100k to get tenths of millions
                   [
                     "case",
-                    [
-                      "==",
-                      ["%", ["round", ["/", ["get", "listPrice"], 100000]], 10],
-                      0,
-                    ],
-                    "M", // If it's a whole number (e.g., 1.0M), just show "M"
+                    ["==", ["%", ["get", "listPrice"], 1000000], 0],
+                    ["to-string", ["/", ["get", "listPrice"], 1000000]], // Whole millions: 3M
                     [
                       "concat",
-                      ".",
-                      [
-                        "to-string",
-                        [
-                          "%",
-                          ["round", ["/", ["get", "listPrice"], 100000]],
-                          10,
-                        ],
-                      ],
-                      "M",
-                    ],
+                      ["to-string", ["round", ["/", ["get", "listPrice"], 100000]]],
+                      ".", ["%", ["round", ["/", ["get", "listPrice"], 100000]], 10]
+                    ]
                   ],
+                  "M"
                 ],
                 [">=", ["get", "listPrice"], 1000],
                 [
                   "concat",
                   ["to-string", ["round", ["/", ["get", "listPrice"], 1000]]],
-                  "K",
+                  "K"
                 ],
-                ["to-string", ["get", "listPrice"]],
-              ],
-            ],
+                ["to-string", ["get", "listPrice"]] // Under 1000: show full amount
+              ]
+            ]
           ],
           "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 16, 12],
-          "text-offset": [0, -1.5], // Position above dots
+          "text-size": 11,
+          "text-offset": [0, -1.8], // Position above dots
           "text-anchor": "bottom",
-          "symbol-sort-key": 2, // Render on top of background
         },
         paint: {
           "text-color": "#ffffff",
@@ -883,7 +907,7 @@ export function MapListings({
             "#a855f7", // Purple for lease
             "#22c55e", // Green for sale (default)
           ],
-          "text-halo-width": 3,
+          "text-halo-width": 2.5,
           "text-opacity": 1.0,
         },
       });
@@ -899,6 +923,8 @@ export function MapListings({
         // Calculate zoom level to drill down
         const currentZoom = map.current.getZoom();
         const targetZoom = Math.min(currentZoom + 4, 16);
+
+        console.log(`🎯 Cluster clicked - Current zoom: ${currentZoom.toFixed(1)} → Target zoom: ${targetZoom.toFixed(1)}`);
 
         map.current.easeTo({
           center: coordinates,
