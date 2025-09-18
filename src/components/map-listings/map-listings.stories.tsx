@@ -47,12 +47,6 @@ const meta: Meta<typeof MapListings> = {
       ],
       description: "MapBox map style",
     },
-    centerCalculation: {
-      control: "select",
-      options: ["average", "city"],
-      description:
-        "Center calculation method: 'average' uses density-weighted center, 'city' finds busiest city",
-    },
   },
 };
 
@@ -80,7 +74,6 @@ export const Part1_BasicListings: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
-    centerCalculation: "average",
     initialZoom: 8,
     height: "100vh",
     width: "100vw",
@@ -102,9 +95,7 @@ with the Repliers API using the default 'average' center calculation method.
 - **Zoom 15+**: Street-level clusters (precision 20)
 
 **Center Calculation:**
-Uses 'average' method by default - finds the densest area using a 20x20 grid analysis
-of 500 sample listings. Try switching the \`centerCalculation\` control to 'city' to
-compare with the busiest city method.
+Uses the largest cluster method to find the area with the most listings and centers the map on it.
 
 **Performance Features:**
 - Server-side clustering reduces data transfer
@@ -117,17 +108,16 @@ compare with the busiest city method.
 };
 
 /**
- * **Part 2: Average Center Calculation (Density-Weighted)**
+ * **Part 2: Largest Cluster Center Calculation**
  *
- * This example demonstrates the 'average' center calculation method, which uses
- * a density grid approach to find the area with the highest concentration of
- * listings. This method is ideal for finding hotspots that might be between cities.
+ * This example demonstrates the largest cluster center calculation method, which
+ * finds the cluster with the most listings and centers the map on it.
+ * This provides optimal viewing of the most active areas.
  */
-export const Part2_AverageCenter: Story = {
+export const Part2_LargestClusterCenter: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
-    centerCalculation: "city",
     initialZoom: 10,
     height: "100vh",
     width: "100vw",
@@ -137,23 +127,21 @@ export const Part2_AverageCenter: Story = {
     docs: {
       description: {
         story: `
-🎯 **Average Center Calculation**
+🏆 **Largest Cluster Center Calculation**
 
-This method uses a 20x20 density grid to analyze 500 sample listings and finds the
-geographic area with the highest concentration of properties.
+This method finds the largest cluster of listings and centers the map on it for optimal viewing.
 
 **How it works:**
-- Fetches 500 sample listings from your API key's dataset
-- Divides the area into a 400-cell grid (20x20)
-- Counts listings in each grid cell
-- Centers the map on the densest grid cell
+- Calls the clustering API with low precision to get the biggest clusters
+- Identifies the cluster with the highest number of listings
+- Centers the map on that cluster's location
 
 **Best for:**
-- Finding hotspots between multiple cities
-- Density-based centering regardless of city boundaries
-- When you want to focus on listing concentration patterns
+- Focusing on the most active area in your dataset
+- Automatic centering on the densest listing concentration
+- Quick identification of market hotspots
 
-**Console output:** \`📍 Density-weighted center: [-79.3832, 43.6532] (density: 0.42)\`
+**Console output:** \`🏆 Largest cluster: 24938 listings at [-79.3832, 43.6532]\`
         `,
       },
     },
@@ -161,47 +149,42 @@ geographic area with the highest concentration of properties.
 };
 
 /**
- * **Part 3: City Center Calculation (Busiest City)**
+ * **Part 3: Different Map Styles**
  *
- * This example demonstrates the 'city' center calculation method, which uses
- * city aggregates to find the actual city with the most listings and centers
- * the map on that specific city location.
+ * This example demonstrates different map styles available with the MapListings component.
+ * You can choose from various MapBox styles to match your application's design.
  */
-export const Part3_CityCenter: Story = {
+export const Part3_MapStyles: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
-    centerCalculation: "city",
     initialZoom: 10,
     height: "100vh",
     width: "100vw",
-    mapStyle: "mapbox://styles/mapbox/streets-v12",
+    mapStyle: "mapbox://styles/mapbox/dark-v11",
   },
   parameters: {
     docs: {
       description: {
         story: `
-🏙️ **City Center Calculation**
+🎨 **Map Style Customization**
 
-This method uses the Repliers API city aggregates to identify the actual city
-with the most listings and centers the map precisely on that city.
+This example showcases the dark theme map style, demonstrating how you can customize
+the visual appearance of your MapListings component.
 
-**How it works:**
-- Calls \`/listings?aggregates=address.city\` to get city listing counts
-- Identifies the city with the highest number of listings
-- Calls \`/listings?address.city=BusiestCity\` to get coordinates
-- Centers the map on that city's location
+**Available styles:**
+- \`mapbox://styles/mapbox/streets-v12\` - Default streets view
+- \`mapbox://styles/mapbox/light-v11\` - Light theme
+- \`mapbox://styles/mapbox/dark-v11\` - Dark theme (shown here)
+- \`mapbox://styles/mapbox/satellite-v9\` - Satellite imagery
+- \`mapbox://styles/mapbox/satellite-streets-v12\` - Satellite with street labels
 
 **Best for:**
-- Focusing on actual city centers with most activity
-- When you want to avoid centering between cities
-- Clear city-based geographic targeting
+- Matching your application's design theme
+- Providing user choice for map appearance
+- Better visibility in different lighting conditions
 
-**Example process:**
-1. 🏆 Busiest city: Toronto with 24,938 listings
-2. 🎯 City center for Toronto: [-79.3832, 43.6532]
-
-**Console output:** \`🏆 Busiest city: Toronto with 24938 listings\` → \`🎯 City center for Toronto: [-79.3832, 43.6532]\`
+**Note:** The clustering and listing functionality remains the same across all styles.
         `,
       },
     },
@@ -219,7 +202,6 @@ export const Part4_FilteredSearch: Story = {
   args: {
     apiKey: SAMPLE_API_KEY,
     mapboxToken: SAMPLE_MAPBOX_TOKEN,
-    centerCalculation: "average",
     initialCenter: [-98.5795, 39.8283], // Continental USA center
     initialZoom: 4,
     height: "100vh",
