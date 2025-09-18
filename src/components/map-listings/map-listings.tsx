@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { PropertyPreviewModal } from "../property-preview-modal/property-preview-modal";
 
 export interface MapListingsProps {
   /** Repliers API key - required */
@@ -17,6 +18,8 @@ export interface MapListingsProps {
   width?: string;
   /** Map style */
   mapStyle?: string;
+  /** Center calculation method */
+  centerCalculation?: "average" | "city";
 }
 
 interface ClusterFeature {
@@ -39,6 +42,28 @@ interface PropertyFeature {
     listPrice?: number;
     propertyType?: string; // "Sale" or "Lease"
     isProperty: true;
+    // Enhanced fields available at zoom 13+
+    address?: {
+      city?: string;
+      streetDirection?: string;
+      streetName?: string;
+      streetNumber?: string;
+      streetSuffix?: string;
+      state?: string;
+    };
+    details?: {
+      numBedrooms?: number;
+      numBedroomsPlus?: number;
+      numBathrooms?: number;
+      numBathroomsPlus?: number;
+      numGarageSpaces?: number;
+      propertyType?: string;
+    };
+    images?: Array<string>;
+    type?: string;
+    lastStatus?: string;
+    status?: string;
+    class?: string;
   };
   geometry: {
     type: "Point";
@@ -175,91 +200,6 @@ const calculateAverageCenter = (
   return center;
 };
 
-/**
- * Find the largest cluster and center on it
- */
-const calculateLargestClusterCenter = async (
-  apiKey: string
-): Promise<[number, number] | null> => {
-  try {
-    console.log("🎯 Finding largest cluster center...");
-
-    // Get clusters with low precision to see the biggest ones
-    const url = new URL("https://api.repliers.io/listings");
-    url.searchParams.set("cluster", "true");
-    url.searchParams.set("clusterPrecision", "8"); // Low precision = bigger clusters
-    url.searchParams.set("clusterLimit", "50");
-    url.searchParams.set("status", "A");
-    url.searchParams.set("key", apiKey);
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        "REPLIERS-API-KEY": apiKey,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Largest cluster API Error: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    const clusters = data.aggregates?.map?.clusters || data.clusters || [];
-
-    if (!clusters || clusters.length === 0) {
-      console.warn("⚠️ No clusters found");
-      return null;
-    }
-
-    // Find the cluster with the most listings
-    let largestCluster = null;
-    let maxCount = 0;
-
-    clusters.forEach((cluster: any) => {
-      const count = cluster.count || 0;
-      if (count > maxCount) {
-        maxCount = count;
-        largestCluster = cluster;
-      }
-    });
-
-    if (!largestCluster) {
-      console.warn("⚠️ No valid cluster found");
-      return null;
-    }
-
-    // Extract coordinates from the largest cluster
-    const coordinates = [
-      largestCluster.location?.longitude ||
-        largestCluster.coordinates?.lng ||
-        largestCluster.longitude ||
-        largestCluster.center?.lng,
-      largestCluster.location?.latitude ||
-        largestCluster.coordinates?.lat ||
-        largestCluster.latitude ||
-        largestCluster.center?.lat,
-    ];
-
-    if (!coordinates[0] || !coordinates[1]) {
-      console.warn("⚠️ No coordinates found for largest cluster");
-      return null;
-    }
-
-    const center: [number, number] = [coordinates[0], coordinates[1]];
-    console.log(
-      `🏆 Largest cluster: ${maxCount} listings at [${center[0].toFixed(
-        4
-      )}, ${center[1].toFixed(4)}]`
-    );
-
-    return center;
-  } catch (error) {
-    console.error("❌ Largest cluster detection failed:", error);
-    return null;
-  }
-};
 
 /**
  * Cache management for auto-center data
@@ -296,61 +236,108 @@ const setCachedAutoCenter = (apiKey: string, data: AutoCenterData): void => {
 };
 
 /**
- * Auto-detect optimal map center from listings data
+ * Auto-detect optimal map center from listings data using bundled searches
  */
 const detectAutoCenter = async (
   apiKey: string,
   method: "average" | "city" = "average"
 ): Promise<AutoCenterData | null> => {
   try {
-    console.log(`🎯 Auto-detecting map center using ${method} method...`);
+    console.log(`🎯 Auto-detecting map center using ${method} method with bundled search...`);
 
-    if (method === "city") {
-      // Use largest cluster method
-      const clusterCenter = await calculateLargestClusterCenter(apiKey);
-      if (clusterCenter) {
-        const autoCenter: AutoCenterData = { center: clusterCenter };
-        console.log(
-          `✅ Largest cluster center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}]`
-        );
+    // Use bundled search to get both clusters and listings in one request
+    const bundledQuery = {
+      queries: [
+        {
+          cluster: true,
+          clusterPrecision: 8, // Low precision for bigger clusters
+          clusterLimit: 50,
+          status: "A"
+        },
+        {
+          cluster: false,
+          listings: true,
+          pageSize: 500, // Get more listings for better center calculation
+          status: "A"
+        }
+      ]
+    };
 
-        // Cache the result with method-specific key
-        setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
-        return autoCenter;
-      } else {
-        console.warn(
-          "⚠️ Largest cluster method failed, falling back to average method"
-        );
-        // Fall through to average method
-      }
-    }
-
-    // Average method (or fallback)
-    // Make API call to get a sample of listings for center detection
-    const url = new URL("https://api.repliers.io/listings");
-    url.searchParams.set("cluster", "false");
-    url.searchParams.set("listings", "true");
-    url.searchParams.set("pageSize", "500"); // Get more listings for better center calculation
-    url.searchParams.set("status", "A");
-    url.searchParams.set("key", apiKey);
-
-    const response = await fetch(url.toString(), {
+    const response = await fetch("https://api.repliers.io/listings", {
+      method: "POST",
       headers: {
         "REPLIERS-API-KEY": apiKey,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify(bundledQuery),
     });
 
     if (!response.ok) {
       throw new Error(
-        `Auto-center API Error: ${response.status} ${response.statusText}`
+        `Bundled auto-center API Error: ${response.status} ${response.statusText}`
       );
     }
 
     const data = await response.json();
-    const listings = data.listings || data.results || [];
+    console.log("📊 Bundled response:", data);
 
-    if (!listings || listings.length === 0) {
+    // Extract clusters and listings from bundled response
+    const clusterData = data[0] || {}; // First query result (clusters)
+    const listingData = data[1] || {}; // Second query result (listings)
+
+    const clusters = clusterData.aggregates?.map?.clusters || clusterData.clusters || [];
+    const listings = listingData.listings || listingData.results || [];
+
+    console.log(`📊 Bundled data: ${clusters.length} clusters, ${listings.length} listings`);
+
+    if (method === "city" && clusters.length > 0) {
+      // Find the cluster with the most listings
+      let largestCluster = null;
+      let maxCount = 0;
+
+      clusters.forEach((cluster: any) => {
+        const count = cluster.count || 0;
+        if (count > maxCount) {
+          maxCount = count;
+          largestCluster = cluster;
+        }
+      });
+
+      if (largestCluster) {
+        // Extract coordinates from the largest cluster
+        const coordinates = [
+          (largestCluster as any).location?.longitude ||
+            (largestCluster as any).coordinates?.lng ||
+            (largestCluster as any).longitude ||
+            (largestCluster as any).center?.lng,
+          (largestCluster as any).location?.latitude ||
+            (largestCluster as any).coordinates?.lat ||
+            (largestCluster as any).latitude ||
+            (largestCluster as any).center?.lat,
+        ];
+
+        if (coordinates[0] && coordinates[1]) {
+          const center: [number, number] = [coordinates[0], coordinates[1]];
+          const autoCenter: AutoCenterData = { center };
+          console.log(
+            `🏆 Largest cluster center: ${maxCount} listings at [${center[0].toFixed(
+              4
+            )}, ${center[1].toFixed(4)}]`
+          );
+
+          // Cache the result with method-specific key
+          setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
+          return autoCenter;
+        }
+      }
+
+      console.warn(
+        "⚠️ Largest cluster method failed, falling back to average method"
+      );
+    }
+
+    // Average method (or fallback)
+    if (listings.length === 0) {
       console.warn("⚠️ No listings found for auto-center detection");
       return null;
     }
@@ -419,22 +406,23 @@ export function MapListings({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
 
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(
     initialCenter || null
   );
   const [mapZoom, setMapZoom] = useState<number | null>(initialZoom || null);
-  const [isDetectingCenter, setIsDetectingCenter] = useState(!initialCenter);
   const currentZoomLevel = useRef<number | null>(null);
+  const lastFetchParams = useRef<{ bounds: string; zoom: number } | null>(null);
+
+  // Modal state for property preview
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
 
   // Auto-center detection effect
   useEffect(() => {
     const performAutoCenter = async () => {
       if (mapCenter && mapZoom) return; // Already have center/zoom
-
-      setIsDetectingCenter(true);
 
       // Check cache first with method-specific key
       const cached = getCachedAutoCenter(`${apiKey}-${centerCalculation}`);
@@ -445,7 +433,6 @@ export function MapListings({
         );
         setMapCenter(cached.center);
         setMapZoom(initialZoom || 10); // Use prop or fallback
-        setIsDetectingCenter(false);
         return;
       }
 
@@ -460,8 +447,6 @@ export function MapListings({
         setMapCenter([-98.5795, 39.8283]);
         setMapZoom(initialZoom || 10); // Use prop or fallback
       }
-
-      setIsDetectingCenter(false);
     };
 
     performAutoCenter();
@@ -500,6 +485,21 @@ export function MapListings({
       const zoom = map.current.getZoom();
       const precision = getClusterPrecision(zoom);
 
+      // Create bounds key for comparison
+      const boundsKey = JSON.stringify(boundsToPolygon(bounds));
+      const roundedZoom = Math.round(zoom * 2) / 2; // Round to 0.5 precision for optimization
+
+      // Check if this is a duplicate request
+      if (lastFetchParams.current &&
+          lastFetchParams.current.bounds === boundsKey &&
+          Math.abs(lastFetchParams.current.zoom - roundedZoom) < 0.5) {
+        console.log(`⏭️ Skipping duplicate request (zoom: ${zoom.toFixed(1)}, similar to last: ${lastFetchParams.current.zoom.toFixed(1)})`);
+        return;
+      }
+
+      // Update last fetch params
+      lastFetchParams.current = { bounds: boundsKey, zoom: roundedZoom };
+
       // Track zoom level changes and detect threshold crossing
       const wasHighZoom = currentZoomLevel.current !== null && currentZoomLevel.current >= 13;
       const isHighZoom = zoom >= 13;
@@ -516,7 +516,6 @@ export function MapListings({
         )}, precision: ${precision}, enhanced: ${zoom >= 13 ? 'YES' : 'NO'}`
       );
 
-      setIsLoading(true);
       setError(null);
 
       try {
@@ -643,33 +642,62 @@ export function MapListings({
 
         // Process individual properties (at high zoom)
         const propertyFeatures: PropertyFeature[] = (data.listings || []).map(
-          (listing: any) => ({
-            type: "Feature" as const,
-            properties: {
+          (listing: any) => {
+            const baseProperties = {
               mlsNumber: listing.mlsNumber,
               listPrice: listing.listPrice,
-              propertyType: listing.propertyType || listing.status || "Sale",
+              propertyType: listing.propertyType || listing.details?.propertyType || listing.type || listing.status || "Sale",
               isProperty: true as const,
-            },
-            geometry: {
-              type: "Point" as const,
-              coordinates: [
-                listing.coordinates?.lng || listing.longitude,
-                listing.coordinates?.lat || listing.latitude,
-              ] as [number, number],
-            },
-          })
+            };
+
+            // Add enhanced fields when available (zoom 13+)
+            const enhancedProperties = zoom >= 13 ? {
+              address: listing.address,
+              details: listing.details,
+              images: listing.images,
+              type: listing.type,
+              lastStatus: listing.lastStatus,
+              status: listing.status,
+              class: listing.class,
+            } : {};
+
+            return {
+              type: "Feature" as const,
+              properties: { ...baseProperties, ...enhancedProperties },
+              geometry: {
+                type: "Point" as const,
+                coordinates: [
+                  listing.coordinates?.lng || listing.longitude,
+                  listing.coordinates?.lat || listing.latitude,
+                ] as [number, number],
+              },
+            };
+          }
         );
 
         // Log detailed property data when enhanced fields are available
         if (zoom >= 13 && data.listings && data.listings.length > 0) {
-          console.log(`📊 Enhanced property data (${data.listings.length} listings):`, data.listings.slice(0, 3)); // Log first 3 for brevity
+          console.log(`📊 Enhanced property data (${data.listings.length} listings):`, data.listings.slice(0, 2)); // Log first 2 for brevity
           console.log(`🏠 Sample property fields:`, Object.keys(data.listings[0] || {}));
           console.log(`💰 Sample prices:`, data.listings.slice(0, 3).map((l: any) => ({
             mls: l.mlsNumber,
             price: l.listPrice,
             type: l.propertyType || l.type || l.status
           })));
+
+          // Log enhanced field details
+          const sampleListing = data.listings[0];
+          if (sampleListing) {
+            console.log(`🏡 Enhanced fields test:`, {
+              address: sampleListing.address,
+              details: sampleListing.details,
+              images: sampleListing.images?.slice(0, 2), // First 2 images
+              type: sampleListing.type,
+              lastStatus: sampleListing.lastStatus,
+              status: sampleListing.status,
+              class: sampleListing.class
+            });
+          }
         }
 
         // Combine features
@@ -682,7 +710,18 @@ export function MapListings({
         console.log("🔧 Debug info:");
         console.log("- Raw clusters from API:", clusters);
         console.log("- Processed cluster features:", clusterFeatures);
+        console.log("- Property features with enhanced data:", propertyFeatures);
         console.log("- All features for map:", allFeatures);
+
+        // Test enhanced data storage in features
+        if (zoom >= 13 && propertyFeatures.length > 0) {
+          console.log(`🎯 Testing enhanced data storage in features:`);
+          const sampleFeature = propertyFeatures[0];
+          console.log(`- Sample feature properties:`, sampleFeature.properties);
+          console.log(`- Has enhanced address:`, !!sampleFeature.properties.address);
+          console.log(`- Has enhanced details:`, !!sampleFeature.properties.details);
+          console.log(`- Has images:`, !!sampleFeature.properties.images?.length);
+        }
 
         // Update map source
         const source = map.current.getSource(
@@ -719,8 +758,6 @@ export function MapListings({
           err instanceof Error ? err.message : "Failed to load listings";
         setError(errorMessage);
         console.error("❌ Fetch failed:", err);
-      } finally {
-        setIsLoading(false);
       }
     },
     [apiKey, getClusterPrecision, boundsToPolygon]
@@ -944,28 +981,25 @@ export function MapListings({
 
         const feature = e.features[0];
         const properties = feature.properties;
-        const coordinates = (feature.geometry as any).coordinates;
 
-        new mapboxgl.Popup()
-          .setLngLat(coordinates)
-          .setHTML(
-            `
-            <div style="padding: 8px;">
-              <strong>MLS: ${properties?.mlsNumber}</strong>
-              ${
-                properties?.listPrice
-                  ? `<br>Price: $${properties.listPrice.toLocaleString()}`
-                  : ""
-              }
-              ${
-                properties?.propertyType
-                  ? `<br>Type: ${properties.propertyType}`
-                  : ""
-              }
-            </div>
-          `
-          )
-          .addTo(map.current!);
+        console.log("🏠 Property clicked:", properties);
+
+        // Create listing object for modal from feature properties
+        const listing = {
+          mlsNumber: properties?.mlsNumber || "N/A",
+          listPrice: properties?.listPrice || 0,
+          address: properties?.address,
+          details: properties?.details,
+          images: properties?.images,
+          type: properties?.type,
+          lastStatus: properties?.lastStatus,
+          status: properties?.status,
+        };
+
+        console.log("📋 Opening modal with listing:", listing);
+
+        setSelectedListing(listing);
+        setModalOpen(true);
       };
 
       map.current.on("click", "property-dots", handlePropertyClick);
@@ -1024,40 +1058,6 @@ export function MapListings({
         className="rounded-lg overflow-hidden"
       />
 
-      {/* Auto-centering overlay */}
-      {isDetectingCenter && (
-        <div
-          style={{
-            position: "absolute",
-            top: "0",
-            left: "0",
-            right: "0",
-            bottom: "0",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "6px",
-            zIndex: 1000,
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                fontSize: "16px",
-                fontWeight: "600",
-                marginBottom: "8px",
-                color: "#374151",
-              }}
-            >
-              Detecting optimal map center...
-            </div>
-            <div style={{ fontSize: "14px", color: "#6b7280" }}>
-              Analyzing property locations
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Property Count Display */}
       <div
@@ -1074,16 +1074,13 @@ export function MapListings({
           color: "#374151",
         }}
       >
-        {isDetectingCenter ? (
-          <span style={{ color: "#6b7280" }}>Auto-centering...</span>
-        ) : isLoading ? (
-          <span style={{ color: "#6b7280" }}>Loading...</span>
-        ) : error ? (
+        {error ? (
           <span style={{ color: "#ef4444" }}>Error</span>
         ) : (
           <span>{totalCount.toLocaleString()} properties</span>
         )}
       </div>
+
 
       {/* Error Message */}
       {error && (
@@ -1104,6 +1101,18 @@ export function MapListings({
           {error}
         </div>
       )}
+
+      {/* Property Preview Modal */}
+      <PropertyPreviewModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        listing={selectedListing}
+        onViewDetails={(mlsNumber) => {
+          console.log("🔗 View details for MLS:", mlsNumber);
+          // TODO: Implement navigation to full listing page
+          // window.open(`/listings/${mlsNumber}`, '_blank');
+        }}
+      />
     </div>
   );
 }
