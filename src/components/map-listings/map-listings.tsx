@@ -419,6 +419,216 @@ export function MapListings({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
 
+  // Store price markers for cleanup
+  const priceMarkers = useRef<mapboxgl.Marker[]>([]);
+
+  // Format price based on property type
+  const formatPrice = useCallback((price: number, type: string): string => {
+    const formatToMaxDigits = (value: number, suffix: string): string => {
+      if (value >= 100) {
+        // 3 digits: 189K, 999K, 234M
+        return `${Math.round(value)}${suffix}`;
+      } else if (value >= 10) {
+        // 2 digits + 1 decimal: 39.9K, 12.5M
+        return `${Math.round(value * 10) / 10}${suffix}`;
+      } else {
+        // 1 digit + 2 decimals: 6.56K, 1.45M
+        return `${Math.round(value * 100) / 100}${suffix}`;
+      }
+    };
+
+    if (type === "Lease") {
+      // Lease properties - always show as K
+      if (price >= 1000) {
+        const thousands = price / 1000;
+        return formatToMaxDigits(thousands, 'K');
+      }
+      return price.toString();
+    } else {
+      // Sale properties - prefer M over K when >= 1M
+      if (price >= 1000000) {
+        const millions = price / 1000000;
+        return formatToMaxDigits(millions, 'M');
+      } else if (price >= 1000) {
+        const thousands = price / 1000;
+        return formatToMaxDigits(thousands, 'K');
+      }
+      return price.toString();
+    }
+  }, []);
+
+  // Create price bubble HTML element (back to simple version)
+  const createPriceBubble = useCallback((price: number, type: string): HTMLElement => {
+    const formattedPrice = formatPrice(price, type);
+    const isLease = type === "Lease";
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = `
+      background-color: ${isLease ? '#a855f7' : '#22c55e'};
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      white-space: nowrap;
+      pointer-events: auto;
+      cursor: pointer;
+    `;
+    bubble.textContent = formattedPrice;
+
+    return bubble;
+  }, [formatPrice]);
+
+  // Clear existing price markers
+  const clearPriceMarkers = useCallback(() => {
+    priceMarkers.current.forEach(marker => marker.remove());
+    priceMarkers.current = [];
+  }, []);
+
+  // Add price markers for properties
+  const addPriceMarkers = useCallback((features: any[]) => {
+    if (!map.current) return;
+
+    clearPriceMarkers();
+
+    features.forEach((feature) => {
+      if (
+        'isProperty' in feature.properties &&
+        feature.properties.isProperty &&
+        feature.properties.listPrice
+      ) {
+        const { listPrice } = feature.properties;
+        const type = feature.properties.type || 'Sale';
+        const [lng, lat] = feature.geometry.coordinates;
+
+        // Validate coordinates before creating marker
+        if (isNaN(lng) || isNaN(lat) || lng === null || lat === null) {
+          console.warn(`⚠️ Invalid coordinates for property ${feature.properties.mlsNumber}: [${lng}, ${lat}]`);
+          return;
+        }
+
+        // Convert price to number if it's a string
+        const numericPrice = typeof listPrice === 'string' ? parseFloat(listPrice) : listPrice;
+        if (isNaN(numericPrice)) {
+          console.warn(`⚠️ Invalid price for property ${feature.properties.mlsNumber}: ${listPrice}`);
+          return;
+        }
+
+        const bubble = createPriceBubble(numericPrice, type);
+
+        console.log(`💰 Creating marker for ${feature.properties.mlsNumber}:`, {
+          price: numericPrice,
+          type: type,
+          coordinates: [lng, lat],
+          isLease: type === "Lease",
+        });
+
+        const marker = new mapboxgl.Marker({
+          element: bubble,
+          anchor: 'bottom',
+          offset: [0, -5]
+        })
+          .setLngLat([lng, lat])
+          .addTo(map.current!);
+
+        // Add click handler to bubble
+        bubble.addEventListener('click', async () => {
+          console.log('🖱️ Price bubble clicked for', feature.properties.mlsNumber);
+
+          // If we already have enhanced data, use it
+          if (feature.properties.address && feature.properties.images) {
+            console.log('✅ Using cached enhanced data');
+            const listing = {
+              mlsNumber: feature.properties.mlsNumber || "N/A",
+              listPrice: numericPrice,
+              address: feature.properties.address,
+              details: feature.properties.details,
+              images: feature.properties.images,
+              type: feature.properties.type,
+              lastStatus: feature.properties.lastStatus,
+              status: feature.properties.status,
+            };
+            console.log('📤 Setting modal data:', listing);
+            setSelectedListing(listing);
+            setModalOpen(true);
+            console.log('📂 Modal should now be open');
+            return;
+          }
+
+          // Otherwise, fetch full property details
+          console.log('🔄 Fetching enhanced property details...');
+          try {
+            const response = await fetch(`https://api.repliers.io/listings?mlsNumber=${feature.properties.mlsNumber}&fields=address.*,details.*,images,type,lastStatus,status,class`, {
+              headers: {
+                "REPLIERS-API-KEY": apiKey,
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to fetch property details: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const propertyData = data.listings?.[0];
+
+            if (propertyData) {
+              console.log('✅ Enhanced property data loaded:', propertyData);
+              const listing = {
+                mlsNumber: feature.properties.mlsNumber || "N/A",
+                listPrice: numericPrice,
+                address: propertyData.address,
+                details: propertyData.details,
+                images: propertyData.images,
+                type: propertyData.type || feature.properties.type,
+                lastStatus: propertyData.lastStatus,
+                status: propertyData.status,
+              };
+              setSelectedListing(listing);
+              setModalOpen(true);
+            } else {
+              console.warn('⚠️ No property data found, using basic info');
+              const listing = {
+                mlsNumber: feature.properties.mlsNumber || "N/A",
+                listPrice: numericPrice,
+                address: feature.properties.address,
+                details: feature.properties.details,
+                images: feature.properties.images,
+                type: feature.properties.type,
+                lastStatus: feature.properties.lastStatus,
+                status: feature.properties.status,
+              };
+              setSelectedListing(listing);
+              setModalOpen(true);
+            }
+          } catch (error) {
+            console.error('❌ Failed to fetch enhanced property details:', error);
+            const listing = {
+              mlsNumber: feature.properties.mlsNumber || "N/A",
+              listPrice: numericPrice,
+              address: feature.properties.address,
+              details: feature.properties.details,
+              images: feature.properties.images,
+              type: feature.properties.type,
+              lastStatus: feature.properties.lastStatus,
+              status: feature.properties.status,
+            };
+            console.log('📤 Setting modal data:', listing);
+            setSelectedListing(listing);
+            setModalOpen(true);
+            console.log('📂 Modal should now be open');
+          }
+        });
+
+        priceMarkers.current.push(marker);
+      }
+    });
+
+    console.log(`✅ Added ${priceMarkers.current.length} price markers`);
+  }, [clearPriceMarkers, createPriceBubble, apiKey]);
+
   // Auto-center detection effect
   useEffect(() => {
     const performAutoCenter = async () => {
@@ -532,11 +742,11 @@ export function MapListings({
           url.searchParams.set("listings", "true");
           url.searchParams.set(
             "fields",
-            "mlsNumber,listPrice,address,details.numBedrooms,details.numBathrooms,details.propertyType,images,status,class,type,lastStatus"
+            "address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class"
           );
           url.searchParams.set(
             "clusterFields",
-            "mlsNumber,listPrice,coordinates"
+            "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
           );
           url.searchParams.set("pageSize", "200");
         } else {
@@ -564,6 +774,31 @@ export function MapListings({
         const clusterFeatures: ClusterFeature[] = [];
         const singlePropertyFeatures: PropertyFeature[] = [];
 
+        // Debug cluster data for price information
+        if (clusters.length > 0) {
+          console.log(`🎯 Cluster data analysis:`, clusters.slice(0, 3).map((c: any) => ({
+            count: c.count,
+            listPrice: c.listPrice,
+            listPriceType: typeof c.listPrice,
+            rawPrice: c.price,
+            salePrice: c.salePrice,
+            allPriceFields: Object.keys(c).filter(key => key.toLowerCase().includes('price')),
+            allFields: Object.keys(c),
+            // Enhanced fields debugging
+            hasAddressField: 'address' in c,
+            hasImagesField: 'images' in c,
+            hasClassField: 'class' in c,
+            addressValue: c.address,
+            imagesValue: c.images,
+            classValue: c.class,
+            // Check if data is nested under different keys
+            hasListingField: 'listing' in c,
+            hasMapField: 'map' in c,
+            hasPropertiesField: 'properties' in c,
+            fullClusterSample: c
+          })));
+        }
+
         clusters.forEach((cluster: any, index: number) => {
           const originalCoordinates = [
             cluster.location?.longitude ||
@@ -578,13 +813,51 @@ export function MapListings({
 
           // If cluster has only 1 property, treat as individual property
           if (cluster.count === 1) {
+            // Extract price from nested listing data if available
+            const listPrice = cluster.listing?.listPrice ||
+                             cluster.listPrice ||
+                             (cluster.map && cluster.map[0]?.listPrice);
+
+            console.log(`🔧 Single property cluster ${index} price extraction:`, {
+              clusterCount: cluster.count,
+              clusterListPrice: cluster.listPrice,
+              nestedListingPrice: cluster.listing?.listPrice,
+              mapDataPrice: cluster.map?.[0]?.listPrice,
+              finalPrice: listPrice,
+              typeAnalysis: {
+                clusterType: cluster.type,
+                listingType: cluster.listing?.type,
+                finalType: cluster.listing?.type || cluster.type || "Sale"
+              },
+              enhancedFieldsAnalysis: {
+                hasAddress: !!cluster.address || !!cluster.listing?.address,
+                hasDetails: !!cluster.details || !!cluster.listing?.details,
+                hasImages: !!cluster.images || !!cluster.listing?.images,
+                hasClass: !!cluster.class || !!cluster.listing?.class,
+                clusterKeys: Object.keys(cluster),
+                listingKeys: cluster.listing ? Object.keys(cluster.listing) : null,
+                addressValue: cluster.address || cluster.listing?.address,
+                imagesValue: cluster.images || cluster.listing?.images,
+                classValue: cluster.class || cluster.listing?.class
+              },
+              fullCluster: cluster
+            });
+
             singlePropertyFeatures.push({
               type: "Feature" as const,
               properties: {
-                mlsNumber: cluster.mlsNumber || `single-${index}`,
-                listPrice: cluster.listPrice,
-                propertyType: cluster.propertyType || cluster.status || "Sale",
+                mlsNumber: cluster.mlsNumber || cluster.listing?.mlsNumber || `single-${index}`,
+                listPrice: typeof listPrice === 'string' ? parseFloat(listPrice) : listPrice,
+                propertyType: cluster.propertyType || cluster.listing?.propertyType || cluster.status || "Sale",
+                type: cluster.listing?.type || cluster.type, // Add type for lease detection
                 isProperty: true as const,
+                // Enhanced fields from cluster data
+                address: cluster.listing?.address || cluster.address,
+                details: cluster.listing?.details || cluster.details,
+                images: cluster.listing?.images || cluster.images,
+                lastStatus: cluster.listing?.lastStatus || cluster.lastStatus,
+                status: cluster.listing?.status || cluster.status,
+                class: cluster.listing?.class || cluster.class,
               },
               geometry: {
                 type: "Point" as const,
@@ -641,12 +914,20 @@ export function MapListings({
         });
 
         // Process individual properties (at high zoom)
-        const propertyFeatures: PropertyFeature[] = (data.listings || []).map(
-          (listing: any) => {
+        const propertyFeatures: PropertyFeature[] = (data.listings || [])
+          .filter((listing: any) => {
+            // Only include listings with valid coordinates
+            const lng = listing.coordinates?.lng || listing.longitude || listing.map?.longitude;
+            const lat = listing.coordinates?.lat || listing.latitude || listing.map?.latitude;
+            return lng !== undefined && lat !== undefined && !isNaN(lng) && !isNaN(lat);
+          })
+          .map(
+          (listing: any, index: number) => {
             const baseProperties = {
               mlsNumber: listing.mlsNumber,
-              listPrice: listing.listPrice,
+              listPrice: typeof listing.listPrice === 'string' ? parseFloat(listing.listPrice) : listing.listPrice,
               propertyType: listing.propertyType || listing.details?.propertyType || listing.type || listing.status || "Sale",
+              type: listing.type, // Add type for lease detection
               isProperty: true as const,
             };
 
@@ -661,14 +942,33 @@ export function MapListings({
               class: listing.class,
             } : {};
 
+            const finalProperties = { ...baseProperties, ...enhancedProperties };
+
+            // Log first few features during creation
+            if (index < 3) {
+              console.log(`🏗️ Creating property feature ${index}:`);
+              console.log("- Raw listing from API:", listing);
+              console.log("- Base properties created:", baseProperties);
+              console.log("- Enhanced properties:", enhancedProperties);
+              console.log("- Final properties:", finalProperties);
+              console.log("- listPrice in final:", finalProperties.listPrice);
+              console.log("- TYPE ANALYSIS:", {
+                rawType: listing.type,
+                baseType: baseProperties.type,
+                finalType: finalProperties.type,
+                isLease: finalProperties.type === "Lease",
+                isLeaseCheck: listing.type === "Lease"
+              });
+            }
+
             return {
               type: "Feature" as const,
-              properties: { ...baseProperties, ...enhancedProperties },
+              properties: finalProperties,
               geometry: {
                 type: "Point" as const,
                 coordinates: [
-                  listing.coordinates?.lng || listing.longitude,
-                  listing.coordinates?.lat || listing.latitude,
+                  listing.coordinates?.lng || listing.longitude || listing.map?.longitude,
+                  listing.coordinates?.lat || listing.latitude || listing.map?.latitude,
                 ] as [number, number],
               },
             };
@@ -677,12 +977,18 @@ export function MapListings({
 
         // Log detailed property data when enhanced fields are available
         if (zoom >= 13 && data.listings && data.listings.length > 0) {
-          console.log(`📊 Enhanced property data (${data.listings.length} listings):`, data.listings.slice(0, 2)); // Log first 2 for brevity
+          console.log(`📊 Raw API listings data (${data.listings.length} listings):`, data.listings.slice(0, 2)); // Log first 2 for brevity
           console.log(`🏠 Sample property fields:`, Object.keys(data.listings[0] || {}));
-          console.log(`💰 Sample prices:`, data.listings.slice(0, 3).map((l: any) => ({
+
+          // Debug price field specifically
+          console.log(`💰 Price field analysis:`, data.listings.slice(0, 5).map((l: any) => ({
             mls: l.mlsNumber,
-            price: l.listPrice,
-            type: l.propertyType || l.type || l.status
+            listPrice: l.listPrice,
+            listPriceType: typeof l.listPrice,
+            rawPrice: l.price, // Check if it's under 'price' instead
+            salePrice: l.salePrice, // Check if it's under 'salePrice'
+            allPriceFields: Object.keys(l).filter(key => key.toLowerCase().includes('price')),
+            propertyType: l.propertyType || l.type || l.status
           })));
 
           // Log enhanced field details
@@ -697,6 +1003,8 @@ export function MapListings({
               status: sampleListing.status,
               class: sampleListing.class
             });
+
+            console.log(`🔍 Full raw listing object:`, sampleListing);
           }
         }
 
@@ -711,7 +1019,16 @@ export function MapListings({
         console.log("- Raw clusters from API:", clusters);
         console.log("- Processed cluster features:", clusterFeatures);
         console.log("- Property features with enhanced data:", propertyFeatures);
+        console.log("- Single property features:", singlePropertyFeatures);
         console.log("- All features for map:", allFeatures);
+
+        // Debug total counts by type
+        console.log(`📊 Feature counts:`, {
+          clusters: clusterFeatures.length,
+          singleProperties: singlePropertyFeatures.length,
+          individualProperties: propertyFeatures.length,
+          total: allFeatures.length
+        });
 
         // Test enhanced data storage in features
         if (zoom >= 13 && propertyFeatures.length > 0) {
@@ -721,22 +1038,68 @@ export function MapListings({
           console.log(`- Has enhanced address:`, !!sampleFeature.properties.address);
           console.log(`- Has enhanced details:`, !!sampleFeature.properties.details);
           console.log(`- Has images:`, !!sampleFeature.properties.images?.length);
+          console.log(`- Has listPrice:`, !!sampleFeature.properties.listPrice);
+          console.log(`- Sample listPrice:`, sampleFeature.properties.listPrice);
         }
+
+        // Debug price data for all features
+        const featuresWithPrices = allFeatures.filter(f => 'listPrice' in f.properties && f.properties.listPrice);
+        console.log(`💰 Features with price data: ${featuresWithPrices.length}/${allFeatures.length}`);
+        if (featuresWithPrices.length > 0) {
+          console.log(`💰 Sample prices:`, featuresWithPrices.slice(0, 3).map(f => ({
+            price: 'listPrice' in f.properties ? f.properties.listPrice : 'N/A',
+            type: 'propertyType' in f.properties ? f.properties.propertyType : 'N/A'
+          })));
+        }
+
+        // DETAILED FEATURE STRUCTURE DEBUGGING
+        console.log("🔍 DETAILED FEATURE DEBUGGING:");
+
+        // Log first property feature in detail - prioritize individual properties with valid prices
+        const propertyFeature = allFeatures.find(f =>
+          'listPrice' in f.properties &&
+          f.properties.listPrice !== undefined &&
+          f.properties.listPrice !== null
+        ) || allFeatures.find(f => 'listPrice' in f.properties);
+
+        if (propertyFeature) {
+          console.log("📋 Sample property feature FULL structure:");
+          console.log("- Full feature object:", propertyFeature);
+          console.log("- Properties object:", propertyFeature.properties);
+          console.log("- Properties keys:", Object.keys(propertyFeature.properties));
+          if ('listPrice' in propertyFeature.properties) {
+            console.log("- listPrice value:", propertyFeature.properties.listPrice);
+            console.log("- listPrice type:", typeof propertyFeature.properties.listPrice);
+          }
+          console.log("- Has listPrice:", 'listPrice' in propertyFeature.properties);
+          if ('isProperty' in propertyFeature.properties) {
+            console.log("- IsProperty value:", propertyFeature.properties.isProperty);
+          }
+        }
+
+        // Log the GeoJSON structure that goes to Mapbox
+        const geoJsonData = {
+          type: "FeatureCollection" as const,
+          features: allFeatures,
+        };
+        console.log("🗺️ GeoJSON data structure being sent to Mapbox:");
+        console.log("- Feature collection:", geoJsonData);
+        console.log("- First 3 features:", geoJsonData.features.slice(0, 3));
 
         // Update map source
         const source = map.current.getSource(
           "listings"
         ) as mapboxgl.GeoJSONSource;
         if (source) {
-          source.setData({
-            type: "FeatureCollection",
-            features: allFeatures,
-          });
+          source.setData(geoJsonData);
           console.log(
             "✅ Map source updated with",
             allFeatures.length,
             "features"
           );
+
+          // Add custom price markers
+          addPriceMarkers(allFeatures);
         } else {
           console.error("❌ Map source 'listings' not found");
         }
@@ -865,89 +1228,7 @@ export function MapListings({
         },
       });
 
-      // Add price text layer with simplified formatting
-      map.current.addLayer({
-        id: "price-text",
-        type: "symbol",
-        source: "listings",
-        filter: ["all", ["has", "isProperty"], ["has", "listPrice"]],
-        layout: {
-          "text-field": [
-            "case",
-            // Lease properties (typically thousands)
-            ["==", ["get", "propertyType"], "Lease"],
-            [
-              "concat",
-              "$",
-              [
-                "case",
-                [">=", ["get", "listPrice"], 1000],
-                [
-                  "concat",
-                  [
-                    "case",
-                    ["==", ["%", ["get", "listPrice"], 1000], 0],
-                    ["to-string", ["/", ["get", "listPrice"], 1000]], // Whole thousands: 3K
-                    [
-                      "concat",
-                      ["to-string", ["round", ["/", ["get", "listPrice"], 100]]], // Round to tenths: 3.2K
-                      ["==", ["%", ["round", ["/", ["get", "listPrice"], 100]], 10], 0], "",
-                      ".", ["%", ["round", ["/", ["get", "listPrice"], 100]], 10]
-                    ]
-                  ],
-                  "K"
-                ],
-                ["to-string", ["get", "listPrice"]] // Under 1000: show full amount
-              ]
-            ],
-            // Sale properties (typically hundreds of thousands or millions)
-            [
-              "concat",
-              "$",
-              [
-                "case",
-                [">=", ["get", "listPrice"], 1000000],
-                [
-                  "concat",
-                  [
-                    "case",
-                    ["==", ["%", ["get", "listPrice"], 1000000], 0],
-                    ["to-string", ["/", ["get", "listPrice"], 1000000]], // Whole millions: 3M
-                    [
-                      "concat",
-                      ["to-string", ["round", ["/", ["get", "listPrice"], 100000]]],
-                      ".", ["%", ["round", ["/", ["get", "listPrice"], 100000]], 10]
-                    ]
-                  ],
-                  "M"
-                ],
-                [">=", ["get", "listPrice"], 1000],
-                [
-                  "concat",
-                  ["to-string", ["round", ["/", ["get", "listPrice"], 1000]]],
-                  "K"
-                ],
-                ["to-string", ["get", "listPrice"]] // Under 1000: show full amount
-              ]
-            ]
-          ],
-          "text-font": ["DIN Offc Pro Bold", "Arial Unicode MS Bold"],
-          "text-size": 11,
-          "text-offset": [0, -1.8], // Position above dots
-          "text-anchor": "bottom",
-        },
-        paint: {
-          "text-color": "#ffffff",
-          "text-halo-color": [
-            "case",
-            ["==", ["get", "propertyType"], "Lease"],
-            "#a855f7", // Purple for lease
-            "#22c55e", // Green for sale (default)
-          ],
-          "text-halo-width": 2.5,
-          "text-opacity": 1.0,
-        },
-      });
+      // Custom price bubbles will be handled with HTML markers instead of Mapbox layers
 
       // Click handler for clusters
       map.current.on("click", "clusters", (e) => {
@@ -955,7 +1236,6 @@ export function MapListings({
 
         const feature = e.features[0];
         const coordinates = (feature.geometry as any).coordinates;
-        const count = feature.properties?.count;
 
         // Calculate zoom level to drill down
         const currentZoom = map.current.getZoom();
@@ -971,39 +1251,8 @@ export function MapListings({
         });
       });
 
-      // Click handler for individual properties (both dots and text)
-      const handlePropertyClick = (
-        e: mapboxgl.MapMouseEvent & {
-          features?: mapboxgl.MapboxGeoJSONFeature[] | undefined;
-        }
-      ) => {
-        if (!e.features?.[0]) return;
-
-        const feature = e.features[0];
-        const properties = feature.properties;
-
-        console.log("🏠 Property clicked:", properties);
-
-        // Create listing object for modal from feature properties
-        const listing = {
-          mlsNumber: properties?.mlsNumber || "N/A",
-          listPrice: properties?.listPrice || 0,
-          address: properties?.address,
-          details: properties?.details,
-          images: properties?.images,
-          type: properties?.type,
-          lastStatus: properties?.lastStatus,
-          status: properties?.status,
-        };
-
-        console.log("📋 Opening modal with listing:", listing);
-
-        setSelectedListing(listing);
-        setModalOpen(true);
-      };
-
-      map.current.on("click", "property-dots", handlePropertyClick);
-      map.current.on("click", "price-text", handlePropertyClick);
+      // Property dots are now handled by the expandable price bubbles above them
+      // No separate click handler needed
 
       // Hover cursors
       map.current.on("mouseenter", "clusters", () => {
@@ -1016,12 +1265,6 @@ export function MapListings({
         if (map.current) map.current.getCanvas().style.cursor = "pointer";
       });
       map.current.on("mouseleave", "property-dots", () => {
-        if (map.current) map.current.getCanvas().style.cursor = "";
-      });
-      map.current.on("mouseenter", "price-text", () => {
-        if (map.current) map.current.getCanvas().style.cursor = "pointer";
-      });
-      map.current.on("mouseleave", "price-text", () => {
         if (map.current) map.current.getCanvas().style.cursor = "";
       });
 
@@ -1042,12 +1285,13 @@ export function MapListings({
     });
 
     return () => {
+      clearPriceMarkers(); // Clean up price markers
       if (map.current) {
         map.current.remove();
         map.current = null;
       }
     };
-  }, [mapboxToken, mapStyle, mapCenter, mapZoom, fetchClusters]);
+  }, [mapboxToken, mapStyle, mapCenter, mapZoom, fetchClusters, clearPriceMarkers, addPriceMarkers]);
 
   return (
     <div style={{ width, height, position: "relative" }}>
