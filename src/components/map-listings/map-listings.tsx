@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { PropertyPreviewModal } from "../property-preview-modal/property-preview-modal";
+import { BedDouble, Bath, Car } from "lucide-react";
 
 export interface MapListingsProps {
   /** Repliers API key - required */
@@ -87,7 +87,572 @@ interface AutoCenterData {
   center: [number, number];
 }
 
-// Price formatting is handled by Mapbox GL expressions in the price-text layer
+interface ListingResult {
+  mlsNumber: string;
+  listPrice: number;
+  address?: {
+    city?: string;
+    streetDirection?: string;
+    streetName?: string;
+    streetNumber?: string;
+    streetSuffix?: string;
+    state?: string;
+  };
+  details?: {
+    numBedrooms?: number;
+    numBedroomsPlus?: number;
+    numBathrooms?: number;
+    numBathroomsPlus?: number;
+    numGarageSpaces?: number;
+    propertyType?: string;
+  };
+  images?: Array<string>;
+  type?: string;
+  lastStatus?: string;
+  status?: string;
+}
+
+interface ListingPreviewProps {
+  listing: ListingResult;
+  onClick?: () => void;
+}
+
+// Shared formatting utilities
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price);
+};
+
+const formatBedrooms = (details: ListingResult["details"]) => {
+  if (!details) return "N/A";
+
+  const total = details.numBedrooms;
+  const plus = details.numBedroomsPlus;
+
+  if (total && plus && plus > 0) {
+    return `${total} + ${plus}`;
+  }
+  return total?.toString() || "N/A";
+};
+
+const formatBathrooms = (details: ListingResult["details"]) => {
+  if (!details) return "N/A";
+
+  const total = details.numBathrooms;
+  const plus = details.numBathroomsPlus;
+
+  if (total && plus && plus > 0) {
+    return `${total} + ${plus}`;
+  }
+  return total?.toString() || "N/A";
+};
+
+const formatParking = (details: ListingResult["details"]) => {
+  if (!details) return "N/A";
+  return details.numGarageSpaces?.toString() || "N/A";
+};
+
+const getStatusLabel = (
+  type?: string,
+  lastStatus?: string
+): string | null => {
+  if (lastStatus === "New" || lastStatus === "Pc" || lastStatus === "Ext") {
+    if (type === "Sale") return "For Sale";
+    if (type === "Lease") return "For Lease";
+    return type || null;
+  }
+
+  if (!lastStatus) return null;
+
+  const lastStatusMap: Record<string, string> = {
+    Sus: "Suspended",
+    Exp: "Expired",
+    Sld: "Sold",
+    Ter: "Terminated",
+    Dft: "Deal Fell Through",
+    Lsd: "Leased",
+    Sc: "Sold Conditionally",
+    Sce: "Sold Conditionally (Escape Clause)",
+    Lc: "Leased Conditionally",
+    Cs: "Coming Soon",
+  };
+
+  return lastStatusMap[lastStatus] || lastStatus;
+};
+
+const StatusTag = ({
+  type,
+  lastStatus,
+  size = "sm",
+}: {
+  type?: string;
+  lastStatus?: string;
+  size?: "xs" | "sm";
+}) => {
+  const label = getStatusLabel(type, lastStatus);
+  if (!label) return null;
+
+  let style = "bg-green-100 text-green-600"; // Default for active listings
+
+  switch (label) {
+    case "For Sale":
+      style = "bg-green-100 text-green-600";
+      break;
+    case "For Lease":
+      style = "bg-purple-100 text-purple-600";
+      break;
+    case "Sold":
+      style = "bg-blue-100 text-blue-600";
+      break;
+    case "Leased":
+      style = "bg-purple-100 text-purple-600";
+      break;
+    case "Sold Conditionally":
+    case "Sold Conditionally (Escape Clause)":
+    case "Leased Conditionally":
+      style = "bg-amber-100 text-amber-600";
+      break;
+    case "Coming Soon":
+      style = "bg-indigo-100 text-indigo-600";
+      break;
+    case "Suspended":
+      style = "bg-orange-100 text-orange-600";
+      break;
+    case "Expired":
+      style = "bg-gray-100 text-gray-500";
+      break;
+    case "Terminated":
+    case "Deal Fell Through":
+      style = "bg-red-100 text-red-600";
+      break;
+    default:
+      style = "bg-gray-100 text-gray-500";
+  }
+
+  const sizeClass = size === "xs" ? "text-xs" : "text-sm";
+
+  return (
+    <span className={`${sizeClass} px-2 py-1 rounded-md font-medium ${style}`}>
+      {label}
+    </span>
+  );
+};
+
+const formatAddress = (address: ListingResult["address"]) => {
+  if (!address) return "Address not available";
+
+  const parts = [
+    address.streetNumber,
+    address.streetDirection,
+    address.streetName,
+    address.streetSuffix,
+  ].filter(Boolean);
+
+  const street = parts.join(" ");
+  const cityState = [address.city, address.state].filter(Boolean).join(", ");
+
+  return [street, cityState].filter(Boolean).join(", ");
+};
+
+// ListingPreview component based on tooltip variant
+function ListingPreview({ listing, onClick }: ListingPreviewProps) {
+  return (
+    <div
+      className="p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+      onClick={onClick}
+    >
+      <div className="flex items-start gap-4">
+        {/* Property Image */}
+        <div className="bg-gray-100 rounded-md overflow-hidden flex-shrink-0 h-20 aspect-[4/3]">
+          {listing.images?.[0] ? (
+            <img
+              src={`https://cdn.repliers.io/${listing.images[0]}?class=small`}
+              alt="Property"
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              No Image
+            </div>
+          )}
+        </div>
+
+        {/* Property Info */}
+        <div className="flex-grow min-w-0">
+          {/* Price & MLS */}
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <h4 className="font-semibold text-gray-800 truncate text-base">
+                {listing.listPrice
+                  ? formatPrice(listing.listPrice)
+                  : "Price N/A"}
+              </h4>
+              <span className="text-gray-400 text-sm">|</span>
+              <span className="text-gray-600 truncate text-sm">
+                {listing.mlsNumber}
+              </span>
+            </div>
+            <div className="flex-shrink-0 ml-2">
+              <StatusTag
+                type={listing.type}
+                lastStatus={listing.lastStatus}
+                size="sm"
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <p className="text-gray-600 leading-relaxed text-sm mb-2">
+            {formatAddress(listing.address)}
+          </p>
+
+          {/* Property Details */}
+          <div className="flex items-center text-gray-500 space-x-3 flex-wrap text-sm">
+            <span className="flex items-center gap-1">
+              <BedDouble className="w-4 h-4" />
+              {formatBedrooms(listing.details)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Bath className="w-4 h-4" />
+              {formatBathrooms(listing.details)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Car className="w-4 h-4" />
+              {formatParking(listing.details)}
+            </span>
+            {listing.details?.propertyType && (
+              <span className="text-gray-400">| {listing.details.propertyType}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PropertyTooltipProps {
+  open: boolean;
+  onClose: () => void;
+  listing: ListingResult | null;
+  position: {
+    x: number;
+    y: number;
+  };
+  mapContainer: HTMLElement | null;
+}
+
+interface ClusterTooltipProps {
+  open: boolean;
+  onClose: () => void;
+  properties: ListingResult[];
+  position: {
+    x: number;
+    y: number;
+  };
+  mapContainer: HTMLElement | null;
+}
+
+
+function PropertyTooltip({
+  open,
+  onClose,
+  listing,
+  position,
+  mapContainer,
+}: PropertyTooltipProps) {
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
+
+  // Calculate optimal tooltip position
+  useEffect(() => {
+    if (!open || !tooltipRef.current || !mapContainer) return;
+
+    const tooltip = tooltipRef.current;
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    // Convert marker position to viewport coordinates
+    const markerX = position.x;
+    const markerY = position.y;
+
+    // Tooltip dimensions - optimized for content
+    const tooltipWidth = 450; // Optimized width for better content fit
+    const tooltipHeight = tooltipRect.height || 200; // Estimated height
+
+    // Viewport boundaries (with padding)
+    const padding = 16;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate preferred position (above the marker)
+    let x = markerX - tooltipWidth / 2;
+    let y = markerY - tooltipHeight - 16; // 16px gap for arrow
+    let arrow: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
+
+    // Horizontal boundary checks
+    if (x < padding) {
+      x = padding;
+    } else if (x + tooltipWidth > viewportWidth - padding) {
+      x = viewportWidth - tooltipWidth - padding;
+    }
+
+    // Vertical boundary checks
+    if (y < padding) {
+      // Not enough space above, show below marker
+      y = markerY + 32; // 32px gap for arrow + marker height
+      arrow = 'top';
+    }
+
+    // Final boundary check for bottom positioning
+    if (y + tooltipHeight > viewportHeight - padding) {
+      // Try positioning to the side
+      if (markerX > viewportWidth / 2) {
+        // Show on left side
+        x = markerX - tooltipWidth - 16;
+        y = markerY - tooltipHeight / 2;
+        arrow = 'right';
+      } else {
+        // Show on right side
+        x = markerX + 16;
+        y = markerY - tooltipHeight / 2;
+        arrow = 'left';
+      }
+
+      // Vertical centering adjustments for side positioning
+      if (y < padding) y = padding;
+      if (y + tooltipHeight > viewportHeight - padding) {
+        y = viewportHeight - tooltipHeight - padding;
+      }
+    }
+
+    setTooltipPosition({ x, y });
+    setArrowPosition(arrow);
+  }, [open, position, mapContainer]);
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose]);
+
+  if (!open || !listing) return null;
+
+  // Arrow styles based on position
+  const getArrowStyles = () => {
+    const baseClasses = "absolute w-3 h-3 bg-white transform rotate-45 border";
+
+    switch (arrowPosition) {
+      case 'bottom':
+        return `${baseClasses} -bottom-1.5 left-1/2 -translate-x-1/2 border-r border-b border-gray-200`;
+      case 'top':
+        return `${baseClasses} -top-1.5 left-1/2 -translate-x-1/2 border-l border-t border-gray-200`;
+      case 'left':
+        return `${baseClasses} -left-1.5 top-1/2 -translate-y-1/2 border-l border-b border-gray-200`;
+      case 'right':
+        return `${baseClasses} -right-1.5 top-1/2 -translate-y-1/2 border-r border-t border-gray-200`;
+      default:
+        return `${baseClasses} -bottom-1.5 left-1/2 -translate-x-1/2 border-r border-b border-gray-200`;
+    }
+  };
+
+  return (
+    <div
+      ref={tooltipRef}
+      className="fixed z-50 w-[450px]"
+      style={{
+        left: `${tooltipPosition.x}px`,
+        top: `${tooltipPosition.y}px`,
+      }}
+    >
+      {/* Tooltip Card */}
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden relative">
+        {/* Arrow pointer */}
+        <div className={getArrowStyles()} />
+
+        {/* Content - Use ListingPreview component */}
+        <ListingPreview
+          listing={listing}
+          onClick={() => {
+            // TODO: Replace with actual navigation to full property details page
+            // Example: window.open(`/listings/${listing.mlsNumber}`, '_blank');
+            // Example: router.push(`/property/${listing.mlsNumber}`);
+            console.log(`🔗 Navigate to full details for property: ${listing.mlsNumber}`);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ClusterTooltip({
+  open,
+  onClose,
+  properties,
+  position,
+  mapContainer,
+}: ClusterTooltipProps) {
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
+
+  // Calculate optimal tooltip position
+  useEffect(() => {
+    if (!open || !tooltipRef.current || !mapContainer) return;
+
+    const tooltip = tooltipRef.current;
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    // Convert marker position to viewport coordinates
+    const markerX = position.x;
+    const markerY = position.y;
+
+    // Tooltip dimensions - slightly wider for list view
+    const tooltipWidth = 480; // Slightly wider for better list layout
+    const tooltipHeight = tooltipRect.height || 300; // Higher estimate for list
+
+    // Viewport boundaries (with padding)
+    const padding = 16;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate preferred position (above the marker)
+    let x = markerX - tooltipWidth / 2;
+    let y = markerY - tooltipHeight - 16; // 16px gap for arrow
+    let arrow: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
+
+    // Horizontal boundary checks
+    if (x < padding) {
+      x = padding;
+    } else if (x + tooltipWidth > viewportWidth - padding) {
+      x = viewportWidth - tooltipWidth - padding;
+    }
+
+    // Vertical boundary checks
+    if (y < padding) {
+      // Not enough space above, show below marker
+      y = markerY + 32; // 32px gap for arrow + marker height
+      arrow = 'top';
+    }
+
+    // Final boundary check for bottom positioning
+    if (y + tooltipHeight > viewportHeight - padding) {
+      // Try positioning to the side
+      if (markerX > viewportWidth / 2) {
+        // Show on left side
+        x = markerX - tooltipWidth - 16;
+        y = markerY - tooltipHeight / 2;
+        arrow = 'right';
+      } else {
+        // Show on right side
+        x = markerX + 16;
+        y = markerY - tooltipHeight / 2;
+        arrow = 'left';
+      }
+
+      // Vertical centering adjustments for side positioning
+      if (y < padding) y = padding;
+      if (y + tooltipHeight > viewportHeight - padding) {
+        y = viewportHeight - tooltipHeight - padding;
+      }
+    }
+
+    setTooltipPosition({ x, y });
+    setArrowPosition(arrow);
+  }, [open, position, mapContainer]);
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose]);
+
+  if (!open || properties.length === 0) return null;
+
+  // Arrow styles based on position
+  const getArrowStyles = () => {
+    const baseClasses = "absolute w-3 h-3 bg-white transform rotate-45 border";
+
+    switch (arrowPosition) {
+      case 'bottom':
+        return `${baseClasses} -bottom-1.5 left-1/2 -translate-x-1/2 border-r border-b border-gray-200`;
+      case 'top':
+        return `${baseClasses} -top-1.5 left-1/2 -translate-x-1/2 border-l border-t border-gray-200`;
+      case 'left':
+        return `${baseClasses} -left-1.5 top-1/2 -translate-y-1/2 border-l border-b border-gray-200`;
+      case 'right':
+        return `${baseClasses} -right-1.5 top-1/2 -translate-y-1/2 border-r border-t border-gray-200`;
+      default:
+        return `${baseClasses} -bottom-1.5 left-1/2 -translate-x-1/2 border-r border-b border-gray-200`;
+    }
+  };
+
+  return (
+    <div
+      ref={tooltipRef}
+      className="fixed z-50 w-[480px]"
+      style={{
+        left: `${tooltipPosition.x}px`,
+        top: `${tooltipPosition.y}px`,
+      }}
+    >
+      {/* Tooltip Card */}
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden relative">
+        {/* Arrow pointer */}
+        <div className={getArrowStyles()} />
+
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+          <h3 className="text-sm font-semibold text-gray-800">
+            {properties.length === 1 ? '1 Property' : `${properties.length} Properties`}
+          </h3>
+        </div>
+
+        {/* Scrollable Content - Stack ListingPreview components */}
+        <div className="max-h-[400px] overflow-y-auto">
+          {properties.map((listing, index) => (
+            <div key={listing.mlsNumber || index} className="border-b border-gray-100 last:border-b-0">
+              <ListingPreview
+                listing={listing}
+                onClick={() => {
+                  // TODO: Replace with actual navigation to full property details page
+                  // Example: window.open(`/listings/${listing.mlsNumber}`, '_blank');
+                  // Example: router.push(`/property/${listing.mlsNumber}`);
+                  console.log(`🔗 Navigate to full details for property: ${listing.mlsNumber}`);
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Utility functions for auto-centering
 
@@ -242,6 +807,7 @@ const detectAutoCenter = async (
   apiKey: string,
   method: "average" | "city" = "average"
 ): Promise<AutoCenterData | null> => {
+  // Try bundled approach first, fallback to individual calls if 400 error
   try {
     console.log(`🎯 Auto-detecting map center using ${method} method with bundled search...`);
 
@@ -271,6 +837,11 @@ const detectAutoCenter = async (
       },
       body: JSON.stringify(bundledQuery),
     });
+
+    if (response.status === 400) {
+      console.log("⚠️ Bundled API not supported, falling back to individual calls...");
+      return detectAutoCenterFallback(apiKey, method);
+    }
 
     if (!response.ok) {
       throw new Error(
@@ -375,6 +946,159 @@ const detectAutoCenter = async (
     return autoCenter;
   } catch (error) {
     console.error("❌ Auto-center detection failed:", error);
+    // Try fallback approach for non-400 errors too
+    console.log("🔄 Trying fallback individual API calls...");
+    return detectAutoCenterFallback(apiKey, method);
+  }
+};
+
+/**
+ * Fallback auto-center detection using individual API calls
+ */
+const detectAutoCenterFallback = async (
+  apiKey: string,
+  method: "average" | "city" = "average"
+): Promise<AutoCenterData | null> => {
+  try {
+    console.log(`🔄 Auto-detecting map center using ${method} method with individual calls...`);
+
+    let clusters: any[] = [];
+    let listings: any[] = [];
+
+    // First, try to get clusters for city method
+    if (method === "city") {
+      try {
+        const clusterUrl = new URL("https://api.repliers.io/listings");
+        clusterUrl.searchParams.set("cluster", "true");
+        clusterUrl.searchParams.set("clusterPrecision", "8");
+        clusterUrl.searchParams.set("clusterLimit", "50");
+        clusterUrl.searchParams.set("status", "A");
+
+        const clusterResponse = await fetch(clusterUrl.toString(), {
+          headers: {
+            "REPLIERS-API-KEY": apiKey,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (clusterResponse.ok) {
+          const clusterData = await clusterResponse.json();
+          clusters = clusterData.aggregates?.map?.clusters || clusterData.clusters || [];
+          console.log(`📊 Fallback clusters: ${clusters.length} found`);
+        }
+      } catch (error) {
+        console.warn("⚠️ Cluster fetch failed in fallback:", error);
+      }
+    }
+
+    // Get individual listings for average method or as fallback for city method
+    try {
+      const listingUrl = new URL("https://api.repliers.io/listings");
+      listingUrl.searchParams.set("pageSize", "500");
+      listingUrl.searchParams.set("status", "A");
+
+      const listingResponse = await fetch(listingUrl.toString(), {
+        headers: {
+          "REPLIERS-API-KEY": apiKey,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (listingResponse.ok) {
+        const listingData = await listingResponse.json();
+        listings = listingData.listings || listingData.results || [];
+        console.log(`📊 Fallback listings: ${listings.length} found`);
+      }
+    } catch (error) {
+      console.warn("⚠️ Listing fetch failed in fallback:", error);
+    }
+
+    // Process the same way as bundled approach
+    if (method === "city" && clusters.length > 0) {
+      // Find the cluster with the most listings
+      let largestCluster = null;
+      let maxCount = 0;
+
+      clusters.forEach((cluster: any) => {
+        const count = cluster.count || 0;
+        if (count > maxCount) {
+          maxCount = count;
+          largestCluster = cluster;
+        }
+      });
+
+      if (largestCluster) {
+        // Extract coordinates from the largest cluster
+        const coordinates = [
+          (largestCluster as any).location?.longitude ||
+            (largestCluster as any).coordinates?.lng ||
+            (largestCluster as any).longitude ||
+            (largestCluster as any).center?.lng,
+          (largestCluster as any).location?.latitude ||
+            (largestCluster as any).coordinates?.lat ||
+            (largestCluster as any).latitude ||
+            (largestCluster as any).center?.lat,
+        ];
+
+        if (coordinates[0] && coordinates[1]) {
+          const center: [number, number] = [coordinates[0], coordinates[1]];
+          const autoCenter: AutoCenterData = { center };
+          console.log(
+            `🏆 Fallback largest cluster center: ${maxCount} listings at [${center[0].toFixed(
+              4
+            )}, ${center[1].toFixed(4)}]`
+          );
+
+          // Cache the result with method-specific key
+          setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
+          return autoCenter;
+        }
+      }
+
+      console.warn(
+        "⚠️ Fallback largest cluster method failed, falling back to average method"
+      );
+    }
+
+    // Average method (or fallback)
+    if (listings.length === 0) {
+      console.warn("⚠️ No listings found for fallback auto-center detection");
+      return null;
+    }
+
+    // Extract coordinates from listings
+    const coordinates: Coordinate[] = [];
+    listings.forEach((listing: any) => {
+      const coord = extractCoordinates(listing);
+      if (coord) {
+        coordinates.push(coord);
+      }
+    });
+
+    if (coordinates.length === 0) {
+      console.warn("⚠️ No valid coordinates found in fallback listings");
+      return null;
+    }
+
+    // Calculate bounds and center using average method
+    const bounds = getPolygonBounds(coordinates);
+    if (!bounds) {
+      console.warn("⚠️ Could not calculate bounds from fallback coordinates");
+      return null;
+    }
+
+    const center = calculateAverageCenter(coordinates, bounds);
+    const autoCenter: AutoCenterData = { center };
+    console.log(
+      `✅ Fallback average-based center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}] from ${coordinates.length} properties`
+    );
+
+    // Cache the result with method-specific key
+    setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
+
+    return autoCenter;
+  } catch (error) {
+    console.error("❌ Fallback auto-center detection failed:", error);
     return null;
   }
 };
@@ -415,9 +1139,15 @@ export function MapListings({
   const currentZoomLevel = useRef<number | null>(null);
   const lastFetchParams = useRef<{ bounds: string; zoom: number } | null>(null);
 
-  // Modal state for property preview
-  const [modalOpen, setModalOpen] = useState(false);
+  // Tooltip state for property preview
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  // Cluster tooltip state
+  const [clusterTooltipOpen, setClusterTooltipOpen] = useState(false);
+  const [clusterProperties, setClusterProperties] = useState<ListingResult[]>([]);
+  const [clusterTooltipPosition, setClusterTooltipPosition] = useState({ x: 0, y: 0 });
 
   // Store price markers for cleanup
   const priceMarkers = useRef<mapboxgl.Marker[]>([]);
@@ -534,8 +1264,13 @@ export function MapListings({
           .addTo(map.current!);
 
         // Add click handler to bubble
-        bubble.addEventListener('click', async () => {
+        bubble.addEventListener('click', async (event) => {
           console.log('🖱️ Price bubble clicked for', feature.properties.mlsNumber);
+
+          // Get click position relative to viewport
+          const clickX = event.clientX;
+          const clickY = event.clientY;
+          setTooltipPosition({ x: clickX, y: clickY });
 
           // If we already have enhanced data, use it
           if (feature.properties.address && feature.properties.images) {
@@ -550,10 +1285,10 @@ export function MapListings({
               lastStatus: feature.properties.lastStatus,
               status: feature.properties.status,
             };
-            console.log('📤 Setting modal data:', listing);
+            console.log('📤 Setting tooltip data:', listing);
             setSelectedListing(listing);
-            setModalOpen(true);
-            console.log('📂 Modal should now be open');
+            setTooltipOpen(true);
+            console.log('📂 Tooltip should now be open');
             return;
           }
 
@@ -587,7 +1322,7 @@ export function MapListings({
                 status: propertyData.status,
               };
               setSelectedListing(listing);
-              setModalOpen(true);
+              setTooltipOpen(true);
             } else {
               console.warn('⚠️ No property data found, using basic info');
               const listing = {
@@ -601,7 +1336,7 @@ export function MapListings({
                 status: feature.properties.status,
               };
               setSelectedListing(listing);
-              setModalOpen(true);
+              setTooltipOpen(true);
             }
           } catch (error) {
             console.error('❌ Failed to fetch enhanced property details:', error);
@@ -615,10 +1350,10 @@ export function MapListings({
               lastStatus: feature.properties.lastStatus,
               status: feature.properties.status,
             };
-            console.log('📤 Setting modal data:', listing);
+            console.log('📤 Setting tooltip data:', listing);
             setSelectedListing(listing);
-            setModalOpen(true);
-            console.log('📂 Modal should now be open');
+            setTooltipOpen(true);
+            console.log('📂 Tooltip should now be open');
           }
         });
 
@@ -1123,7 +1858,7 @@ export function MapListings({
         console.error("❌ Fetch failed:", err);
       }
     },
-    [apiKey, getClusterPrecision, boundsToPolygon]
+    [apiKey, getClusterPrecision, boundsToPolygon, addPriceMarkers]
   );
 
   // Initialize map
@@ -1231,17 +1966,144 @@ export function MapListings({
       // Custom price bubbles will be handled with HTML markers instead of Mapbox layers
 
       // Click handler for clusters
-      map.current.on("click", "clusters", (e) => {
+      map.current.on("click", "clusters", async (e) => {
         if (!map.current || !e.features?.[0]) return;
 
         const feature = e.features[0];
         const coordinates = (feature.geometry as any).coordinates;
+        const clusterCount = (feature.properties as any).count;
 
-        // Calculate zoom level to drill down
+        // Get click position for tooltip
+        const clickX = e.originalEvent.clientX;
+        const clickY = e.originalEvent.clientY;
+
+        console.log(`🎯 Cluster clicked - ${clusterCount} properties`);
+
+        // Show cluster properties only at very high zoom levels
         const currentZoom = map.current.getZoom();
-        const targetZoom = Math.min(currentZoom + 4, 16);
 
-        console.log(`🎯 Cluster clicked - Current zoom: ${currentZoom.toFixed(1)} → Target zoom: ${targetZoom.toFixed(1)}`);
+        if (currentZoom >= 13) {
+          // At high zoom, show cluster properties in tooltip
+          console.log('📋 Extracting real cluster properties...');
+          console.log('🎯 Clicked feature:', feature);
+          console.log('🎯 Feature properties:', feature.properties);
+
+          // Try to get cluster properties from the mapbox data source
+          const source = map.current.getSource('listings') as mapboxgl.GeoJSONSource;
+          if (source && source._data) {
+            const sourceData = source._data as any;
+            console.log('📊 Map source data:', sourceData);
+            console.log('📊 Total features in source:', sourceData.features?.length);
+
+            // Get ALL property features and find the closest ones
+            const allPropertyFeatures = sourceData.features?.filter((f: any) => {
+              return f.properties?.isProperty === true; // Only properties
+            }) || [];
+
+            console.log(`🏠 Found ${allPropertyFeatures.length} total property features`);
+
+            // Sort by distance to clicked coordinates and take the closest ones
+            const propertiesWithDistance = allPropertyFeatures.map((f: any) => {
+              const featureCoords = f.geometry.coordinates;
+              const distance = Math.sqrt(
+                Math.pow(featureCoords[0] - coordinates[0], 2) +
+                Math.pow(featureCoords[1] - coordinates[1], 2)
+              );
+              return { feature: f, distance };
+            }).sort((a: any, b: any) => a.distance - b.distance);
+
+            console.log('🔍 Property distances:', propertiesWithDistance.slice(0, 5).map((p: any) => ({
+              mls: p.feature.properties.mlsNumber,
+              distance: p.distance,
+              coords: p.feature.geometry.coordinates
+            })));
+
+            // Take the closest properties up to the cluster count
+            const closestProperties = propertiesWithDistance.slice(0, clusterCount);
+            console.log(`🎯 Taking ${closestProperties.length} closest properties for cluster of ${clusterCount}`);
+
+            if (closestProperties.length > 0) {
+              const realProperties: ListingResult[] = closestProperties.map(({ feature }: any) => {
+                const props = feature.properties;
+                console.log('🔧 Converting property feature:', {
+                  mls: props.mlsNumber,
+                  price: props.listPrice,
+                  type: props.type,
+                  hasAddress: !!props.address,
+                  hasDetails: !!props.details
+                });
+
+                return {
+                  mlsNumber: props.mlsNumber || 'N/A',
+                  listPrice: props.listPrice || 0,
+                  address: props.address || {
+                    streetNumber: 'Unknown',
+                    streetName: 'Address',
+                    city: 'Unknown',
+                    state: 'Unknown',
+                  },
+                  details: props.details || {
+                    numBedrooms: 0,
+                    numBathrooms: 0,
+                    numGarageSpaces: 0,
+                    propertyType: 'Unknown',
+                  },
+                  images: props.images || [],
+                  type: props.type || 'Sale',
+                  lastStatus: props.lastStatus || 'New',
+                  status: props.status || 'A',
+                };
+              });
+
+              console.log(`📋 Successfully extracted ${realProperties.length} real properties`);
+
+              setClusterProperties(realProperties);
+              setClusterTooltipPosition({ x: clickX, y: clickY });
+              setClusterTooltipOpen(true);
+
+              // Close single property tooltip if open
+              setTooltipOpen(false);
+
+              return;
+            }
+          }
+
+          // Fallback: if we can't get real data, still show something useful
+          console.log('⚠️ Could not extract real cluster data, using fallback');
+          const fallbackProperties: ListingResult[] = [{
+            mlsNumber: `Cluster-${clusterCount}`,
+            listPrice: 0,
+            address: {
+              streetNumber: 'Multiple',
+              streetName: 'Properties',
+              city: 'Available',
+              state: '',
+            },
+            details: {
+              numBedrooms: 0,
+              numBathrooms: 0,
+              numGarageSpaces: 0,
+              propertyType: `${clusterCount} Properties in Cluster`,
+            },
+            images: [],
+            type: 'Sale',
+            lastStatus: 'Available',
+            status: 'A',
+          }];
+
+          setClusterProperties(fallbackProperties);
+          setClusterTooltipPosition({ x: clickX, y: clickY });
+          setClusterTooltipOpen(true);
+
+          // Close single property tooltip if open
+          setTooltipOpen(false);
+
+          return;
+        }
+
+        // Default zoom behavior for all other zoom levels
+        const targetZoom = Math.min(currentZoom + 4, 16);
+        console.log(`🔍 Zooming - Current: ${currentZoom.toFixed(1)} → Target: ${targetZoom.toFixed(1)}`);
 
         map.current.easeTo({
           center: coordinates,
@@ -1346,16 +2208,22 @@ export function MapListings({
         </div>
       )}
 
-      {/* Property Preview Modal */}
-      <PropertyPreviewModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+      {/* Property Preview Tooltip */}
+      <PropertyTooltip
+        open={tooltipOpen}
+        onClose={() => setTooltipOpen(false)}
         listing={selectedListing}
-        onViewDetails={(mlsNumber) => {
-          console.log("🔗 View details for MLS:", mlsNumber);
-          // TODO: Implement navigation to full listing page
-          // window.open(`/listings/${mlsNumber}`, '_blank');
-        }}
+        position={tooltipPosition}
+        mapContainer={mapContainer.current}
+      />
+
+      {/* Cluster Properties Tooltip */}
+      <ClusterTooltip
+        open={clusterTooltipOpen}
+        onClose={() => setClusterTooltipOpen(false)}
+        properties={clusterProperties}
+        position={clusterTooltipPosition}
+        mapContainer={mapContainer.current}
       />
     </div>
   );
