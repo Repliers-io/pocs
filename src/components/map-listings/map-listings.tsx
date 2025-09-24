@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { BedDouble, Bath, Car } from "lucide-react";
+import { BedDouble, Bath, Car, ChevronDown } from "lucide-react";
 
 export interface MapListingsProps {
   /** Repliers API key - required */
@@ -20,6 +20,8 @@ export interface MapListingsProps {
   mapStyle?: string;
   /** Center calculation method */
   centerCalculation?: "average" | "city";
+  /** Show property count display */
+  showPropertyCount?: boolean;
 }
 
 interface ClusterFeature {
@@ -85,6 +87,10 @@ interface MapBounds {
 
 interface AutoCenterData {
   center: [number, number];
+}
+
+interface MapFilters {
+  listingType: "all" | "sale" | "lease";
 }
 
 interface ListingResult {
@@ -756,11 +762,6 @@ const calculateAverageCenter = (
   const totalListings = coordinates.length;
   const densityRatio = maxDensity / totalListings;
 
-  console.log(
-    `📍 Density-weighted center: [${center[0].toFixed(4)}, ${center[1].toFixed(
-      4
-    )}] (density: ${densityRatio.toFixed(2)})`
-  );
 
   return center;
 };
@@ -780,7 +781,6 @@ const getCachedAutoCenter = (apiKey: string): AutoCenterData | null => {
       }
     }
   } catch (error) {
-    console.warn("Failed to retrieve cached auto-center data:", error);
   }
   return null;
 };
@@ -796,7 +796,6 @@ const setCachedAutoCenter = (apiKey: string, data: AutoCenterData): void => {
       JSON.stringify(cacheData)
     );
   } catch (error) {
-    console.warn("Failed to cache auto-center data:", error);
   }
 };
 
@@ -809,7 +808,6 @@ const detectAutoCenter = async (
 ): Promise<AutoCenterData | null> => {
   // Try bundled approach first, fallback to individual calls if 400 error
   try {
-    console.log(`🎯 Auto-detecting map center using ${method} method with bundled search...`);
 
     // Use bundled search to get both clusters and listings in one request
     const bundledQuery = {
@@ -839,7 +837,6 @@ const detectAutoCenter = async (
     });
 
     if (response.status === 400) {
-      console.log("⚠️ Bundled API not supported, falling back to individual calls...");
       return detectAutoCenterFallback(apiKey, method);
     }
 
@@ -850,7 +847,6 @@ const detectAutoCenter = async (
     }
 
     const data = await response.json();
-    console.log("📊 Bundled response:", data);
 
     // Extract clusters and listings from bundled response
     const clusterData = data[0] || {}; // First query result (clusters)
@@ -858,8 +854,6 @@ const detectAutoCenter = async (
 
     const clusters = clusterData.aggregates?.map?.clusters || clusterData.clusters || [];
     const listings = listingData.listings || listingData.results || [];
-
-    console.log(`📊 Bundled data: ${clusters.length} clusters, ${listings.length} listings`);
 
     if (method === "city" && clusters.length > 0) {
       // Find the cluster with the most listings
@@ -890,11 +884,6 @@ const detectAutoCenter = async (
         if (coordinates[0] && coordinates[1]) {
           const center: [number, number] = [coordinates[0], coordinates[1]];
           const autoCenter: AutoCenterData = { center };
-          console.log(
-            `🏆 Largest cluster center: ${maxCount} listings at [${center[0].toFixed(
-              4
-            )}, ${center[1].toFixed(4)}]`
-          );
 
           // Cache the result with method-specific key
           setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
@@ -902,14 +891,10 @@ const detectAutoCenter = async (
         }
       }
 
-      console.warn(
-        "⚠️ Largest cluster method failed, falling back to average method"
-      );
     }
 
     // Average method (or fallback)
     if (listings.length === 0) {
-      console.warn("⚠️ No listings found for auto-center detection");
       return null;
     }
 
@@ -923,31 +908,24 @@ const detectAutoCenter = async (
     });
 
     if (coordinates.length === 0) {
-      console.warn("⚠️ No valid coordinates found in listings");
       return null;
     }
 
     // Calculate bounds and center using average method
     const bounds = getPolygonBounds(coordinates);
     if (!bounds) {
-      console.warn("⚠️ Could not calculate bounds from coordinates");
       return null;
     }
 
     const center = calculateAverageCenter(coordinates, bounds);
     const autoCenter: AutoCenterData = { center };
-    console.log(
-      `✅ Average-based center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}] from ${coordinates.length} properties`
-    );
 
     // Cache the result with method-specific key
     setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
 
     return autoCenter;
   } catch (error) {
-    console.error("❌ Auto-center detection failed:", error);
     // Try fallback approach for non-400 errors too
-    console.log("🔄 Trying fallback individual API calls...");
     return detectAutoCenterFallback(apiKey, method);
   }
 };
@@ -960,8 +938,6 @@ const detectAutoCenterFallback = async (
   method: "average" | "city" = "average"
 ): Promise<AutoCenterData | null> => {
   try {
-    console.log(`🔄 Auto-detecting map center using ${method} method with individual calls...`);
-
     let clusters: any[] = [];
     let listings: any[] = [];
 
@@ -984,10 +960,9 @@ const detectAutoCenterFallback = async (
         if (clusterResponse.ok) {
           const clusterData = await clusterResponse.json();
           clusters = clusterData.aggregates?.map?.clusters || clusterData.clusters || [];
-          console.log(`📊 Fallback clusters: ${clusters.length} found`);
         }
       } catch (error) {
-        console.warn("⚠️ Cluster fetch failed in fallback:", error);
+        // Cluster fetch failed in fallback
       }
     }
 
@@ -1007,10 +982,9 @@ const detectAutoCenterFallback = async (
       if (listingResponse.ok) {
         const listingData = await listingResponse.json();
         listings = listingData.listings || listingData.results || [];
-        console.log(`📊 Fallback listings: ${listings.length} found`);
       }
     } catch (error) {
-      console.warn("⚠️ Listing fetch failed in fallback:", error);
+      // Listing fetch failed in fallback
     }
 
     // Process the same way as bundled approach
@@ -1043,11 +1017,6 @@ const detectAutoCenterFallback = async (
         if (coordinates[0] && coordinates[1]) {
           const center: [number, number] = [coordinates[0], coordinates[1]];
           const autoCenter: AutoCenterData = { center };
-          console.log(
-            `🏆 Fallback largest cluster center: ${maxCount} listings at [${center[0].toFixed(
-              4
-            )}, ${center[1].toFixed(4)}]`
-          );
 
           // Cache the result with method-specific key
           setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
@@ -1055,14 +1024,10 @@ const detectAutoCenterFallback = async (
         }
       }
 
-      console.warn(
-        "⚠️ Fallback largest cluster method failed, falling back to average method"
-      );
     }
 
     // Average method (or fallback)
     if (listings.length === 0) {
-      console.warn("⚠️ No listings found for fallback auto-center detection");
       return null;
     }
 
@@ -1076,32 +1041,150 @@ const detectAutoCenterFallback = async (
     });
 
     if (coordinates.length === 0) {
-      console.warn("⚠️ No valid coordinates found in fallback listings");
       return null;
     }
 
     // Calculate bounds and center using average method
     const bounds = getPolygonBounds(coordinates);
     if (!bounds) {
-      console.warn("⚠️ Could not calculate bounds from fallback coordinates");
       return null;
     }
 
     const center = calculateAverageCenter(coordinates, bounds);
     const autoCenter: AutoCenterData = { center };
-    console.log(
-      `✅ Fallback average-based center detected: [${autoCenter.center[0]}, ${autoCenter.center[1]}] from ${coordinates.length} properties`
-    );
 
     // Cache the result with method-specific key
     setCachedAutoCenter(`${apiKey}-${method}`, autoCenter);
 
     return autoCenter;
   } catch (error) {
-    console.error("❌ Fallback auto-center detection failed:", error);
     return null;
   }
 };
+
+// Filter Panel Component
+interface FilterPanelProps {
+  filters: MapFilters;
+  onFiltersChange: (filters: MapFilters) => void;
+}
+
+function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const listingTypeOptions = [
+    { value: "all", label: "All" },
+    { value: "sale", label: "For Sale" },
+    { value: "lease", label: "For Lease" },
+  ] as const;
+
+  const handleListingTypeChange = (value: "all" | "sale" | "lease") => {
+    onFiltersChange({
+      ...filters,
+      listingType: value,
+    });
+    setIsDropdownOpen(false);
+  };
+
+  const selectedOption = listingTypeOptions.find(option => option.value === filters.listingType);
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "16px",
+        left: "60px", // Position to the right of zoom controls
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        borderRadius: "8px",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+        padding: "12px",
+        fontSize: "14px",
+        fontWeight: "500",
+        color: "#374151",
+        zIndex: 1000,
+        minWidth: "140px",
+      }}
+    >
+      <div style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600", color: "#6b7280" }}>
+        FILTERS
+      </div>
+
+      {/* Listing Type Dropdown */}
+      <div style={{ position: "relative" }}>
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span>{selectedOption?.label}</span>
+          <ChevronDown
+            size={16}
+            style={{
+              transform: isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+          />
+        </button>
+
+        {isDropdownOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              marginTop: "4px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              zIndex: 1001,
+            }}
+          >
+            {listingTypeOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleListingTypeChange(option.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  backgroundColor: filters.listingType === option.value ? "#f3f4f6" : "white",
+                  border: "none",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  borderRadius: option === listingTypeOptions[0] ? "6px 6px 0 0" :
+                            option === listingTypeOptions[listingTypeOptions.length - 1] ? "0 0 6px 6px" : "0",
+                }}
+                onMouseEnter={(e) => {
+                  if (filters.listingType !== option.value) {
+                    e.currentTarget.style.backgroundColor = "#f9fafb";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (filters.listingType !== option.value) {
+                    e.currentTarget.style.backgroundColor = "white";
+                  }
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /**
  * MapListings Component
@@ -1116,6 +1199,7 @@ const detectAutoCenterFallback = async (
  * - Hierarchical cluster drilling
  * - Minimal API calls
  * - Property count display
+ * - Filter panel for search refinement
  */
 export function MapListings({
   apiKey,
@@ -1126,6 +1210,7 @@ export function MapListings({
   width = "100%",
   mapStyle = "mapbox://styles/mapbox/streets-v12",
   centerCalculation = "average",
+  showPropertyCount = true,
 }: MapListingsProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -1137,7 +1222,7 @@ export function MapListings({
   );
   const [mapZoom, setMapZoom] = useState<number | null>(initialZoom || null);
   const currentZoomLevel = useRef<number | null>(null);
-  const lastFetchParams = useRef<{ bounds: string; zoom: number } | null>(null);
+  const lastFetchParams = useRef<{ bounds: string; zoom: number; filters: string } | null>(null);
 
   // Tooltip state for property preview
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -1151,6 +1236,16 @@ export function MapListings({
 
   // Store price markers for cleanup
   const priceMarkers = useRef<mapboxgl.Marker[]>([]);
+
+  // Filter state
+  const [filters, setFilters] = useState<MapFilters>({
+    listingType: "all",
+  });
+
+  // Handle filter changes
+  const handleFiltersChange = useCallback((newFilters: MapFilters) => {
+    setFilters(newFilters);
+  }, []);
 
   // Format price based on property type
   const formatPrice = useCallback((price: number, type: string): string => {
@@ -1235,25 +1330,16 @@ export function MapListings({
 
         // Validate coordinates before creating marker
         if (isNaN(lng) || isNaN(lat) || lng === null || lat === null) {
-          console.warn(`⚠️ Invalid coordinates for property ${feature.properties.mlsNumber}: [${lng}, ${lat}]`);
           return;
         }
 
         // Convert price to number if it's a string
         const numericPrice = typeof listPrice === 'string' ? parseFloat(listPrice) : listPrice;
         if (isNaN(numericPrice)) {
-          console.warn(`⚠️ Invalid price for property ${feature.properties.mlsNumber}: ${listPrice}`);
           return;
         }
 
         const bubble = createPriceBubble(numericPrice, type);
-
-        console.log(`💰 Creating marker for ${feature.properties.mlsNumber}:`, {
-          price: numericPrice,
-          type: type,
-          coordinates: [lng, lat],
-          isLease: type === "Lease",
-        });
 
         const marker = new mapboxgl.Marker({
           element: bubble,
@@ -1265,8 +1351,6 @@ export function MapListings({
 
         // Add click handler to bubble
         bubble.addEventListener('click', async (event) => {
-          console.log('🖱️ Price bubble clicked for', feature.properties.mlsNumber);
-
           // Get click position relative to viewport
           const clickX = event.clientX;
           const clickY = event.clientY;
@@ -1274,7 +1358,6 @@ export function MapListings({
 
           // If we already have enhanced data, use it
           if (feature.properties.address && feature.properties.images) {
-            console.log('✅ Using cached enhanced data');
             const listing = {
               mlsNumber: feature.properties.mlsNumber || "N/A",
               listPrice: numericPrice,
@@ -1285,15 +1368,12 @@ export function MapListings({
               lastStatus: feature.properties.lastStatus,
               status: feature.properties.status,
             };
-            console.log('📤 Setting tooltip data:', listing);
             setSelectedListing(listing);
             setTooltipOpen(true);
-            console.log('📂 Tooltip should now be open');
             return;
           }
 
           // Otherwise, fetch full property details
-          console.log('🔄 Fetching enhanced property details...');
           try {
             const response = await fetch(`https://api.repliers.io/listings?mlsNumber=${feature.properties.mlsNumber}&fields=address.*,details.*,images,type,lastStatus,status,class`, {
               headers: {
@@ -1310,7 +1390,6 @@ export function MapListings({
             const propertyData = data.listings?.[0];
 
             if (propertyData) {
-              console.log('✅ Enhanced property data loaded:', propertyData);
               const listing = {
                 mlsNumber: feature.properties.mlsNumber || "N/A",
                 listPrice: numericPrice,
@@ -1324,7 +1403,6 @@ export function MapListings({
               setSelectedListing(listing);
               setTooltipOpen(true);
             } else {
-              console.warn('⚠️ No property data found, using basic info');
               const listing = {
                 mlsNumber: feature.properties.mlsNumber || "N/A",
                 listPrice: numericPrice,
@@ -1339,7 +1417,6 @@ export function MapListings({
               setTooltipOpen(true);
             }
           } catch (error) {
-            console.error('❌ Failed to fetch enhanced property details:', error);
             const listing = {
               mlsNumber: feature.properties.mlsNumber || "N/A",
               listPrice: numericPrice,
@@ -1350,18 +1427,14 @@ export function MapListings({
               lastStatus: feature.properties.lastStatus,
               status: feature.properties.status,
             };
-            console.log('📤 Setting tooltip data:', listing);
             setSelectedListing(listing);
             setTooltipOpen(true);
-            console.log('📂 Tooltip should now be open');
           }
         });
 
         priceMarkers.current.push(marker);
       }
     });
-
-    console.log(`✅ Added ${priceMarkers.current.length} price markers`);
   }, [clearPriceMarkers, createPriceBubble, apiKey]);
 
   // Auto-center detection effect
@@ -1372,10 +1445,6 @@ export function MapListings({
       // Check cache first with method-specific key
       const cached = getCachedAutoCenter(`${apiKey}-${centerCalculation}`);
       if (cached) {
-        console.log(
-          `📦 Using cached ${centerCalculation} auto-center data:`,
-          cached
-        );
         setMapCenter(cached.center);
         setMapZoom(initialZoom || 10); // Use prop or fallback
         return;
@@ -1388,7 +1457,6 @@ export function MapListings({
         setMapZoom(initialZoom || 10); // Use prop or fallback
       } else {
         // Fallback to default
-        console.log("🗺️ Using fallback center: Continental USA");
         setMapCenter([-98.5795, 39.8283]);
         setMapZoom(initialZoom || 10); // Use prop or fallback
       }
@@ -1433,35 +1501,31 @@ export function MapListings({
       // Create bounds key for comparison
       const boundsKey = JSON.stringify(boundsToPolygon(bounds));
       const roundedZoom = Math.round(zoom * 2) / 2; // Round to 0.5 precision for optimization
+      const filtersKey = JSON.stringify(filters);
 
       // Check if this is a duplicate request
       if (lastFetchParams.current &&
           lastFetchParams.current.bounds === boundsKey &&
-          Math.abs(lastFetchParams.current.zoom - roundedZoom) < 0.5) {
-        console.log(`⏭️ Skipping duplicate request (zoom: ${zoom.toFixed(1)}, similar to last: ${lastFetchParams.current.zoom.toFixed(1)})`);
+          Math.abs(lastFetchParams.current.zoom - roundedZoom) < 0.5 &&
+          lastFetchParams.current.filters === filtersKey) {
         return;
       }
 
       // Update last fetch params
-      lastFetchParams.current = { bounds: boundsKey, zoom: roundedZoom };
+      lastFetchParams.current = { bounds: boundsKey, zoom: roundedZoom, filters: filtersKey };
 
-      // Track zoom level changes and detect threshold crossing
-      const wasHighZoom = currentZoomLevel.current !== null && currentZoomLevel.current >= 13;
-      const isHighZoom = zoom >= 13;
 
-      if (currentZoomLevel.current !== null && wasHighZoom !== isHighZoom) {
-        console.log(`🎚️ Zoom threshold crossed: ${wasHighZoom ? 'HIGH→LOW' : 'LOW→HIGH'} (${currentZoomLevel.current.toFixed(1)} → ${zoom.toFixed(1)})`);
+
+      // Log zoom level changes
+      if (currentZoomLevel.current !== null && Math.abs(currentZoomLevel.current - zoom) > 0.5) {
+        console.log(`Zoom: ${currentZoomLevel.current.toFixed(1)} → ${zoom.toFixed(1)}`);
       }
-
       currentZoomLevel.current = zoom;
 
-      console.log(
-        `🔍 Fetching clusters - zoom: ${zoom.toFixed(
-          1
-        )}, precision: ${precision}, enhanced: ${zoom >= 13 ? 'YES' : 'NO'}`
-      );
 
       setError(null);
+
+      console.log(`Starting fetch with filters:`, filters);
 
       try {
         const url = new URL("https://api.repliers.io/listings");
@@ -1471,6 +1535,15 @@ export function MapListings({
         url.searchParams.set("status", "A");
         url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
         url.searchParams.set("key", apiKey);
+
+        // Apply listing type filter
+        if (filters.listingType !== "all") {
+          if (filters.listingType === "sale") {
+            url.searchParams.set("type", "Sale");
+          } else if (filters.listingType === "lease") {
+            url.searchParams.set("type", "Lease");
+          }
+        }
 
         // At high zoom levels, also get individual properties
         if (zoom >= 13) {
@@ -1488,6 +1561,8 @@ export function MapListings({
           url.searchParams.set("listings", "false");
         }
 
+        console.log(`API URL: ${url.toString()}`);
+
         const response = await fetch(url.toString(), {
           headers: {
             "REPLIERS-API-KEY": apiKey,
@@ -1502,12 +1577,14 @@ export function MapListings({
         }
 
         const data = await response.json();
-        console.log("📊 API Response:", data);
 
         // Process clusters - they're nested under aggregates.map.clusters
         const clusters = data.aggregates?.map?.clusters || data.clusters || [];
         const clusterFeatures: ClusterFeature[] = [];
         const singlePropertyFeatures: PropertyFeature[] = [];
+
+        // Log cluster data returned from API
+        console.log(`Clusters: ${clusters.length} found (filter: ${filters.listingType})`);
 
         // Debug cluster data for price information
         if (clusters.length > 0) {
@@ -1710,38 +1787,9 @@ export function MapListings({
           }
         );
 
-        // Log detailed property data when enhanced fields are available
-        if (zoom >= 13 && data.listings && data.listings.length > 0) {
-          console.log(`📊 Raw API listings data (${data.listings.length} listings):`, data.listings.slice(0, 2)); // Log first 2 for brevity
-          console.log(`🏠 Sample property fields:`, Object.keys(data.listings[0] || {}));
-
-          // Debug price field specifically
-          console.log(`💰 Price field analysis:`, data.listings.slice(0, 5).map((l: any) => ({
-            mls: l.mlsNumber,
-            listPrice: l.listPrice,
-            listPriceType: typeof l.listPrice,
-            rawPrice: l.price, // Check if it's under 'price' instead
-            salePrice: l.salePrice, // Check if it's under 'salePrice'
-            allPriceFields: Object.keys(l).filter(key => key.toLowerCase().includes('price')),
-            propertyType: l.propertyType || l.type || l.status
-          })));
-
-          // Log enhanced field details
-          const sampleListing = data.listings[0];
-          if (sampleListing) {
-            console.log(`🏡 Enhanced fields test:`, {
-              address: sampleListing.address,
-              details: sampleListing.details,
-              images: sampleListing.images?.slice(0, 2), // First 2 images
-              type: sampleListing.type,
-              lastStatus: sampleListing.lastStatus,
-              status: sampleListing.status,
-              class: sampleListing.class
-            });
-
-            console.log(`🔍 Full raw listing object:`, sampleListing);
-          }
-        }
+        // Log properties loaded with details
+        const propertiesWithDetails = propertyFeatures.filter(f => f.properties.address && f.properties.details);
+        console.log(`Properties: ${propertyFeatures.length} loaded, ${propertiesWithDetails.length} with details`);
 
         // Combine features
         const allFeatures = [
@@ -1750,76 +1798,11 @@ export function MapListings({
           ...propertyFeatures,
         ];
 
-        console.log("🔧 Debug info:");
-        console.log("- Raw clusters from API:", clusters);
-        console.log("- Processed cluster features:", clusterFeatures);
-        console.log("- Property features with enhanced data:", propertyFeatures);
-        console.log("- Single property features:", singlePropertyFeatures);
-        console.log("- All features for map:", allFeatures);
-
-        // Debug total counts by type
-        console.log(`📊 Feature counts:`, {
-          clusters: clusterFeatures.length,
-          singleProperties: singlePropertyFeatures.length,
-          individualProperties: propertyFeatures.length,
-          total: allFeatures.length
-        });
-
-        // Test enhanced data storage in features
-        if (zoom >= 13 && propertyFeatures.length > 0) {
-          console.log(`🎯 Testing enhanced data storage in features:`);
-          const sampleFeature = propertyFeatures[0];
-          console.log(`- Sample feature properties:`, sampleFeature.properties);
-          console.log(`- Has enhanced address:`, !!sampleFeature.properties.address);
-          console.log(`- Has enhanced details:`, !!sampleFeature.properties.details);
-          console.log(`- Has images:`, !!sampleFeature.properties.images?.length);
-          console.log(`- Has listPrice:`, !!sampleFeature.properties.listPrice);
-          console.log(`- Sample listPrice:`, sampleFeature.properties.listPrice);
-        }
-
-        // Debug price data for all features
-        const featuresWithPrices = allFeatures.filter(f => 'listPrice' in f.properties && f.properties.listPrice);
-        console.log(`💰 Features with price data: ${featuresWithPrices.length}/${allFeatures.length}`);
-        if (featuresWithPrices.length > 0) {
-          console.log(`💰 Sample prices:`, featuresWithPrices.slice(0, 3).map(f => ({
-            price: 'listPrice' in f.properties ? f.properties.listPrice : 'N/A',
-            type: 'propertyType' in f.properties ? f.properties.propertyType : 'N/A'
-          })));
-        }
-
-        // DETAILED FEATURE STRUCTURE DEBUGGING
-        console.log("🔍 DETAILED FEATURE DEBUGGING:");
-
-        // Log first property feature in detail - prioritize individual properties with valid prices
-        const propertyFeature = allFeatures.find(f =>
-          'listPrice' in f.properties &&
-          f.properties.listPrice !== undefined &&
-          f.properties.listPrice !== null
-        ) || allFeatures.find(f => 'listPrice' in f.properties);
-
-        if (propertyFeature) {
-          console.log("📋 Sample property feature FULL structure:");
-          console.log("- Full feature object:", propertyFeature);
-          console.log("- Properties object:", propertyFeature.properties);
-          console.log("- Properties keys:", Object.keys(propertyFeature.properties));
-          if ('listPrice' in propertyFeature.properties) {
-            console.log("- listPrice value:", propertyFeature.properties.listPrice);
-            console.log("- listPrice type:", typeof propertyFeature.properties.listPrice);
-          }
-          console.log("- Has listPrice:", 'listPrice' in propertyFeature.properties);
-          if ('isProperty' in propertyFeature.properties) {
-            console.log("- IsProperty value:", propertyFeature.properties.isProperty);
-          }
-        }
-
         // Log the GeoJSON structure that goes to Mapbox
         const geoJsonData = {
           type: "FeatureCollection" as const,
           features: allFeatures,
         };
-        console.log("🗺️ GeoJSON data structure being sent to Mapbox:");
-        console.log("- Feature collection:", geoJsonData);
-        console.log("- First 3 features:", geoJsonData.features.slice(0, 3));
 
         // Update map source
         const source = map.current.getSource(
@@ -1827,16 +1810,9 @@ export function MapListings({
         ) as mapboxgl.GeoJSONSource;
         if (source) {
           source.setData(geoJsonData);
-          console.log(
-            "✅ Map source updated with",
-            allFeatures.length,
-            "features"
-          );
 
           // Add custom price markers
           addPriceMarkers(allFeatures);
-        } else {
-          console.error("❌ Map source 'listings' not found");
         }
 
         // Update total count
@@ -1846,19 +1822,15 @@ export function MapListings({
             (sum, feature) => sum + feature.properties.count,
             0
           );
+        console.log(`Total count: ${total} (data.count: ${data.count}, filter: ${filters.listingType})`);
         setTotalCount(total);
-
-        console.log(
-          `✅ Loaded ${clusterFeatures.length} clusters, ${propertyFeatures.length} properties, ${total} total`
-        );
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to load listings";
         setError(errorMessage);
-        console.error("❌ Fetch failed:", err);
       }
     },
-    [apiKey, getClusterPrecision, boundsToPolygon, addPriceMarkers]
+    [apiKey, getClusterPrecision, boundsToPolygon, addPriceMarkers, filters]
   );
 
   // Initialize map
@@ -1877,6 +1849,9 @@ export function MapListings({
 
     map.current.on("load", () => {
       if (!map.current) return;
+
+      // Add navigation controls (zoom in/out buttons)
+      map.current.addControl(new mapboxgl.NavigationControl());
 
       // Add source for listings
       map.current.addSource("listings", {
@@ -1977,30 +1952,20 @@ export function MapListings({
         const clickX = e.originalEvent.clientX;
         const clickY = e.originalEvent.clientY;
 
-        console.log(`🎯 Cluster clicked - ${clusterCount} properties`);
-
         // Show cluster properties only at very high zoom levels
         const currentZoom = map.current.getZoom();
 
         if (currentZoom >= 13) {
           // At high zoom, show cluster properties in tooltip
-          console.log('📋 Extracting real cluster properties...');
-          console.log('🎯 Clicked feature:', feature);
-          console.log('🎯 Feature properties:', feature.properties);
-
           // Try to get cluster properties from the mapbox data source
           const source = map.current.getSource('listings') as mapboxgl.GeoJSONSource;
           if (source && source._data) {
             const sourceData = source._data as any;
-            console.log('📊 Map source data:', sourceData);
-            console.log('📊 Total features in source:', sourceData.features?.length);
 
             // Get ALL property features and find the closest ones
             const allPropertyFeatures = sourceData.features?.filter((f: any) => {
               return f.properties?.isProperty === true; // Only properties
             }) || [];
-
-            console.log(`🏠 Found ${allPropertyFeatures.length} total property features`);
 
             // Sort by distance to clicked coordinates and take the closest ones
             const propertiesWithDistance = allPropertyFeatures.map((f: any) => {
@@ -2012,26 +1977,12 @@ export function MapListings({
               return { feature: f, distance };
             }).sort((a: any, b: any) => a.distance - b.distance);
 
-            console.log('🔍 Property distances:', propertiesWithDistance.slice(0, 5).map((p: any) => ({
-              mls: p.feature.properties.mlsNumber,
-              distance: p.distance,
-              coords: p.feature.geometry.coordinates
-            })));
-
             // Take the closest properties up to the cluster count
             const closestProperties = propertiesWithDistance.slice(0, clusterCount);
-            console.log(`🎯 Taking ${closestProperties.length} closest properties for cluster of ${clusterCount}`);
 
             if (closestProperties.length > 0) {
               const realProperties: ListingResult[] = closestProperties.map(({ feature }: any) => {
                 const props = feature.properties;
-                console.log('🔧 Converting property feature:', {
-                  mls: props.mlsNumber,
-                  price: props.listPrice,
-                  type: props.type,
-                  hasAddress: !!props.address,
-                  hasDetails: !!props.details
-                });
 
                 return {
                   mlsNumber: props.mlsNumber || 'N/A',
@@ -2055,8 +2006,6 @@ export function MapListings({
                 };
               });
 
-              console.log(`📋 Successfully extracted ${realProperties.length} real properties`);
-
               setClusterProperties(realProperties);
               setClusterTooltipPosition({ x: clickX, y: clickY });
               setClusterTooltipOpen(true);
@@ -2069,7 +2018,6 @@ export function MapListings({
           }
 
           // Fallback: if we can't get real data, still show something useful
-          console.log('⚠️ Could not extract real cluster data, using fallback');
           const fallbackProperties: ListingResult[] = [{
             mlsNumber: `Cluster-${clusterCount}`,
             listPrice: 0,
@@ -2103,7 +2051,6 @@ export function MapListings({
 
         // Default zoom behavior for all other zoom levels
         const targetZoom = Math.min(currentZoom + 4, 16);
-        console.log(`🔍 Zooming - Current: ${currentZoom.toFixed(1)} → Target: ${targetZoom.toFixed(1)}`);
 
         map.current.easeTo({
           center: coordinates,
@@ -2155,6 +2102,19 @@ export function MapListings({
     };
   }, [mapboxToken, mapStyle, mapCenter, mapZoom, fetchClusters, clearPriceMarkers, addPriceMarkers]);
 
+  // Re-fetch data when filters change
+  useEffect(() => {
+    if (map.current) {
+      // Clear the last fetch params to ensure the request isn't skipped
+      lastFetchParams.current = null;
+
+      const bounds = map.current.getBounds();
+      if (bounds) {
+        fetchClusters(bounds);
+      }
+    }
+  }, [filters, fetchClusters]);
+
   return (
     <div style={{ width, height, position: "relative" }}>
       {/* Map Container */}
@@ -2164,28 +2124,35 @@ export function MapListings({
         className="rounded-lg overflow-hidden"
       />
 
+      {/* Filter Panel */}
+      <FilterPanel
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+      />
 
       {/* Property Count Display */}
-      <div
-        style={{
-          position: "absolute",
-          top: "16px",
-          right: "16px",
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
-          padding: "8px 12px",
-          borderRadius: "6px",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-          fontSize: "14px",
-          fontWeight: "600",
-          color: "#374151",
-        }}
-      >
-        {error ? (
-          <span style={{ color: "#ef4444" }}>Error</span>
-        ) : (
-          <span>{totalCount.toLocaleString()} properties</span>
-        )}
-      </div>
+      {showPropertyCount && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "16px",
+            right: "16px",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+            fontSize: "14px",
+            fontWeight: "600",
+            color: "#374151",
+          }}
+        >
+          {error ? (
+            <span style={{ color: "#ef4444" }}>Error</span>
+          ) : (
+            <span>{totalCount.toLocaleString()} properties</span>
+          )}
+        </div>
+      )}
 
 
       {/* Error Message */}
