@@ -91,6 +91,7 @@ interface AutoCenterData {
 
 interface MapFilters {
   listingType: "all" | "sale" | "lease";
+  propertyTypes: string[];
 }
 
 interface ListingResult {
@@ -759,10 +760,6 @@ const calculateAverageCenter = (
       ? [densestLng, densestLat]
       : [(east + west) / 2, (north + south) / 2];
 
-  const totalListings = coordinates.length;
-  const densityRatio = maxDensity / totalListings;
-
-
   return center;
 };
 
@@ -1062,13 +1059,277 @@ const detectAutoCenterFallback = async (
   }
 };
 
+
+// Property Type Filter Component
+interface PropertyTypeFilterProps {
+  filters: MapFilters;
+  onFiltersChange: (filters: MapFilters) => void;
+  apiKey: string;
+}
+
+function PropertyTypeFilter({ filters, onFiltersChange, apiKey }: PropertyTypeFilterProps) {
+  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Fetch available property types on mount
+  useEffect(() => {
+    const fetchPropertyTypes = async () => {
+      try {
+        const url = new URL("https://api.repliers.io/listings");
+        url.searchParams.set("aggregates", "details.propertyType");
+        url.searchParams.set("listings", "false");
+        url.searchParams.set("status", "A");
+
+        const response = await fetch(url.toString(), {
+          headers: {
+            "REPLIERS-API-KEY": apiKey,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch property types: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const propertyTypeData = data.aggregates?.details?.propertyType || {};
+
+        // Extract property type names and sort by count (descending)
+        const sortedPropertyTypes = Object.entries(propertyTypeData)
+          .sort(([, a], [, b]) => (b as number) - (a as number))
+          .map(([propertyType]) => propertyType);
+
+        setPropertyTypes(sortedPropertyTypes);
+      } catch (error) {
+        console.error("Failed to fetch property types:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPropertyTypes();
+  }, [apiKey]);
+
+  const handlePropertyTypeToggle = (propertyType: string) => {
+    const isSelected = filters.propertyTypes.includes(propertyType);
+    const newPropertyTypes = isSelected
+      ? filters.propertyTypes.filter(type => type !== propertyType)
+      : [...filters.propertyTypes, propertyType];
+
+    onFiltersChange({
+      ...filters,
+      propertyTypes: newPropertyTypes,
+    });
+  };
+
+  const handleAllToggle = () => {
+    const allSelected = filters.propertyTypes.length === propertyTypes.length;
+    onFiltersChange({
+      ...filters,
+      propertyTypes: allSelected ? [] : [...propertyTypes],
+    });
+  };
+
+  if (loading) {
+    return (
+      <div style={{ position: "relative", marginBottom: "12px" }}>
+        <div style={{
+          padding: "8px 12px",
+          fontSize: "12px",
+          color: "#6b7280",
+          fontStyle: "italic"
+        }}>
+          Loading property types...
+        </div>
+      </div>
+    );
+  }
+
+  const allSelected = filters.propertyTypes.length === 0 || filters.propertyTypes.length === propertyTypes.length;
+  const someSelected = filters.propertyTypes.length > 0 && filters.propertyTypes.length < propertyTypes.length;
+
+  return (
+    <div style={{ position: "relative", marginBottom: "12px" }}>
+      <button
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        style={{
+          width: "100%",
+          padding: "8px 12px",
+          backgroundColor: "white",
+          border: "1px solid #d1d5db",
+          borderRadius: "6px",
+          fontSize: "14px",
+          cursor: "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          textAlign: "left",
+        }}
+      >
+        <span>
+          {allSelected
+            ? "All property types"
+            : someSelected
+            ? `${filters.propertyTypes.length} selected`
+            : "Select property types"}
+        </span>
+        <ChevronDown
+          size={16}
+          style={{
+            transform: isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s"
+          }}
+        />
+      </button>
+
+      {isDropdownOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            backgroundColor: "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            marginTop: "4px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            zIndex: 1002,
+            maxHeight: "300px",
+            overflowY: "auto",
+          }}
+        >
+          {/* All property types option */}
+          <div
+            onClick={handleAllToggle}
+            style={{
+              padding: "8px 12px",
+              fontSize: "14px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: allSelected ? "#f3f4f6" : "white",
+              borderBottom: "1px solid #f3f4f6",
+            }}
+            onMouseEnter={(e) => {
+              if (!allSelected) {
+                e.currentTarget.style.backgroundColor = "#f9fafb";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!allSelected) {
+                e.currentTarget.style.backgroundColor = "white";
+              }
+            }}
+          >
+            <div style={{
+              width: "16px",
+              height: "16px",
+              border: "2px solid #d1d5db",
+              borderRadius: "3px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: allSelected ? "#10b981" : "white",
+              borderColor: allSelected ? "#10b981" : "#d1d5db",
+            }}>
+              {allSelected && (
+                <svg
+                  width="10"
+                  height="8"
+                  viewBox="0 0 10 8"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8.5 1L3.5 6L1.5 4"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </div>
+            All property types
+          </div>
+
+          {/* Individual property type options */}
+          {propertyTypes.map((propertyType) => {
+            const isSelected = filters.propertyTypes.includes(propertyType);
+            return (
+              <div
+                key={propertyType}
+                onClick={() => handlePropertyTypeToggle(propertyType)}
+                style={{
+                  padding: "8px 12px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: isSelected ? "#f3f4f6" : "white",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = "#f9fafb";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = "white";
+                  }
+                }}
+              >
+                <div style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid #d1d5db",
+                  borderRadius: "3px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: isSelected ? "#10b981" : "white",
+                  borderColor: isSelected ? "#10b981" : "#d1d5db",
+                }}>
+                  {isSelected && (
+                    <svg
+                      width="10"
+                      height="8"
+                      viewBox="0 0 10 8"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8.5 1L3.5 6L1.5 4"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+                {propertyType}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Filter Panel Component
 interface FilterPanelProps {
   filters: MapFilters;
   onFiltersChange: (filters: MapFilters) => void;
+  apiKey: string;
 }
 
-function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
+function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const listingTypeOptions = [
@@ -1101,7 +1362,7 @@ function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
         fontWeight: "500",
         color: "#374151",
         zIndex: 1000,
-        minWidth: "140px",
+        minWidth: "200px",
       }}
     >
       <div style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600", color: "#6b7280" }}>
@@ -1109,7 +1370,7 @@ function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
       </div>
 
       {/* Listing Type Dropdown */}
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", marginBottom: "12px" }}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           style={{
@@ -1182,6 +1443,13 @@ function FilterPanel({ filters, onFiltersChange }: FilterPanelProps) {
           </div>
         )}
       </div>
+
+      {/* Property Type Filter */}
+      <PropertyTypeFilter
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        apiKey={apiKey}
+      />
     </div>
   );
 }
@@ -1240,6 +1508,7 @@ export function MapListings({
   // Filter state
   const [filters, setFilters] = useState<MapFilters>({
     listingType: "all",
+    propertyTypes: [],
   });
 
   // Handle filter changes
@@ -1525,7 +1794,13 @@ export function MapListings({
 
       setError(null);
 
-      console.log(`Starting fetch with filters:`, filters);
+      console.log(`🚀 Starting fetch with filters:`, {
+        listingType: filters.listingType,
+        propertyTypes: filters.propertyTypes,
+        propertyTypeCount: filters.propertyTypes.length,
+        currentMapCenter: map.current?.getCenter(),
+        currentMapZoom: map.current?.getZoom()?.toFixed(2)
+      });
 
       try {
         const url = new URL("https://api.repliers.io/listings");
@@ -1545,6 +1820,18 @@ export function MapListings({
           }
         }
 
+        // Apply property type filter
+        if (filters.propertyTypes.length === 1) {
+          // Single property type - works perfectly
+          url.searchParams.set("details.propertyType", filters.propertyTypes[0]);
+          console.log(`🏠 PropertyType filter applied (single): ${filters.propertyTypes[0]}`);
+        } else if (filters.propertyTypes.length > 1) {
+          // Multiple property types - API doesn't support this well
+          // Fall back to no server-side filtering and handle client-side
+          console.log(`⚠️ Multiple property types selected (${filters.propertyTypes.length}), using client-side filtering`);
+          console.log(`🏠 Will filter client-side for: ${filters.propertyTypes.join(", ")}`);
+        }
+
         // At high zoom levels, also get individual properties
         if (zoom >= 13) {
           url.searchParams.set("listings", "true");
@@ -1561,7 +1848,17 @@ export function MapListings({
           url.searchParams.set("listings", "false");
         }
 
-        console.log(`API URL: ${url.toString()}`);
+        console.log(`🔗 API URL: ${url.toString()}`);
+        console.log(`📋 Final request details:`, {
+          listingType: filters.listingType,
+          propertyTypes: filters.propertyTypes,
+          propertyTypeCount: filters.propertyTypes.length,
+          zoom: zoom.toFixed(1),
+          isClusterOnly: zoom < 13,
+          isListingsAndClusters: zoom >= 13,
+          hasPropertyTypeFilter: filters.propertyTypes.length > 0,
+          urlContainsPropertyType: url.toString().includes('details.propertyType')
+        });
 
         const response = await fetch(url.toString(), {
           headers: {
@@ -1582,6 +1879,13 @@ export function MapListings({
         const clusters = data.aggregates?.map?.clusters || data.clusters || [];
         const clusterFeatures: ClusterFeature[] = [];
         const singlePropertyFeatures: PropertyFeature[] = [];
+
+        // Helper function to check if a property matches the selected property types
+        const matchesPropertyTypeFilter = (propertyType: string | undefined) => {
+          if (filters.propertyTypes.length === 0) return true; // No filter = show all
+          if (!propertyType) return false; // No property type = exclude
+          return filters.propertyTypes.includes(propertyType);
+        };
 
         // Log cluster data returned from API
         console.log(`Clusters: ${clusters.length} found (filter: ${filters.listingType})`);
@@ -1655,30 +1959,34 @@ export function MapListings({
               fullCluster: cluster
             });
 
-            singlePropertyFeatures.push({
-              type: "Feature" as const,
-              properties: {
-                mlsNumber: cluster.mlsNumber || cluster.listing?.mlsNumber || `single-${index}`,
-                listPrice: typeof listPrice === 'string' ? parseFloat(listPrice) : listPrice,
-                propertyType: cluster.propertyType || cluster.listing?.propertyType || cluster.status || "Sale",
-                type: cluster.listing?.type || cluster.type, // Add type for lease detection
-                isProperty: true as const,
-                // Enhanced fields from cluster data
-                address: cluster.listing?.address || cluster.address,
-                details: cluster.listing?.details || cluster.details,
-                images: cluster.listing?.images || cluster.images,
-                lastStatus: cluster.listing?.lastStatus || cluster.lastStatus,
-                status: cluster.listing?.status || cluster.status,
-                class: cluster.listing?.class || cluster.class,
-              },
-              geometry: {
-                type: "Point" as const,
-                coordinates: [
-                  originalCoordinates[0],
-                  originalCoordinates[1],
-                ] as [number, number],
-              },
-            });
+            // Check if this single property matches the property type filter
+            const clusterPropertyType = cluster.listing?.details?.propertyType || cluster.details?.propertyType;
+            if (matchesPropertyTypeFilter(clusterPropertyType)) {
+              singlePropertyFeatures.push({
+                type: "Feature" as const,
+                properties: {
+                  mlsNumber: cluster.mlsNumber || cluster.listing?.mlsNumber || `single-${index}`,
+                  listPrice: typeof listPrice === 'string' ? parseFloat(listPrice) : listPrice,
+                  propertyType: cluster.propertyType || cluster.listing?.propertyType || cluster.status || "Sale",
+                  type: cluster.listing?.type || cluster.type, // Add type for lease detection
+                  isProperty: true as const,
+                  // Enhanced fields from cluster data
+                  address: cluster.listing?.address || cluster.address,
+                  details: cluster.listing?.details || cluster.details,
+                  images: cluster.listing?.images || cluster.images,
+                  lastStatus: cluster.listing?.lastStatus || cluster.lastStatus,
+                  status: cluster.listing?.status || cluster.status,
+                  class: cluster.listing?.class || cluster.class,
+                },
+                geometry: {
+                  type: "Point" as const,
+                  coordinates: [
+                    originalCoordinates[0],
+                    originalCoordinates[1],
+                  ] as [number, number],
+                },
+              });
+            }
           } else {
             // For multi-property clusters, try to position bubble over densest sub-area
             let clusterCoordinates = originalCoordinates;
@@ -1731,7 +2039,12 @@ export function MapListings({
             // Only include listings with valid coordinates
             const lng = listing.coordinates?.lng || listing.longitude || listing.map?.longitude;
             const lat = listing.coordinates?.lat || listing.latitude || listing.map?.latitude;
-            return lng !== undefined && lat !== undefined && !isNaN(lng) && !isNaN(lat);
+            const hasValidCoords = lng !== undefined && lat !== undefined && !isNaN(lng) && !isNaN(lat);
+
+            // Apply client-side property type filter for multiple selections
+            const matchesFilter = matchesPropertyTypeFilter(listing.details?.propertyType);
+
+            return hasValidCoords && matchesFilter;
           })
           .map(
           (listing: any, index: number) => {
@@ -1787,9 +2100,10 @@ export function MapListings({
           }
         );
 
-        // Log properties loaded with details
+        // Log properties loaded with details and filtering info
         const propertiesWithDetails = propertyFeatures.filter(f => f.properties.address && f.properties.details);
-        console.log(`Properties: ${propertyFeatures.length} loaded, ${propertiesWithDetails.length} with details`);
+        const clientSideFiltered = filters.propertyTypes.length > 1;
+        console.log(`Properties: ${propertyFeatures.length} loaded, ${propertiesWithDetails.length} with details${clientSideFiltered ? ' (client-side filtered)' : ''}`);
 
         // Combine features
         const allFeatures = [
@@ -1804,14 +2118,15 @@ export function MapListings({
           features: allFeatures,
         };
 
-        // Update map source
+        // Update map source (this should not move the map)
         const source = map.current.getSource(
           "listings"
         ) as mapboxgl.GeoJSONSource;
         if (source) {
+          console.log(`📍 Updating map data: ${allFeatures.length} features (keeping current view)`);
           source.setData(geoJsonData);
 
-          // Add custom price markers
+          // Add custom price markers (clear old ones first)
           addPriceMarkers(allFeatures);
         }
 
@@ -2102,14 +2417,15 @@ export function MapListings({
     };
   }, [mapboxToken, mapStyle, mapCenter, mapZoom, fetchClusters, clearPriceMarkers, addPriceMarkers]);
 
-  // Re-fetch data when filters change
+  // Re-fetch data when filters change (without moving map)
   useEffect(() => {
     if (map.current) {
-      // Clear the last fetch params to ensure the request isn't skipped
+      // Clear the last fetch params to ensure the request isn't skipped, but keep map position
       lastFetchParams.current = null;
 
       const bounds = map.current.getBounds();
       if (bounds) {
+        // Fetch new data without changing map position/zoom
         fetchClusters(bounds);
       }
     }
@@ -2128,6 +2444,7 @@ export function MapListings({
       <FilterPanel
         filters={filters}
         onFiltersChange={handleFiltersChange}
+        apiKey={apiKey}
       />
 
       {/* Property Count Display */}
