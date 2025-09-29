@@ -30,6 +30,7 @@ interface ClusterFeature {
     count: number;
     precision: number;
     id: string;
+    members?: any[]; // Store actual cluster members from API
   };
   geometry: {
     type: "Point";
@@ -92,6 +93,8 @@ interface AutoCenterData {
 interface MapFilters {
   listingType: "all" | "sale" | "lease";
   propertyTypes: string[];
+  minPrice?: number;
+  maxPrice?: number | null; // null represents "Max" (no limit)
 }
 
 interface ListingResult {
@@ -374,6 +377,12 @@ function PropertyTooltip({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
+  const [isPositioned, setIsPositioned] = useState(false);
+
+  // Reset positioned state when opening/closing
+  useEffect(() => {
+    setIsPositioned(false);
+  }, [open]);
 
   // Calculate optimal tooltip position
   useEffect(() => {
@@ -438,6 +447,7 @@ function PropertyTooltip({
 
     setTooltipPosition({ x, y });
     setArrowPosition(arrow);
+    setIsPositioned(true);
   }, [open, position, mapContainer]);
 
   // Handle click outside to close
@@ -484,6 +494,9 @@ function PropertyTooltip({
       style={{
         left: `${tooltipPosition.x}px`,
         top: `${tooltipPosition.y}px`,
+        visibility: isPositioned ? 'visible' : 'hidden',
+        opacity: isPositioned ? 1 : 0,
+        transition: 'opacity 150ms ease-in-out',
       }}
     >
       {/* Tooltip Card */}
@@ -516,21 +529,29 @@ function ClusterTooltip({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
+  const [isPositioned, setIsPositioned] = useState(false);
 
-  // Calculate optimal tooltip position
+  // Reset positioned state when opening/closing
   useEffect(() => {
-    if (!open || !tooltipRef.current || !mapContainer) return;
+    if (!open) {
+      setIsPositioned(false);
+      return;
+    }
+  }, [open]);
 
-    const tooltip = tooltipRef.current;
-    const tooltipRect = tooltip.getBoundingClientRect();
+  // Calculate optimal tooltip position immediately when opened
+  useEffect(() => {
+    if (!open || !mapContainer) {
+      return;
+    }
 
-    // Convert marker position to viewport coordinates
+    // Calculate position immediately with estimated dimensions
     const markerX = position.x;
     const markerY = position.y;
 
-    // Tooltip dimensions - slightly wider for list view
-    const tooltipWidth = 480; // Slightly wider for better list layout
-    const tooltipHeight = tooltipRect.height || 300; // Higher estimate for list
+    // Tooltip dimensions - use estimates to avoid getBoundingClientRect delay
+    const tooltipWidth = 480;
+    const tooltipHeight = Math.min(properties.length * 120 + 80, 400); // Estimate based on property count
 
     // Viewport boundaries (with padding)
     const padding = 16;
@@ -580,7 +601,8 @@ function ClusterTooltip({
 
     setTooltipPosition({ x, y });
     setArrowPosition(arrow);
-  }, [open, position, mapContainer]);
+    setIsPositioned(true);
+  }, [open, position, mapContainer, properties.length]);
 
   // Handle click outside to close
   useEffect(() => {
@@ -626,6 +648,9 @@ function ClusterTooltip({
       style={{
         left: `${tooltipPosition.x}px`,
         top: `${tooltipPosition.y}px`,
+        visibility: isPositioned ? 'visible' : 'hidden',
+        opacity: isPositioned ? 1 : 0,
+        transition: 'opacity 150ms ease-in-out',
       }}
     >
       {/* Tooltip Card */}
@@ -1067,6 +1092,15 @@ interface PropertyTypeFilterProps {
   apiKey: string;
 }
 
+interface PriceRangeFilterProps {
+  isOpen: boolean;
+  initialMin: number;
+  initialMax: number | null; // null represents "Max" (no limit)
+  onApply: (min: number, max: number | null) => void;
+  onCancel: () => void;
+  priceBreakpoints?: number[]; // Optional custom breakpoints
+}
+
 function PropertyTypeFilter({ filters, onFiltersChange, apiKey }: PropertyTypeFilterProps) {
   const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1322,6 +1356,325 @@ function PropertyTypeFilter({ filters, onFiltersChange, apiKey }: PropertyTypeFi
   );
 }
 
+// Price Range Filter Component
+function PriceRangeFilter({
+  isOpen,
+  initialMin,
+  initialMax,
+  onApply,
+  onCancel,
+  priceBreakpoints = [0, 500000, 1000000, 2000000, 4000000, Infinity]
+}: PriceRangeFilterProps) {
+  const [tempMinPrice, setTempMinPrice] = useState(initialMin);
+  const [tempMaxPrice, setTempMaxPrice] = useState(initialMax);
+  const [isDragging, setIsDragging] = useState<'min' | 'max' | null>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // Reset temp values when modal opens/closes or initial values change
+  useEffect(() => {
+    setTempMinPrice(initialMin);
+    setTempMaxPrice(initialMax);
+  }, [isOpen, initialMin, initialMax]);
+
+  // Format price for display
+  const formatDisplayPrice = useCallback((price: number | null): string => {
+    if (price === null || price === Infinity) return "Max";
+    if (price === 0) return "$0";
+    if (price >= 1000000) {
+      const millions = price / 1000000;
+      return millions >= 10 ? `$${Math.round(millions)}M` : `$${Math.round(millions * 10) / 10}M`;
+    }
+    if (price >= 1000) {
+      const thousands = price / 1000;
+      return `$${Math.round(thousands)}K`;
+    }
+    return `$${Math.round(price)}`;
+  }, []);
+
+  // Get slider position as percentage
+  const getSliderPosition = useCallback((price: number | null): number => {
+    if (price === null || price === Infinity) return 100;
+
+    const maxFinitePrice = priceBreakpoints[priceBreakpoints.length - 2];
+    if (price >= maxFinitePrice) return 100;
+    if (price <= 0) return 0;
+
+    // Find position between breakpoints
+    for (let i = 0; i < priceBreakpoints.length - 1; i++) {
+      const current = priceBreakpoints[i];
+      const next = priceBreakpoints[i + 1];
+
+      if (price >= current && price <= next) {
+        const segmentSize = 100 / (priceBreakpoints.length - 1);
+        const segmentStart = i * segmentSize;
+        const progressInSegment = next === Infinity ? 0 : (price - current) / (next - current);
+        return segmentStart + (progressInSegment * segmentSize);
+      }
+    }
+
+    return 0;
+  }, [priceBreakpoints]);
+
+  // Get price from slider position
+  const getPriceFromPosition = useCallback((position: number): number | null => {
+    if (position >= 100) return null; // Max
+    if (position <= 0) return 0;
+
+    const segmentSize = 100 / (priceBreakpoints.length - 1);
+    const segmentIndex = Math.floor(position / segmentSize);
+    const progressInSegment = (position % segmentSize) / segmentSize;
+
+    if (segmentIndex >= priceBreakpoints.length - 2) return null;
+
+    const current = priceBreakpoints[segmentIndex];
+    const next = priceBreakpoints[segmentIndex + 1];
+
+    if (next === Infinity) return null;
+
+    return Math.round(current + (progressInSegment * (next - current)));
+  }, [priceBreakpoints]);
+
+  // Handle mouse events for dragging
+  const handleMouseDown = useCallback((handle: 'min' | 'max') => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(handle);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !sliderRef.current) return;
+
+    const rect = sliderRef.current.getBoundingClientRect();
+    const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const newPrice = getPriceFromPosition(position);
+
+    if (isDragging === 'min') {
+      const maxValue = tempMaxPrice === null ? Infinity : tempMaxPrice;
+      const constrainedPrice = newPrice === null ? maxValue : Math.min(newPrice, maxValue);
+      setTempMinPrice(constrainedPrice === Infinity ? 0 : constrainedPrice);
+    } else if (isDragging === 'max') {
+      const constrainedPrice = newPrice === null ? null : Math.max(newPrice, tempMinPrice);
+      setTempMaxPrice(constrainedPrice);
+    }
+  }, [isDragging, tempMinPrice, tempMaxPrice, getPriceFromPosition]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(null);
+  }, []);
+
+  // Add/remove global mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Handle keyboard events for accessibility
+  const handleKeyDown = useCallback((handle: 'min' | 'max') => (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const direction = e.key === 'ArrowLeft' ? -1 : 1;
+      const currentPrice = handle === 'min' ? tempMinPrice : tempMaxPrice;
+      const currentPos = getSliderPosition(currentPrice);
+      const newPos = Math.max(0, Math.min(100, currentPos + (direction * 2)));
+      const newPrice = getPriceFromPosition(newPos);
+
+      if (handle === 'min') {
+        const maxValue = tempMaxPrice === null ? Infinity : tempMaxPrice;
+        const constrainedPrice = newPrice === null ? maxValue : Math.min(newPrice, maxValue);
+        setTempMinPrice(constrainedPrice === Infinity ? 0 : constrainedPrice);
+      } else {
+        const constrainedPrice = newPrice === null ? null : Math.max(newPrice || 0, tempMinPrice);
+        setTempMaxPrice(constrainedPrice);
+      }
+    }
+  }, [tempMinPrice, tempMaxPrice, getSliderPosition, getPriceFromPosition]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onCancel();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      return () => document.removeEventListener('keydown', handleEsc);
+    }
+  }, [isOpen, onCancel]);
+
+  if (!isOpen) return null;
+
+  const minPosition = getSliderPosition(tempMinPrice);
+  const maxPosition = getSliderPosition(tempMaxPrice);
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "100%",
+        left: 0,
+        width: "400px", // Fixed width instead of constrained by parent
+        backgroundColor: "white",
+        border: "1px solid #d1d5db",
+        borderRadius: "6px",
+        marginTop: "4px",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+        zIndex: 1002,
+        padding: "20px",
+      }}
+    >
+      {/* Current Selection Display */}
+      <div style={{
+        textAlign: 'center',
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: '20px',
+      }}>
+        {formatDisplayPrice(tempMinPrice)} - {formatDisplayPrice(tempMaxPrice)}
+      </div>
+
+      {/* Slider Container */}
+      <div style={{ marginBottom: '20px' }}>
+        <div
+          ref={sliderRef}
+          style={{
+            position: 'relative',
+            height: '8px',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '4px',
+            marginBottom: '16px',
+          }}
+        >
+          {/* Active Range */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: `${minPosition}%`,
+              width: `${maxPosition - minPosition}%`,
+              height: '100%',
+              backgroundColor: '#3b82f6',
+              borderRadius: '4px',
+            }}
+          />
+
+          {/* Min Handle */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${minPosition}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '20px',
+              height: '20px',
+              backgroundColor: 'white',
+              border: '2px solid #3b82f6',
+              borderRadius: '50%',
+              cursor: isDragging === 'min' ? 'grabbing' : 'grab',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            }}
+            onMouseDown={handleMouseDown('min')}
+            onKeyDown={handleKeyDown('min')}
+            tabIndex={0}
+            role="slider"
+            aria-label="Minimum price"
+            aria-valuemin={0}
+            aria-valuemax={tempMaxPrice === null ? priceBreakpoints[priceBreakpoints.length - 2] : tempMaxPrice}
+            aria-valuenow={tempMinPrice}
+            aria-valuetext={formatDisplayPrice(tempMinPrice)}
+          />
+
+          {/* Max Handle */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${maxPosition}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '20px',
+              height: '20px',
+              backgroundColor: 'white',
+              border: '2px solid #3b82f6',
+              borderRadius: '50%',
+              cursor: isDragging === 'max' ? 'grabbing' : 'grab',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            }}
+            onMouseDown={handleMouseDown('max')}
+            onKeyDown={handleKeyDown('max')}
+            tabIndex={0}
+            role="slider"
+            aria-label="Maximum price"
+            aria-valuemin={tempMinPrice}
+            aria-valuemax={priceBreakpoints[priceBreakpoints.length - 2]}
+            aria-valuenow={tempMaxPrice === null ? priceBreakpoints[priceBreakpoints.length - 2] : tempMaxPrice}
+            aria-valuetext={formatDisplayPrice(tempMaxPrice)}
+          />
+        </div>
+
+        {/* Price Markers */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '12px',
+          color: '#6b7280',
+        }}>
+          {priceBreakpoints.slice(0, -1).map((price, index) => (
+            <span key={index}>
+              {formatDisplayPrice(price)}
+            </span>
+          ))}
+          <span>Max</span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        justifyContent: 'flex-end',
+      }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#374151',
+            backgroundColor: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onApply(tempMinPrice, tempMaxPrice)}
+          style={{
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: 'white',
+            backgroundColor: '#3b82f6',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Filter Panel Component
 interface FilterPanelProps {
   filters: MapFilters;
@@ -1331,6 +1684,8 @@ interface FilterPanelProps {
 
 function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
+  const priceFilterRef = useRef<HTMLDivElement>(null);
 
   const listingTypeOptions = [
     { value: "all", label: "All" },
@@ -1346,7 +1701,58 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
     setIsDropdownOpen(false);
   };
 
+  const handlePriceFilterApply = (minPrice: number, maxPrice: number | null) => {
+    onFiltersChange({
+      ...filters,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
+    });
+    setIsPriceFilterOpen(false);
+  };
+
+  const handlePriceFilterCancel = () => {
+    setIsPriceFilterOpen(false);
+  };
+
+  // Format price display for button
+  const formatPriceRange = () => {
+    const hasMinPrice = filters.minPrice && filters.minPrice > 0;
+    const hasMaxPrice = filters.maxPrice && filters.maxPrice !== null;
+
+    if (!hasMinPrice && !hasMaxPrice) return "Price";
+
+    const formatPrice = (price: number) => {
+      if (price >= 1000000) {
+        const millions = price / 1000000;
+        return `$${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M`;
+      }
+      if (price >= 1000) {
+        return `$${Math.round(price / 1000)}K`;
+      }
+      return `$${price}`;
+    };
+
+    const minText = hasMinPrice ? formatPrice(filters.minPrice!) : "$0";
+    const maxText = hasMaxPrice ? formatPrice(filters.maxPrice!) : "Max";
+
+    return `${minText} - ${maxText}`;
+  };
+
   const selectedOption = listingTypeOptions.find(option => option.value === filters.listingType);
+
+  // Handle click outside to close price filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (priceFilterRef.current && !priceFilterRef.current.contains(event.target as Node)) {
+        setIsPriceFilterOpen(false);
+      }
+    };
+
+    if (isPriceFilterOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isPriceFilterOpen]);
 
   return (
     <div
@@ -1450,6 +1856,48 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
         onFiltersChange={onFiltersChange}
         apiKey={apiKey}
       />
+
+      {/* Price Filter Button */}
+      <div ref={priceFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+        <button
+          onClick={() => setIsPriceFilterOpen(!isPriceFilterOpen)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: (filters.minPrice || filters.maxPrice) ? "#f3f4f6" : "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            textAlign: "left",
+            color: (filters.minPrice || filters.maxPrice) ? "#1f2937" : "#374151",
+            fontWeight: (filters.minPrice || filters.maxPrice) ? "500" : "400",
+          }}
+        >
+          <span>{formatPriceRange()}</span>
+          <ChevronDown
+            size={16}
+            style={{
+              transform: isPriceFilterOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+          />
+        </button>
+
+        {/* Price Range Filter Dropdown */}
+        {isPriceFilterOpen && (
+          <PriceRangeFilter
+            isOpen={isPriceFilterOpen}
+            initialMin={filters.minPrice || 0}
+            initialMax={filters.maxPrice || null}
+            onApply={handlePriceFilterApply}
+            onCancel={handlePriceFilterCancel}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -1505,6 +1953,9 @@ export function MapListings({
   // Store price markers for cleanup
   const priceMarkers = useRef<mapboxgl.Marker[]>([]);
 
+  // Store the latest fetchClusters function to avoid map reinitialization
+  const fetchClustersRef = useRef<((bounds: mapboxgl.LngLatBounds) => void) | null>(null);
+
   // Filter state
   const [filters, setFilters] = useState<MapFilters>({
     listingType: "all",
@@ -1537,17 +1988,17 @@ export function MapListings({
         const thousands = price / 1000;
         return formatToMaxDigits(thousands, 'K');
       }
-      return price.toString();
+      return Math.round(price).toString(); // Round small values to whole numbers
     } else {
-      // Sale properties - prefer M over K when >= 1M
-      if (price >= 1000000) {
+      // Sale properties - prefer M over K when >= 1M, and handle edge cases better
+      if (price >= 999500) { // Treat 999.5K+ as 1M for better UX
         const millions = price / 1000000;
         return formatToMaxDigits(millions, 'M');
       } else if (price >= 1000) {
         const thousands = price / 1000;
         return formatToMaxDigits(thousands, 'K');
       }
-      return price.toString();
+      return Math.round(price).toString(); // Round small values to whole numbers
     }
   }, []);
 
@@ -1577,6 +2028,7 @@ export function MapListings({
 
   // Clear existing price markers
   const clearPriceMarkers = useCallback(() => {
+    console.log(`🧹 Clearing ${priceMarkers.current.length} price markers`);
     priceMarkers.current.forEach(marker => marker.remove());
     priceMarkers.current = [];
   }, []);
@@ -1785,28 +2237,17 @@ export function MapListings({
 
 
 
-      // Log zoom level changes
-      if (currentZoomLevel.current !== null && Math.abs(currentZoomLevel.current - zoom) > 0.5) {
-        console.log(`Zoom: ${currentZoomLevel.current.toFixed(1)} → ${zoom.toFixed(1)}`);
-      }
       currentZoomLevel.current = zoom;
 
 
       setError(null);
 
-      console.log(`🚀 Starting fetch with filters:`, {
-        listingType: filters.listingType,
-        propertyTypes: filters.propertyTypes,
-        propertyTypeCount: filters.propertyTypes.length,
-        currentMapCenter: map.current?.getCenter(),
-        currentMapZoom: map.current?.getZoom()?.toFixed(2)
-      });
 
       try {
         const url = new URL("https://api.repliers.io/listings");
         url.searchParams.set("cluster", "true");
         url.searchParams.set("clusterPrecision", precision.toString());
-        url.searchParams.set("clusterLimit", "100");
+        url.searchParams.set("clusterLimit", "500");
         url.searchParams.set("status", "A");
         url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
         url.searchParams.set("key", apiKey);
@@ -1832,33 +2273,34 @@ export function MapListings({
           console.log(`🏠 Will filter client-side for: ${filters.propertyTypes.join(", ")}`);
         }
 
+        // Apply price range filters
+        if (filters.minPrice && filters.minPrice > 0) {
+          url.searchParams.set("minPrice", filters.minPrice.toString());
+          console.log(`💰 MinPrice filter applied: ${filters.minPrice}`);
+        }
+        if (filters.maxPrice && filters.maxPrice > 0) {
+          url.searchParams.set("maxPrice", filters.maxPrice.toString());
+          console.log(`💰 MaxPrice filter applied: ${filters.maxPrice}`);
+        }
+
+        // Always request cluster fields for tooltips to work
+        url.searchParams.set(
+          "clusterFields",
+          "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
+        );
+
         // At high zoom levels, also get individual properties
-        if (zoom >= 13) {
+        if (zoom >= 14) {
           url.searchParams.set("listings", "true");
           url.searchParams.set(
             "fields",
-            "address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class"
+            "address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map"
           );
-          url.searchParams.set(
-            "clusterFields",
-            "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
-          );
-          url.searchParams.set("pageSize", "200");
+          url.searchParams.set("pageSize", "500");
         } else {
           url.searchParams.set("listings", "false");
         }
 
-        console.log(`🔗 API URL: ${url.toString()}`);
-        console.log(`📋 Final request details:`, {
-          listingType: filters.listingType,
-          propertyTypes: filters.propertyTypes,
-          propertyTypeCount: filters.propertyTypes.length,
-          zoom: zoom.toFixed(1),
-          isClusterOnly: zoom < 13,
-          isListingsAndClusters: zoom >= 13,
-          hasPropertyTypeFilter: filters.propertyTypes.length > 0,
-          urlContainsPropertyType: url.toString().includes('details.propertyType')
-        });
 
         const response = await fetch(url.toString(), {
           headers: {
@@ -1875,6 +2317,7 @@ export function MapListings({
 
         const data = await response.json();
 
+
         // Process clusters - they're nested under aggregates.map.clusters
         const clusters = data.aggregates?.map?.clusters || data.clusters || [];
         const clusterFeatures: ClusterFeature[] = [];
@@ -1887,33 +2330,7 @@ export function MapListings({
           return filters.propertyTypes.includes(propertyType);
         };
 
-        // Log cluster data returned from API
-        console.log(`Clusters: ${clusters.length} found (filter: ${filters.listingType})`);
 
-        // Debug cluster data for price information
-        if (clusters.length > 0) {
-          console.log(`🎯 Cluster data analysis:`, clusters.slice(0, 3).map((c: any) => ({
-            count: c.count,
-            listPrice: c.listPrice,
-            listPriceType: typeof c.listPrice,
-            rawPrice: c.price,
-            salePrice: c.salePrice,
-            allPriceFields: Object.keys(c).filter(key => key.toLowerCase().includes('price')),
-            allFields: Object.keys(c),
-            // Enhanced fields debugging
-            hasAddressField: 'address' in c,
-            hasImagesField: 'images' in c,
-            hasClassField: 'class' in c,
-            addressValue: c.address,
-            imagesValue: c.images,
-            classValue: c.class,
-            // Check if data is nested under different keys
-            hasListingField: 'listing' in c,
-            hasMapField: 'map' in c,
-            hasPropertiesField: 'properties' in c,
-            fullClusterSample: c
-          })));
-        }
 
         clusters.forEach((cluster: any, index: number) => {
           const originalCoordinates = [
@@ -1927,37 +2344,13 @@ export function MapListings({
               cluster.center?.lat,
           ];
 
-          // If cluster has only 1 property, treat as individual property
-          if (cluster.count === 1) {
+          // If cluster has only 1 property, treat as individual property (only at zoom 14+)
+          if (cluster.count === 1 && zoom >= 14) {
             // Extract price from nested listing data if available
             const listPrice = cluster.listing?.listPrice ||
                              cluster.listPrice ||
                              (cluster.map && cluster.map[0]?.listPrice);
 
-            console.log(`🔧 Single property cluster ${index} price extraction:`, {
-              clusterCount: cluster.count,
-              clusterListPrice: cluster.listPrice,
-              nestedListingPrice: cluster.listing?.listPrice,
-              mapDataPrice: cluster.map?.[0]?.listPrice,
-              finalPrice: listPrice,
-              typeAnalysis: {
-                clusterType: cluster.type,
-                listingType: cluster.listing?.type,
-                finalType: cluster.listing?.type || cluster.type || "Sale"
-              },
-              enhancedFieldsAnalysis: {
-                hasAddress: !!cluster.address || !!cluster.listing?.address,
-                hasDetails: !!cluster.details || !!cluster.listing?.details,
-                hasImages: !!cluster.images || !!cluster.listing?.images,
-                hasClass: !!cluster.class || !!cluster.listing?.class,
-                clusterKeys: Object.keys(cluster),
-                listingKeys: cluster.listing ? Object.keys(cluster.listing) : null,
-                addressValue: cluster.address || cluster.listing?.address,
-                imagesValue: cluster.images || cluster.listing?.images,
-                classValue: cluster.class || cluster.listing?.class
-              },
-              fullCluster: cluster
-            });
 
             // Check if this single property matches the property type filter
             const clusterPropertyType = cluster.listing?.details?.propertyType || cluster.details?.propertyType;
@@ -1987,6 +2380,24 @@ export function MapListings({
                 },
               });
             }
+          } else if (cluster.count === 1) {
+            // Single property clusters at zoom < 14: show as regular clusters
+            clusterFeatures.push({
+              type: "Feature" as const,
+              properties: {
+                count: cluster.count || 1,
+                precision: cluster.precision || precision,
+                id: `cluster-${index}`,
+                members: cluster.properties || cluster.map || [],
+              },
+              geometry: {
+                type: "Point" as const,
+                coordinates: [originalCoordinates[0], originalCoordinates[1]] as [
+                  number,
+                  number
+                ],
+              },
+            });
           } else {
             // For multi-property clusters, try to position bubble over densest sub-area
             let clusterCoordinates = originalCoordinates;
@@ -2008,12 +2419,13 @@ export function MapListings({
                     clusterBounds
                   );
                   clusterCoordinates = avgCenter;
-                  console.log(
-                    `🎯 Adjusted cluster ${index} position for density (${subCoords.length} properties)`
-                  );
                 }
               }
             }
+
+            // Store the actual cluster members for tooltip display
+            const clusterMembers = cluster.properties || cluster.map || [];
+
 
             clusterFeatures.push({
               type: "Feature" as const,
@@ -2021,6 +2433,7 @@ export function MapListings({
                 count: cluster.count || 1,
                 precision: cluster.precision || precision,
                 id: `cluster-${index}`,
+                members: clusterMembers, // Store actual cluster members
               },
               geometry: {
                 type: "Point" as const,
@@ -2034,15 +2447,27 @@ export function MapListings({
         });
 
         // Process individual properties (at high zoom)
-        const propertyFeatures: PropertyFeature[] = (data.listings || [])
-          .filter((listing: any) => {
+        const rawListings = data.listings || data.results || [];
+        console.log(`🏠 Raw listings from API: ${rawListings.length} found (zoom: ${zoom.toFixed(1)})`);
+
+        const propertyFeatures: PropertyFeature[] = rawListings
+          .filter((listing: any, index: number) => {
             // Only include listings with valid coordinates
-            const lng = listing.coordinates?.lng || listing.longitude || listing.map?.longitude;
-            const lat = listing.coordinates?.lat || listing.latitude || listing.map?.latitude;
+            const lng = listing.map?.longitude ||
+                       listing.coordinates?.lng ||
+                       listing.coordinates?.longitude ||
+                       listing.longitude ||
+                       listing.lng;
+            const lat = listing.map?.latitude ||
+                       listing.coordinates?.lat ||
+                       listing.coordinates?.latitude ||
+                       listing.latitude ||
+                       listing.lat;
             const hasValidCoords = lng !== undefined && lat !== undefined && !isNaN(lng) && !isNaN(lat);
 
             // Apply client-side property type filter for multiple selections
             const matchesFilter = matchesPropertyTypeFilter(listing.details?.propertyType);
+
 
             return hasValidCoords && matchesFilter;
           })
@@ -2069,22 +2494,6 @@ export function MapListings({
 
             const finalProperties = { ...baseProperties, ...enhancedProperties };
 
-            // Log first few features during creation
-            if (index < 3) {
-              console.log(`🏗️ Creating property feature ${index}:`);
-              console.log("- Raw listing from API:", listing);
-              console.log("- Base properties created:", baseProperties);
-              console.log("- Enhanced properties:", enhancedProperties);
-              console.log("- Final properties:", finalProperties);
-              console.log("- listPrice in final:", finalProperties.listPrice);
-              console.log("- TYPE ANALYSIS:", {
-                rawType: listing.type,
-                baseType: baseProperties.type,
-                finalType: finalProperties.type,
-                isLease: finalProperties.type === "Lease",
-                isLeaseCheck: listing.type === "Lease"
-              });
-            }
 
             return {
               type: "Feature" as const,
@@ -2100,17 +2509,68 @@ export function MapListings({
           }
         );
 
-        // Log properties loaded with details and filtering info
-        const propertiesWithDetails = propertyFeatures.filter(f => f.properties.address && f.properties.details);
-        const clientSideFiltered = filters.propertyTypes.length > 1;
-        console.log(`Properties: ${propertyFeatures.length} loaded, ${propertiesWithDetails.length} with details${clientSideFiltered ? ' (client-side filtered)' : ''}`);
+        console.log(`Properties: ${propertyFeatures.length} loaded`);
 
-        // Combine features
-        const allFeatures = [
-          ...clusterFeatures,
-          ...singlePropertyFeatures,
-          ...propertyFeatures,
-        ];
+        // Debug: Log what we're about to render
+        console.log(`📊 Rendering summary (zoom: ${zoom.toFixed(1)}):`, {
+          clusterFeatures: clusterFeatures.length,
+          singlePropertyFeatures: singlePropertyFeatures.length,
+          propertyFeatures: propertyFeatures.length,
+          totalFeatures: clusterFeatures.length + singlePropertyFeatures.length + propertyFeatures.length
+        });
+
+        // Combine features - at zoom 14+, use proximity-based grouping
+        let allFeatures: any[];
+
+        if (zoom >= 14) {
+          // At high zoom: use smart proximity grouping to avoid overlaps
+          const allPotentialFeatures = [
+            ...clusterFeatures.map(f => ({...f, type: 'cluster'})),
+            ...singlePropertyFeatures.map(f => ({...f, type: 'singleProperty'})),
+            ...propertyFeatures.map(f => ({...f, type: 'property'}))
+          ];
+
+          // Group features by proximity (50 meter radius)
+          const proximityGroups = groupFeaturesByProximity(allPotentialFeatures, 50);
+
+          // For each proximity group, decide what to show
+          allFeatures = proximityGroups.map(group => {
+            const clusters = group.filter(f => f.type === 'cluster');
+            const properties = group.filter(f => f.type === 'property' || f.type === 'singleProperty');
+
+            // Calculate total properties in clusters vs individual properties
+            const clusterPropertyCount = clusters.reduce((sum, c) => sum + (c.properties?.count || 0), 0);
+            const individualPropertyCount = properties.length;
+
+            console.log(`📍 Proximity group: ${clusters.length} clusters (${clusterPropertyCount} props), ${individualPropertyCount} individual props`);
+
+            // Decision logic for what to show:
+            if (properties.length > 3) {
+              // Too many individual bubbles would be messy → show largest cluster
+              return clusters.length > 0 ? clusters.reduce((largest, current) =>
+                (current.properties?.count || 0) > (largest.properties?.count || 0) ? current : largest
+              ) : properties[0];
+            } else if (clusterPropertyCount > individualPropertyCount && clusters.length > 0) {
+              // Cluster has more complete data → show cluster
+              return clusters.reduce((largest, current) =>
+                (current.properties?.count || 0) > (largest.properties?.count || 0) ? current : largest
+              );
+            } else if (properties.length > 0) {
+              // Individual properties have complete data → show all properties
+              return properties;
+            } else {
+              // Fallback to cluster
+              return clusters[0];
+            }
+          }).flat().filter(Boolean);
+
+          console.log(`🎯 Proximity grouping: ${allPotentialFeatures.length} features → ${allFeatures.length} final features`);
+
+        } else {
+          // At low zoom: only clusters and single property features, but merge small clusters
+          const mergedClusters = mergeSmallClusters([...clusterFeatures, ...singlePropertyFeatures], zoom);
+          allFeatures = mergedClusters;
+        }
 
         // Log the GeoJSON structure that goes to Mapbox
         const geoJsonData = {
@@ -2123,7 +2583,6 @@ export function MapListings({
           "listings"
         ) as mapboxgl.GeoJSONSource;
         if (source) {
-          console.log(`📍 Updating map data: ${allFeatures.length} features (keeping current view)`);
           source.setData(geoJsonData);
 
           // Add custom price markers (clear old ones first)
@@ -2137,7 +2596,6 @@ export function MapListings({
             (sum, feature) => sum + feature.properties.count,
             0
           );
-        console.log(`Total count: ${total} (data.count: ${data.count}, filter: ${filters.listingType})`);
         setTotalCount(total);
       } catch (err) {
         const errorMessage =
@@ -2147,6 +2605,139 @@ export function MapListings({
     },
     [apiKey, getClusterPrecision, boundsToPolygon, addPriceMarkers, filters]
   );
+
+  // Update the ref whenever fetchClusters changes
+  useEffect(() => {
+    fetchClustersRef.current = fetchClusters;
+  }, [fetchClusters]);
+
+  // Helper function to calculate distance between two coordinates (in meters)
+  const calculateDistance = useCallback((coord1: [number, number], coord2: [number, number]): number => {
+    const [lng1, lat1] = coord1;
+    const [lng2, lat2] = coord2;
+
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }, []);
+
+  // Group features by proximity
+  const groupFeaturesByProximity = useCallback((features: any[], radiusMeters: number): any[][] => {
+    const groups: any[][] = [];
+    const processed = new Set<number>();
+
+    features.forEach((feature, index) => {
+      if (processed.has(index)) return;
+
+      const group = [feature];
+      processed.add(index);
+
+      const featureCoords = feature.geometry.coordinates as [number, number];
+
+      // Find all other features within radius
+      features.forEach((otherFeature, otherIndex) => {
+        if (processed.has(otherIndex) || index === otherIndex) return;
+
+        const otherCoords = otherFeature.geometry.coordinates as [number, number];
+        const distance = calculateDistance(featureCoords, otherCoords);
+
+        if (distance <= radiusMeters) {
+          group.push(otherFeature);
+          processed.add(otherIndex);
+        }
+      });
+
+      groups.push(group);
+    });
+
+    return groups;
+  }, [calculateDistance]);
+
+  // Merge small clusters (blue/yellow ones) while keeping large clusters intact
+  const mergeSmallClusters = useCallback((features: any[], zoom: number): any[] => {
+    // Define what counts as a "small cluster" that should be merged
+    const smallClusterThreshold = zoom <= 10 ? 10 : (zoom <= 12 ? 5 : 3);
+    const mergeRadius = zoom <= 10 ? 200 : (zoom <= 12 ? 100 : 50); // meters
+
+    const smallClusters = features.filter(f => f.properties.count <= smallClusterThreshold);
+    const largeClusters = features.filter(f => f.properties.count > smallClusterThreshold);
+
+    if (smallClusters.length === 0) {
+      return features; // No small clusters to merge
+    }
+
+    // Group small clusters by proximity for merging
+    const smallClusterGroups = groupFeaturesByProximity(smallClusters, mergeRadius);
+
+    const mergedFeatures = smallClusterGroups.map(group => {
+      if (group.length === 1) {
+        return group[0]; // Single cluster, no merging needed
+      }
+
+      // Merge multiple small clusters into one larger cluster
+      const totalCount = group.reduce((sum, cluster) => sum + cluster.properties.count, 0);
+      const avgLng = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[0], 0) / group.length;
+      const avgLat = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[1], 0) / group.length;
+
+      console.log(`🔀 Merging ${group.length} small clusters (${group.map(c => c.properties.count).join('+')}) into ${totalCount} properties`);
+
+      return {
+        type: "Feature" as const,
+        properties: {
+          count: totalCount,
+          precision: group[0].properties.precision,
+          id: `merged-${group.map(c => c.properties.id).join('-')}`,
+          members: [], // Could combine members if needed
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [avgLng, avgLat] as [number, number],
+        },
+      };
+    });
+
+    console.log(`📦 Cluster merging: ${smallClusters.length} small clusters → ${mergedFeatures.length} merged features`);
+
+    return [...largeClusters, ...mergedFeatures];
+  }, [groupFeaturesByProximity]);
+
+  // Find individual listings near a cluster coordinate for tooltip display
+  const findNearbyListings = useCallback((clusterCoords: [number, number], radiusMeters: number, maxCount: number): any[] => {
+    if (!map.current) return [];
+
+    try {
+      const source = map.current.getSource('listings') as mapboxgl.GeoJSONSource;
+      if (!source || !source._data) return [];
+
+      const sourceData = source._data as any;
+      const allFeatures = sourceData.features || [];
+
+      // Find property features (not clusters) near the cluster
+      const nearbyProperties = allFeatures
+        .filter((feature: any) => feature.properties?.isProperty === true)
+        .map((feature: any) => {
+          const featureCoords = feature.geometry.coordinates as [number, number];
+          const distance = calculateDistance(clusterCoords, featureCoords);
+          return { feature, distance, listing: feature.properties };
+        })
+        .filter((item: any) => item.distance <= radiusMeters)
+        .sort((a: any, b: any) => a.distance - b.distance)
+        .slice(0, maxCount)
+        .map((item: any) => item.listing);
+
+      console.log(`📋 Found ${nearbyProperties.length} nearby listings for cluster at [${clusterCoords.join(', ')}]`);
+      return nearbyProperties;
+
+    } catch (error) {
+      console.error('Error finding nearby listings:', error);
+      return [];
+    }
+  }, [calculateDistance]);
 
   // Initialize map
   useEffect(() => {
@@ -2270,9 +2861,8 @@ export function MapListings({
         // Show cluster properties only at very high zoom levels
         const currentZoom = map.current.getZoom();
 
-        if (currentZoom >= 13) {
-          // At high zoom, show cluster properties in tooltip
-          // Try to get cluster properties from the mapbox data source
+        if (currentZoom >= 14) {
+          // At high zoom, show cluster properties in tooltip using the working old method
           const source = map.current.getSource('listings') as mapboxgl.GeoJSONSource;
           if (source && source._data) {
             const sourceData = source._data as any;
@@ -2321,6 +2911,8 @@ export function MapListings({
                 };
               });
 
+              console.log(`📋 Found ${realProperties.length} properties for cluster tooltip`);
+
               setClusterProperties(realProperties);
               setClusterTooltipPosition({ x: clickX, y: clickY });
               setClusterTooltipOpen(true);
@@ -2331,6 +2923,7 @@ export function MapListings({
               return;
             }
           }
+
 
           // Fallback: if we can't get real data, still show something useful
           const fallbackProperties: ListingResult[] = [{
@@ -2395,7 +2988,7 @@ export function MapListings({
       // Initial data fetch
       const bounds = map.current.getBounds();
       if (bounds) {
-        fetchClusters(bounds);
+        fetchClustersRef.current?.(bounds);
       }
     });
 
@@ -2404,7 +2997,7 @@ export function MapListings({
       if (!map.current) return;
       const bounds = map.current.getBounds();
       if (bounds) {
-        fetchClusters(bounds);
+        fetchClustersRef.current?.(bounds);
       }
     });
 
@@ -2415,7 +3008,7 @@ export function MapListings({
         map.current = null;
       }
     };
-  }, [mapboxToken, mapStyle, mapCenter, mapZoom, fetchClusters, clearPriceMarkers, addPriceMarkers]);
+  }, [mapboxToken, mapStyle, mapCenter, mapZoom, clearPriceMarkers, addPriceMarkers]);
 
   // Re-fetch data when filters change (without moving map)
   useEffect(() => {
