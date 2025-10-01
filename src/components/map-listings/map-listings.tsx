@@ -97,6 +97,12 @@ interface MapFilters {
   minPrice?: number;
   maxPrice?: number | null; // null represents "Max" (no limit)
   bedrooms?: "all" | "0" | "1" | "2" | "3" | "4" | "5+";
+  bathrooms?: "all" | "1+" | "2+" | "3+" | "4+" | "5+";
+  garageSpaces?: "all" | "1+" | "2+" | "3+" | "4+" | "5+";
+  minSqft?: number;
+  maxSqft?: number | null; // null represents "Max" (no limit)
+  openHouse?: "all" | "today" | "thisWeek" | "thisWeekend" | "anytime";
+  maxMaintenanceFee?: number | null; // null represents "Max" (no limit)
 }
 
 interface ListingResult {
@@ -1695,6 +1701,619 @@ function PriceRangeFilter({
   );
 }
 
+// Square Footage Filter Component
+interface SquareFootageFilterProps {
+  isOpen: boolean;
+  initialMin: number;
+  initialMax: number | null; // null represents "Max" (no limit)
+  onApply: (min: number, max: number | null) => void;
+  onCancel: () => void;
+  sqftBreakpoints?: number[]; // Optional custom breakpoints
+}
+
+function SquareFootageFilter({
+  isOpen,
+  initialMin,
+  initialMax,
+  onApply,
+  onCancel,
+  sqftBreakpoints = [0, 1000, 2000, 3000, 5000, Infinity]
+}: SquareFootageFilterProps) {
+  const [tempMinSqft, setTempMinSqft] = useState(initialMin);
+  const [tempMaxSqft, setTempMaxSqft] = useState(initialMax);
+  const [isDragging, setIsDragging] = useState<'min' | 'max' | null>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // Reset temp values when modal opens/closes or initial values change
+  useEffect(() => {
+    setTempMinSqft(initialMin);
+    setTempMaxSqft(initialMax);
+  }, [isOpen, initialMin, initialMax]);
+
+  // Format sqft for display
+  const formatDisplaySqft = useCallback((sqft: number | null): string => {
+    if (sqft === null || sqft === Infinity) return "Max";
+    if (sqft === 0) return "0";
+    if (sqft >= 1000) {
+      const thousands = sqft / 1000;
+      return `${Math.round(thousands * 10) / 10}K`;
+    }
+    return `${Math.round(sqft)}`;
+  }, []);
+
+  // Get slider position as percentage
+  const getSliderPosition = useCallback((sqft: number | null): number => {
+    if (sqft === null || sqft === Infinity) return 100;
+
+    const maxFiniteSqft = sqftBreakpoints[sqftBreakpoints.length - 2];
+    if (sqft >= maxFiniteSqft) return 100;
+    if (sqft <= 0) return 0;
+
+    // Find position between breakpoints
+    for (let i = 0; i < sqftBreakpoints.length - 1; i++) {
+      const current = sqftBreakpoints[i];
+      const next = sqftBreakpoints[i + 1];
+
+      if (sqft >= current && sqft <= next) {
+        const segmentSize = 100 / (sqftBreakpoints.length - 1);
+        const segmentStart = i * segmentSize;
+        const progressInSegment = next === Infinity ? 0 : (sqft - current) / (next - current);
+        return segmentStart + (progressInSegment * segmentSize);
+      }
+    }
+
+    return 0;
+  }, [sqftBreakpoints]);
+
+  // Get sqft from slider position
+  const getSqftFromPosition = useCallback((position: number): number | null => {
+    if (position >= 100) return null; // Max
+    if (position <= 0) return 0;
+
+    const segmentSize = 100 / (sqftBreakpoints.length - 1);
+    const segmentIndex = Math.floor(position / segmentSize);
+    const progressInSegment = (position % segmentSize) / segmentSize;
+
+    if (segmentIndex >= sqftBreakpoints.length - 2) return null;
+
+    const current = sqftBreakpoints[segmentIndex];
+    const next = sqftBreakpoints[segmentIndex + 1];
+
+    if (next === Infinity) return null;
+
+    return Math.round(current + (progressInSegment * (next - current)));
+  }, [sqftBreakpoints]);
+
+  // Handle mouse events for dragging
+  const handleMouseDown = useCallback((handle: 'min' | 'max') => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(handle);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !sliderRef.current) return;
+
+    const rect = sliderRef.current.getBoundingClientRect();
+    const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const newSqft = getSqftFromPosition(position);
+
+    if (isDragging === 'min') {
+      const maxValue = tempMaxSqft === null ? Infinity : tempMaxSqft;
+      const constrainedSqft = newSqft === null ? maxValue : Math.min(newSqft, maxValue);
+      setTempMinSqft(constrainedSqft === Infinity ? 0 : constrainedSqft);
+    } else if (isDragging === 'max') {
+      const constrainedSqft = newSqft === null ? null : Math.max(newSqft, tempMinSqft);
+      setTempMaxSqft(constrainedSqft);
+    }
+  }, [isDragging, tempMinSqft, tempMaxSqft, getSqftFromPosition]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(null);
+  }, []);
+
+  // Add/remove global mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Handle keyboard events for accessibility
+  const handleKeyDown = useCallback((handle: 'min' | 'max') => (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const direction = e.key === 'ArrowLeft' ? -1 : 1;
+      const currentSqft = handle === 'min' ? tempMinSqft : tempMaxSqft;
+      const currentPos = getSliderPosition(currentSqft);
+      const newPos = Math.max(0, Math.min(100, currentPos + (direction * 2)));
+      const newSqft = getSqftFromPosition(newPos);
+
+      if (handle === 'min') {
+        const maxValue = tempMaxSqft === null ? Infinity : tempMaxSqft;
+        const constrainedSqft = newSqft === null ? maxValue : Math.min(newSqft, maxValue);
+        setTempMinSqft(constrainedSqft === Infinity ? 0 : constrainedSqft);
+      } else {
+        const constrainedSqft = newSqft === null ? null : Math.max(newSqft || 0, tempMinSqft);
+        setTempMaxSqft(constrainedSqft);
+      }
+    }
+  }, [tempMinSqft, tempMaxSqft, getSliderPosition, getSqftFromPosition]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onCancel();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      return () => document.removeEventListener('keydown', handleEsc);
+    }
+  }, [isOpen, onCancel]);
+
+  if (!isOpen) return null;
+
+  const minPosition = getSliderPosition(tempMinSqft);
+  const maxPosition = getSliderPosition(tempMaxSqft);
+
+  return (
+    <div
+      style={{
+        marginTop: "16px",
+        padding: "16px",
+        backgroundColor: "#f9fafb",
+        borderRadius: "6px",
+        border: "1px solid #e5e7eb",
+      }}
+    >
+      {/* Current Selection Display */}
+      <div style={{
+        textAlign: 'center',
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: '16px',
+      }}>
+        {formatDisplaySqft(tempMinSqft)} - {formatDisplaySqft(tempMaxSqft)} sq ft
+      </div>
+
+      {/* Slider Container */}
+      <div style={{ marginBottom: '16px' }}>
+        <div
+          ref={sliderRef}
+          style={{
+            position: 'relative',
+            height: '6px',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '3px',
+            marginBottom: '12px',
+          }}
+        >
+          {/* Active Range */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: `${minPosition}%`,
+              width: `${maxPosition - minPosition}%`,
+              height: '100%',
+              backgroundColor: '#3b82f6',
+              borderRadius: '3px',
+            }}
+          />
+
+          {/* Min Handle */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${minPosition}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '18px',
+              height: '18px',
+              backgroundColor: 'white',
+              border: '2px solid #3b82f6',
+              borderRadius: '50%',
+              cursor: isDragging === 'min' ? 'grabbing' : 'grab',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            }}
+            onMouseDown={handleMouseDown('min')}
+            onKeyDown={handleKeyDown('min')}
+            tabIndex={0}
+            role="slider"
+            aria-label="Minimum square footage"
+            aria-valuemin={0}
+            aria-valuemax={tempMaxSqft === null ? sqftBreakpoints[sqftBreakpoints.length - 2] : tempMaxSqft}
+            aria-valuenow={tempMinSqft}
+            aria-valuetext={formatDisplaySqft(tempMinSqft)}
+          />
+
+          {/* Max Handle */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${maxPosition}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '18px',
+              height: '18px',
+              backgroundColor: 'white',
+              border: '2px solid #3b82f6',
+              borderRadius: '50%',
+              cursor: isDragging === 'max' ? 'grabbing' : 'grab',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            }}
+            onMouseDown={handleMouseDown('max')}
+            onKeyDown={handleKeyDown('max')}
+            tabIndex={0}
+            role="slider"
+            aria-label="Maximum square footage"
+            aria-valuemin={tempMinSqft}
+            aria-valuemax={sqftBreakpoints[sqftBreakpoints.length - 2]}
+            aria-valuenow={tempMaxSqft === null ? sqftBreakpoints[sqftBreakpoints.length - 2] : tempMaxSqft}
+            aria-valuetext={formatDisplaySqft(tempMaxSqft)}
+          />
+        </div>
+
+        {/* Sqft Markers */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '11px',
+          color: '#6b7280',
+        }}>
+          {sqftBreakpoints.slice(0, -1).map((sqft, index) => (
+            <span key={index}>
+              {formatDisplaySqft(sqft)}
+            </span>
+          ))}
+          <span>Max</span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        justifyContent: 'flex-end',
+      }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: '#374151',
+            backgroundColor: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onApply(tempMinSqft, tempMaxSqft)}
+          style={{
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: 'white',
+            backgroundColor: '#3b82f6',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Maintenance Fee Filter Component
+interface MaintenanceFeeFilterProps {
+  isOpen: boolean;
+  initialMin: number;
+  initialMax: number | null;
+  onApply: (min: number, max: number | null) => void;
+  onCancel: () => void;
+  feeBreakpoints?: number[];
+}
+
+function MaintenanceFeeFilter({
+  isOpen,
+  initialMin,
+  initialMax,
+  onApply,
+  onCancel,
+  feeBreakpoints = [0, 200, 400, 600, 1000, Infinity]
+}: MaintenanceFeeFilterProps) {
+  const [tempMinFee, setTempMinFee] = useState(initialMin);
+  const [tempMaxFee, setTempMaxFee] = useState(initialMax);
+  const [isDragging, setIsDragging] = useState<'min' | 'max' | null>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setTempMinFee(initialMin);
+    setTempMaxFee(initialMax);
+  }, [isOpen, initialMin, initialMax]);
+
+  const formatDisplayFee = useCallback((fee: number | null): string => {
+    if (fee === null || fee === Infinity) return "Max";
+    if (fee === 0) return "$0";
+    return `$${Math.round(fee)}`;
+  }, []);
+
+  const getSliderPosition = useCallback((fee: number | null): number => {
+    if (fee === null || fee === Infinity) return 100;
+    const maxFiniteFee = feeBreakpoints[feeBreakpoints.length - 2];
+    if (fee >= maxFiniteFee) return 100;
+    if (fee <= 0) return 0;
+
+    for (let i = 0; i < feeBreakpoints.length - 1; i++) {
+      const current = feeBreakpoints[i];
+      const next = feeBreakpoints[i + 1];
+      if (fee >= current && fee <= next) {
+        const segmentSize = 100 / (feeBreakpoints.length - 1);
+        const segmentStart = i * segmentSize;
+        const progressInSegment = next === Infinity ? 0 : (fee - current) / (next - current);
+        return segmentStart + (progressInSegment * segmentSize);
+      }
+    }
+    return 0;
+  }, [feeBreakpoints]);
+
+  const getFeeFromPosition = useCallback((position: number): number | null => {
+    if (position >= 100) return null;
+    if (position <= 0) return 0;
+
+    const segmentSize = 100 / (feeBreakpoints.length - 1);
+    const segmentIndex = Math.floor(position / segmentSize);
+    const progressInSegment = (position % segmentSize) / segmentSize;
+
+    if (segmentIndex >= feeBreakpoints.length - 2) return null;
+
+    const current = feeBreakpoints[segmentIndex];
+    const next = feeBreakpoints[segmentIndex + 1];
+
+    if (next === Infinity) return null;
+
+    return Math.round(current + (progressInSegment * (next - current)));
+  }, [feeBreakpoints]);
+
+  const handleMouseDown = useCallback((handle: 'min' | 'max') => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(handle);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !sliderRef.current) return;
+
+    const rect = sliderRef.current.getBoundingClientRect();
+    const position = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const newFee = getFeeFromPosition(position);
+
+    if (isDragging === 'min') {
+      const maxValue = tempMaxFee === null ? Infinity : tempMaxFee;
+      const constrainedFee = newFee === null ? maxValue : Math.min(newFee, maxValue);
+      setTempMinFee(constrainedFee === Infinity ? 0 : constrainedFee);
+    } else if (isDragging === 'max') {
+      const constrainedFee = newFee === null ? null : Math.max(newFee, tempMinFee);
+      setTempMaxFee(constrainedFee);
+    }
+  }, [isDragging, tempMinFee, tempMaxFee, getFeeFromPosition]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(null);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  const handleKeyDown = useCallback((handle: 'min' | 'max') => (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const direction = e.key === 'ArrowLeft' ? -1 : 1;
+      const currentFee = handle === 'min' ? tempMinFee : tempMaxFee;
+      const currentPos = getSliderPosition(currentFee);
+      const newPos = Math.max(0, Math.min(100, currentPos + (direction * 2)));
+      const newFee = getFeeFromPosition(newPos);
+
+      if (handle === 'min') {
+        const maxValue = tempMaxFee === null ? Infinity : tempMaxFee;
+        const constrainedFee = newFee === null ? maxValue : Math.min(newFee, maxValue);
+        setTempMinFee(constrainedFee === Infinity ? 0 : constrainedFee);
+      } else {
+        const constrainedFee = newFee === null ? null : Math.max(newFee || 0, tempMinFee);
+        setTempMaxFee(constrainedFee);
+      }
+    }
+  }, [tempMinFee, tempMaxFee, getSliderPosition, getFeeFromPosition]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onCancel();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      return () => document.removeEventListener('keydown', handleEsc);
+    }
+  }, [isOpen, onCancel]);
+
+  if (!isOpen) return null;
+
+  const minPosition = getSliderPosition(tempMinFee);
+  const maxPosition = getSliderPosition(tempMaxFee);
+
+  return (
+    <div
+      style={{
+        marginTop: "16px",
+        padding: "16px",
+        backgroundColor: "#f9fafb",
+        borderRadius: "6px",
+        border: "1px solid #e5e7eb",
+      }}
+    >
+      <div style={{
+        textAlign: 'center',
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: '16px',
+      }}>
+        {formatDisplayFee(tempMinFee)} - {formatDisplayFee(tempMaxFee)} /month
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div
+          ref={sliderRef}
+          style={{
+            position: 'relative',
+            height: '6px',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '3px',
+            marginBottom: '12px',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: `${minPosition}%`,
+              width: `${maxPosition - minPosition}%`,
+              height: '100%',
+              backgroundColor: '#3b82f6',
+              borderRadius: '3px',
+            }}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              left: `${minPosition}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '18px',
+              height: '18px',
+              backgroundColor: 'white',
+              border: '2px solid #3b82f6',
+              borderRadius: '50%',
+              cursor: isDragging === 'min' ? 'grabbing' : 'grab',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            }}
+            onMouseDown={handleMouseDown('min')}
+            onKeyDown={handleKeyDown('min')}
+            tabIndex={0}
+            role="slider"
+            aria-label="Minimum maintenance fee"
+            aria-valuemin={0}
+            aria-valuemax={tempMaxFee === null ? feeBreakpoints[feeBreakpoints.length - 2] : tempMaxFee}
+            aria-valuenow={tempMinFee}
+            aria-valuetext={formatDisplayFee(tempMinFee)}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              left: `${maxPosition}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '18px',
+              height: '18px',
+              backgroundColor: 'white',
+              border: '2px solid #3b82f6',
+              borderRadius: '50%',
+              cursor: isDragging === 'max' ? 'grabbing' : 'grab',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            }}
+            onMouseDown={handleMouseDown('max')}
+            onKeyDown={handleKeyDown('max')}
+            tabIndex={0}
+            role="slider"
+            aria-label="Maximum maintenance fee"
+            aria-valuemin={tempMinFee}
+            aria-valuemax={feeBreakpoints[feeBreakpoints.length - 2]}
+            aria-valuenow={tempMaxFee === null ? feeBreakpoints[feeBreakpoints.length - 2] : tempMaxFee}
+            aria-valuetext={formatDisplayFee(tempMaxFee)}
+          />
+        </div>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '11px',
+          color: '#6b7280',
+        }}>
+          {feeBreakpoints.slice(0, -1).map((fee, index) => (
+            <span key={index}>
+              {formatDisplayFee(fee)}
+            </span>
+          ))}
+          <span>Max</span>
+        </div>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        justifyContent: 'flex-end',
+      }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: '#374151',
+            backgroundColor: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onApply(tempMinFee, tempMaxFee)}
+          style={{
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: 'white',
+            backgroundColor: '#3b82f6',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Filter Panel Component
 interface FilterPanelProps {
   filters: MapFilters;
@@ -1706,6 +2325,7 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isSqftFilterOpen, setIsSqftFilterOpen] = useState(false);
   const priceFilterRef = useRef<HTMLDivElement>(null);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
 
@@ -1734,6 +2354,19 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
 
   const handlePriceFilterCancel = () => {
     setIsPriceFilterOpen(false);
+  };
+
+  const handleSqftFilterApply = (minSqft: number, maxSqft: number | null) => {
+    onFiltersChange({
+      ...filters,
+      minSqft: minSqft || undefined,
+      maxSqft: maxSqft || undefined,
+    });
+    setIsSqftFilterOpen(false);
+  };
+
+  const handleSqftFilterCancel = () => {
+    setIsSqftFilterOpen(false);
   };
 
   // Format price display for button
@@ -1942,7 +2575,7 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
           style={{
             width: "100%",
             padding: "8px 12px",
-            backgroundColor: filters.bedrooms !== "all" ? "#f3f4f6" : "white",
+            backgroundColor: (filters.bedrooms !== "all" || filters.bathrooms !== "all" || filters.garageSpaces !== "all" || filters.minSqft || filters.maxSqft || (filters.openHouse && filters.openHouse !== "all") || filters.maxMaintenanceFee) ? "#f3f4f6" : "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
@@ -1952,7 +2585,7 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
             alignItems: "center",
             textAlign: "left",
             color: "#374151",
-            fontWeight: filters.bedrooms !== "all" ? "500" : "400",
+            fontWeight: (filters.bedrooms !== "all" || filters.bathrooms !== "all" || filters.garageSpaces !== "all" || filters.minSqft || filters.maxSqft || (filters.openHouse && filters.openHouse !== "all") || filters.maxMaintenanceFee) ? "500" : "400",
           }}
         >
           <span>More Filters</span>
@@ -2017,6 +2650,191 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
                     {value === "all" ? "All" : value}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Bathrooms Filter */}
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+                BATHROOMS
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {["all", "1+", "2+", "3+", "4+", "5+"].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => onFiltersChange({ ...filters, bathrooms: value as any })}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: filters.bathrooms === value ? "#3b82f6" : "white",
+                      color: filters.bathrooms === value ? "white" : "#374151",
+                      border: `1px solid ${filters.bathrooms === value ? "#3b82f6" : "#d1d5db"}`,
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: filters.bathrooms === value ? "600" : "400",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (filters.bathrooms !== value) {
+                        e.currentTarget.style.backgroundColor = "#f3f4f6";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (filters.bathrooms !== value) {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }
+                    }}
+                  >
+                    {value === "all" ? "All" : value}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Garage/Parking Filter */}
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+                GARAGE / PARKING
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {["all", "1+", "2+", "3+", "4+", "5+"].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => onFiltersChange({ ...filters, garageSpaces: value as any })}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: filters.garageSpaces === value ? "#3b82f6" : "white",
+                      color: filters.garageSpaces === value ? "white" : "#374151",
+                      border: `1px solid ${filters.garageSpaces === value ? "#3b82f6" : "#d1d5db"}`,
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: filters.garageSpaces === value ? "600" : "400",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (filters.garageSpaces !== value) {
+                        e.currentTarget.style.backgroundColor = "#f3f4f6";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (filters.garageSpaces !== value) {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }
+                    }}
+                  >
+                    {value === "all" ? "All" : value}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Square Footage Filter */}
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+                SQUARE FOOTAGE
+              </div>
+              <SquareFootageFilter
+                isOpen={true}
+                initialMin={filters.minSqft || 0}
+                initialMax={filters.maxSqft || null}
+                onApply={handleSqftFilterApply}
+                onCancel={handleSqftFilterCancel}
+              />
+            </div>
+
+            {/* Open House Filter */}
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+                OPEN HOUSE
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {[
+                  { value: "all", label: "All" },
+                  { value: "today", label: "Today" },
+                  { value: "thisWeekend", label: "This Weekend" },
+                  { value: "thisWeek", label: "This Week" },
+                  { value: "anytime", label: "Anytime" }
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => onFiltersChange({ ...filters, openHouse: value as any })}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: filters.openHouse === value ? "#3b82f6" : "white",
+                      color: filters.openHouse === value ? "white" : "#374151",
+                      border: `1px solid ${filters.openHouse === value ? "#3b82f6" : "#d1d5db"}`,
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: filters.openHouse === value ? "600" : "400",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (filters.openHouse !== value) {
+                        e.currentTarget.style.backgroundColor = "#f3f4f6";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (filters.openHouse !== value) {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Maintenance Fee Filter */}
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+                MAX MAINTENANCE FEE
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <input
+                  type="number"
+                  placeholder="Enter max fee"
+                  value={filters.maxMaintenanceFee || ""}
+                  onChange={(e) => {
+                    const value = e.target.value ? parseInt(e.target.value) : undefined;
+                    onFiltersChange({ ...filters, maxMaintenanceFee: value || null });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const value = e.currentTarget.value ? parseInt(e.currentTarget.value) : undefined;
+                      onFiltersChange({ ...filters, maxMaintenanceFee: value || null });
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "8px 12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    color: "#374151",
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    // Just trigger a re-render to apply the current value
+                    onFiltersChange({ ...filters });
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "white",
+                    backgroundColor: "#3b82f6",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Apply
+                </button>
               </div>
             </div>
           </div>
@@ -2085,6 +2903,9 @@ export function MapListings({
     listingType: "all",
     propertyTypes: [],
     bedrooms: "all",
+    bathrooms: "all",
+    garageSpaces: "all",
+    openHouse: "all",
   });
 
   // Handle filter changes
@@ -2410,6 +3231,68 @@ export function MapListings({
             // For specific bedroom counts (0, 1, 2, 3, 4), set exact match
             url.searchParams.set("minBedrooms", filters.bedrooms);
             url.searchParams.set("maxBedrooms", filters.bedrooms);
+          }
+        }
+
+        // Apply bathrooms filter
+        if (filters.bathrooms && filters.bathrooms !== "all") {
+          // For "1+", "2+", etc., extract the number and set minBaths
+          const minBaths = filters.bathrooms.replace("+", "");
+          url.searchParams.set("minBaths", minBaths);
+        }
+
+        // Apply garage/parking filter
+        if (filters.garageSpaces && filters.garageSpaces !== "all") {
+          // For "1+", "2+", etc., extract the number and set minGarageSpaces
+          const minGarageSpaces = filters.garageSpaces.replace("+", "");
+          url.searchParams.set("minGarageSpaces", minGarageSpaces);
+        }
+
+        // Apply square footage filter
+        if (filters.minSqft && filters.minSqft > 0) {
+          url.searchParams.set("minSqft", filters.minSqft.toString());
+        }
+        if (filters.maxSqft && filters.maxSqft > 0) {
+          url.searchParams.set("maxSqft", filters.maxSqft.toString());
+        }
+
+        // Apply open house filter
+        if (filters.openHouse && filters.openHouse !== "all") {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          let minDate: Date | null = null;
+          let maxDate: Date | null = null;
+
+          if (filters.openHouse === "today") {
+            minDate = today;
+            maxDate = today;
+          } else if (filters.openHouse === "thisWeekend") {
+            // Find next Saturday and Sunday
+            const dayOfWeek = today.getDay();
+            const daysUntilSaturday = dayOfWeek === 0 ? 6 : 6 - dayOfWeek;
+            const saturday = new Date(today);
+            saturday.setDate(today.getDate() + daysUntilSaturday);
+            const sunday = new Date(saturday);
+            sunday.setDate(saturday.getDate() + 1);
+            minDate = saturday;
+            maxDate = sunday;
+          } else if (filters.openHouse === "thisWeek") {
+            minDate = today;
+            const endOfWeek = new Date(today);
+            endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
+            maxDate = endOfWeek;
+          } else if (filters.openHouse === "anytime") {
+            minDate = today;
+            // No max date for "anytime"
+          }
+
+          if (minDate) {
+            const formatDate = (date: Date) => date.toISOString().split('T')[0];
+            url.searchParams.set("minOpenHouseDate", formatDate(minDate));
+            if (maxDate) {
+              url.searchParams.set("maxOpenHouseDate", formatDate(maxDate));
+            }
           }
         }
 
