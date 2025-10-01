@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { BedDouble, Bath, Car, ChevronDown } from "lucide-react";
+import { BedDouble, Bath, Car, ChevronDown, X } from "lucide-react";
 
 export interface MapListingsProps {
   /** Repliers API key - required */
@@ -31,6 +31,7 @@ interface ClusterFeature {
     precision: number;
     id: string;
     members?: any[]; // Store actual cluster members from API
+    apiCount?: number; // Original unfiltered count from API for debugging
   };
   geometry: {
     type: "Point";
@@ -95,6 +96,7 @@ interface MapFilters {
   propertyTypes: string[];
   minPrice?: number;
   maxPrice?: number | null; // null represents "Max" (no limit)
+  bedrooms?: "all" | "0" | "1" | "2" | "3" | "4" | "5+";
 }
 
 interface ListingResult {
@@ -490,8 +492,9 @@ function PropertyTooltip({
   return (
     <div
       ref={tooltipRef}
-      className="fixed z-50 w-[450px]"
+      className="fixed w-[450px]"
       style={{
+        zIndex: 9999,
         left: `${tooltipPosition.x}px`,
         top: `${tooltipPosition.y}px`,
         visibility: isPositioned ? 'visible' : 'hidden',
@@ -504,6 +507,15 @@ function PropertyTooltip({
         {/* Arrow pointer */}
         <div className={getArrowStyles()} />
 
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 z-10 p-1 rounded-full bg-white hover:bg-gray-100 transition-colors shadow-sm border border-gray-200"
+          aria-label="Close"
+        >
+          <X size={16} className="text-gray-600" />
+        </button>
+
         {/* Content - Use ListingPreview component */}
         <ListingPreview
           listing={listing}
@@ -511,7 +523,6 @@ function PropertyTooltip({
             // TODO: Replace with actual navigation to full property details page
             // Example: window.open(`/listings/${listing.mlsNumber}`, '_blank');
             // Example: router.push(`/property/${listing.mlsNumber}`);
-            console.log(`🔗 Navigate to full details for property: ${listing.mlsNumber}`);
           }}
         />
       </div>
@@ -644,8 +655,9 @@ function ClusterTooltip({
   return (
     <div
       ref={tooltipRef}
-      className="fixed z-50 w-[480px]"
+      className="fixed w-[480px]"
       style={{
+        zIndex: 9999,
         left: `${tooltipPosition.x}px`,
         top: `${tooltipPosition.y}px`,
         visibility: isPositioned ? 'visible' : 'hidden',
@@ -659,23 +671,31 @@ function ClusterTooltip({
         <div className={getArrowStyles()} />
 
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 relative">
           <h3 className="text-sm font-semibold text-gray-800">
             {properties.length === 1 ? '1 Property' : `${properties.length} Properties`}
           </h3>
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 p-1 rounded-full bg-white hover:bg-gray-100 transition-colors shadow-sm border border-gray-200"
+            aria-label="Close"
+          >
+            <X size={16} className="text-gray-600" />
+          </button>
         </div>
 
         {/* Scrollable Content - Stack ListingPreview components */}
         <div className="max-h-[400px] overflow-y-auto">
           {properties.map((listing, index) => (
-            <div key={listing.mlsNumber || index} className="border-b border-gray-100 last:border-b-0">
+            <div key={`${listing.mlsNumber}-${index}`} className="border-b border-gray-100 last:border-b-0">
               <ListingPreview
                 listing={listing}
                 onClick={() => {
                   // TODO: Replace with actual navigation to full property details page
                   // Example: window.open(`/listings/${listing.mlsNumber}`, '_blank');
                   // Example: router.push(`/property/${listing.mlsNumber}`);
-                  console.log(`🔗 Navigate to full details for property: ${listing.mlsNumber}`);
                 }}
               />
             </div>
@@ -1136,7 +1156,7 @@ function PropertyTypeFilter({ filters, onFiltersChange, apiKey }: PropertyTypeFi
 
         setPropertyTypes(sortedPropertyTypes);
       } catch (error) {
-        console.error("Failed to fetch property types:", error);
+        // Silently handle property type fetch errors
       } finally {
         setLoading(false);
       }
@@ -1685,7 +1705,9 @@ interface FilterPanelProps {
 function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const priceFilterRef = useRef<HTMLDivElement>(null);
+  const moreFiltersRef = useRef<HTMLDivElement>(null);
 
   const listingTypeOptions = [
     { value: "all", label: "All" },
@@ -1753,6 +1775,20 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isPriceFilterOpen]);
+
+  // Handle click outside to close more filters dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreFiltersRef.current && !moreFiltersRef.current.contains(event.target as Node)) {
+        setIsMoreOpen(false);
+      }
+    };
+
+    if (isMoreOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isMoreOpen]);
 
   return (
     <div
@@ -1898,6 +1934,94 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
           />
         )}
       </div>
+
+      {/* More Filters Button */}
+      <div ref={moreFiltersRef} style={{ position: "relative", marginBottom: "12px" }}>
+        <button
+          onClick={() => setIsMoreOpen(!isMoreOpen)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: filters.bedrooms !== "all" ? "#f3f4f6" : "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            textAlign: "left",
+            color: "#374151",
+            fontWeight: filters.bedrooms !== "all" ? "500" : "400",
+          }}
+        >
+          <span>More Filters</span>
+          <ChevronDown
+            size={16}
+            style={{
+              transform: isMoreOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+          />
+        </button>
+
+        {/* More Filters Dropdown */}
+        {isMoreOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              width: "400px",
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              marginTop: "4px",
+              padding: "20px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              zIndex: 1001,
+            }}
+          >
+            {/* Bedrooms Filter */}
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+                BEDROOMS
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {["all", "0", "1", "2", "3", "4", "5+"].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => onFiltersChange({ ...filters, bedrooms: value as any })}
+                    style={{
+                      padding: "8px 16px",
+                      backgroundColor: filters.bedrooms === value ? "#3b82f6" : "white",
+                      color: filters.bedrooms === value ? "white" : "#374151",
+                      border: `1px solid ${filters.bedrooms === value ? "#3b82f6" : "#d1d5db"}`,
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: filters.bedrooms === value ? "600" : "400",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (filters.bedrooms !== value) {
+                        e.currentTarget.style.backgroundColor = "#f3f4f6";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (filters.bedrooms !== value) {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }
+                    }}
+                  >
+                    {value === "all" ? "All" : value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1960,6 +2084,7 @@ export function MapListings({
   const [filters, setFilters] = useState<MapFilters>({
     listingType: "all",
     propertyTypes: [],
+    bedrooms: "all",
   });
 
   // Handle filter changes
@@ -2028,7 +2153,6 @@ export function MapListings({
 
   // Clear existing price markers
   const clearPriceMarkers = useCallback(() => {
-    console.log(`🧹 Clearing ${priceMarkers.current.length} price markers`);
     priceMarkers.current.forEach(marker => marker.remove());
     priceMarkers.current = [];
   }, []);
@@ -2265,22 +2389,28 @@ export function MapListings({
         if (filters.propertyTypes.length === 1) {
           // Single property type - works perfectly
           url.searchParams.set("details.propertyType", filters.propertyTypes[0]);
-          console.log(`🏠 PropertyType filter applied (single): ${filters.propertyTypes[0]}`);
         } else if (filters.propertyTypes.length > 1) {
           // Multiple property types - API doesn't support this well
           // Fall back to no server-side filtering and handle client-side
-          console.log(`⚠️ Multiple property types selected (${filters.propertyTypes.length}), using client-side filtering`);
-          console.log(`🏠 Will filter client-side for: ${filters.propertyTypes.join(", ")}`);
         }
 
         // Apply price range filters
         if (filters.minPrice && filters.minPrice > 0) {
           url.searchParams.set("minPrice", filters.minPrice.toString());
-          console.log(`💰 MinPrice filter applied: ${filters.minPrice}`);
         }
         if (filters.maxPrice && filters.maxPrice > 0) {
           url.searchParams.set("maxPrice", filters.maxPrice.toString());
-          console.log(`💰 MaxPrice filter applied: ${filters.maxPrice}`);
+        }
+
+        // Apply bedrooms filter
+        if (filters.bedrooms && filters.bedrooms !== "all") {
+          if (filters.bedrooms === "5+") {
+            url.searchParams.set("minBedrooms", "5");
+          } else {
+            // For specific bedroom counts (0, 1, 2, 3, 4), set exact match
+            url.searchParams.set("minBedrooms", filters.bedrooms);
+            url.searchParams.set("maxBedrooms", filters.bedrooms);
+          }
         }
 
         // Always request cluster fields for tooltips to work
@@ -2322,6 +2452,28 @@ export function MapListings({
         const clusters = data.aggregates?.map?.clusters || data.clusters || [];
         const clusterFeatures: ClusterFeature[] = [];
         const singlePropertyFeatures: PropertyFeature[] = [];
+
+        // Debug: Log API response structure
+        const rawListings = data.listings || data.results || [];
+        console.log(`\n📦 API RESPONSE DEBUG (zoom: ${zoom.toFixed(2)})`);
+        console.log(`   Total clusters from API: ${clusters.length}`);
+        console.log(`   Total raw listings from API: ${rawListings.length}`);
+
+        // Check for duplicate mlsNumbers in rawListings
+        const mlsNumbers = rawListings.map((l: any) => l.mlsNumber).filter(Boolean);
+        const uniqueMlsNumbers = new Set(mlsNumbers);
+        if (mlsNumbers.length !== uniqueMlsNumbers.size) {
+          console.log(`   ⚠️ DUPLICATES DETECTED: ${mlsNumbers.length} total, ${uniqueMlsNumbers.size} unique (${mlsNumbers.length - uniqueMlsNumbers.size} duplicates)`);
+        }
+
+        if (clusters.length > 0) {
+          console.log(`   First cluster structure:`, {
+            count: clusters[0].count,
+            propertiesLength: clusters[0].properties?.length || 0,
+            mapLength: clusters[0].map?.length || 0,
+            hasMembers: !!(clusters[0].properties || clusters[0].map)
+          });
+        }
 
         // Helper function to check if a property matches the selected property types
         const matchesPropertyTypeFilter = (propertyType: string | undefined) => {
@@ -2386,6 +2538,7 @@ export function MapListings({
               type: "Feature" as const,
               properties: {
                 count: cluster.count || 1,
+                apiCount: cluster.count || 1, // Store original API count for debugging
                 precision: cluster.precision || precision,
                 id: `cluster-${index}`,
                 members: cluster.properties || cluster.map || [],
@@ -2431,6 +2584,7 @@ export function MapListings({
               type: "Feature" as const,
               properties: {
                 count: cluster.count || 1,
+                apiCount: cluster.count || 1, // Store original API count for debugging
                 precision: cluster.precision || precision,
                 id: `cluster-${index}`,
                 members: clusterMembers, // Store actual cluster members
@@ -2447,11 +2601,17 @@ export function MapListings({
         });
 
         // Process individual properties (at high zoom)
-        const rawListings = data.listings || data.results || [];
-        console.log(`🏠 Raw listings from API: ${rawListings.length} found (zoom: ${zoom.toFixed(1)})`);
+        // Get mlsNumbers from singlePropertyFeatures to avoid duplicates
+        const singlePropertyMlsNumbers = new Set(
+          singlePropertyFeatures.map(f => f.properties.mlsNumber)
+        );
 
         const propertyFeatures: PropertyFeature[] = rawListings
-          .filter((listing: any, index: number) => {
+          .filter((listing: any) => {
+            // Skip if this property is already in singlePropertyFeatures
+            if (singlePropertyMlsNumbers.has(listing.mlsNumber)) {
+              return false;
+            }
             // Only include listings with valid coordinates
             const lng = listing.map?.longitude ||
                        listing.coordinates?.lng ||
@@ -2472,7 +2632,7 @@ export function MapListings({
             return hasValidCoords && matchesFilter;
           })
           .map(
-          (listing: any, index: number) => {
+          (listing: any) => {
             const baseProperties = {
               mlsNumber: listing.mlsNumber,
               listPrice: typeof listing.listPrice === 'string' ? parseFloat(listing.listPrice) : listing.listPrice,
@@ -2509,15 +2669,45 @@ export function MapListings({
           }
         );
 
-        console.log(`Properties: ${propertyFeatures.length} loaded`);
+        // Recalculate cluster counts based on actual filtered properties
+        // This ensures cluster numbers match what we're actually displaying
+        const recalculateClusterCounts = (clusters: ClusterFeature[], allProperties: PropertyFeature[], singleProps: PropertyFeature[]) => {
+          // Combine all available properties (both individual and single property features)
+          const allAvailableProperties = [...allProperties, ...singleProps];
 
-        // Debug: Log what we're about to render
-        console.log(`📊 Rendering summary (zoom: ${zoom.toFixed(1)}):`, {
-          clusterFeatures: clusterFeatures.length,
-          singlePropertyFeatures: singlePropertyFeatures.length,
-          propertyFeatures: propertyFeatures.length,
-          totalFeatures: clusterFeatures.length + singlePropertyFeatures.length + propertyFeatures.length
-        });
+          return clusters.map(cluster => {
+            const clusterCoords = cluster.geometry.coordinates;
+
+            // Find properties near this cluster (within reasonable distance)
+            const nearbyProperties = allAvailableProperties.filter(prop => {
+              const propCoords = prop.geometry.coordinates;
+              const distance = Math.sqrt(
+                Math.pow(propCoords[0] - clusterCoords[0], 2) +
+                Math.pow(propCoords[1] - clusterCoords[1], 2)
+              );
+              // Use a small distance threshold (approximately 100 meters in degrees)
+              return distance < 0.001;
+            });
+
+            // If no nearby properties found, keep original count (cluster is valid but properties not loaded yet)
+            const newCount = nearbyProperties.length > 0 ? nearbyProperties.length : cluster.properties.count;
+
+            // Update count to match actual nearby filtered properties
+            return {
+              ...cluster,
+              properties: {
+                ...cluster.properties,
+                count: newCount,
+              }
+            };
+          });
+        };
+
+        // Apply recalculation only when we have any properties (individual or single)
+        const hasProperties = propertyFeatures.length > 0 || singlePropertyFeatures.length > 0;
+        const updatedClusterFeatures = zoom >= 14 && hasProperties
+          ? recalculateClusterCounts(clusterFeatures, propertyFeatures, singlePropertyFeatures)
+          : clusterFeatures;
 
         // Combine features - at zoom 14+, use proximity-based grouping
         let allFeatures: any[];
@@ -2525,7 +2715,7 @@ export function MapListings({
         if (zoom >= 14) {
           // At high zoom: use smart proximity grouping to avoid overlaps
           const allPotentialFeatures = [
-            ...clusterFeatures.map(f => ({...f, type: 'cluster'})),
+            ...updatedClusterFeatures.map(f => ({...f, type: 'cluster'})),
             ...singlePropertyFeatures.map(f => ({...f, type: 'singleProperty'})),
             ...propertyFeatures.map(f => ({...f, type: 'property'}))
           ];
@@ -2542,8 +2732,6 @@ export function MapListings({
             const clusterPropertyCount = clusters.reduce((sum, c) => sum + (c.properties?.count || 0), 0);
             const individualPropertyCount = properties.length;
 
-            console.log(`📍 Proximity group: ${clusters.length} clusters (${clusterPropertyCount} props), ${individualPropertyCount} individual props`);
-
             // Decision logic for what to show:
             if (properties.length > 3) {
               // Too many individual bubbles would be messy → show largest cluster
@@ -2558,13 +2746,14 @@ export function MapListings({
             } else if (properties.length > 0) {
               // Individual properties have complete data → show all properties
               return properties;
-            } else {
-              // Fallback to cluster
+            } else if (clusters.length > 0 && clusters[0].properties.count > 0) {
+              // Fallback to cluster only if it has a valid count
               return clusters[0];
+            } else {
+              // No valid data to show
+              return null;
             }
           }).flat().filter(Boolean);
-
-          console.log(`🎯 Proximity grouping: ${allPotentialFeatures.length} features → ${allFeatures.length} final features`);
 
         } else {
           // At low zoom: only clusters and single property features, but merge small clusters
@@ -2661,8 +2850,9 @@ export function MapListings({
   // Merge small clusters (blue/yellow ones) while keeping large clusters intact
   const mergeSmallClusters = useCallback((features: any[], zoom: number): any[] => {
     // Define what counts as a "small cluster" that should be merged
-    const smallClusterThreshold = zoom <= 10 ? 10 : (zoom <= 12 ? 5 : 3);
-    const mergeRadius = zoom <= 10 ? 200 : (zoom <= 12 ? 100 : 50); // meters
+    // More aggressive merging at mid-zoom to reduce clutter
+    const smallClusterThreshold = zoom <= 10 ? 30 : (zoom <= 12 ? 60 : (zoom <= 13 ? 100 : 30));
+    const mergeRadius = zoom <= 10 ? 500 : (zoom <= 12 ? 300 : (zoom <= 13 ? 200 : 100)); // meters
 
     const smallClusters = features.filter(f => f.properties.count <= smallClusterThreshold);
     const largeClusters = features.filter(f => f.properties.count > smallClusterThreshold);
@@ -2684,8 +2874,6 @@ export function MapListings({
       const avgLng = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[0], 0) / group.length;
       const avgLat = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[1], 0) / group.length;
 
-      console.log(`🔀 Merging ${group.length} small clusters (${group.map(c => c.properties.count).join('+')}) into ${totalCount} properties`);
-
       return {
         type: "Feature" as const,
         properties: {
@@ -2700,8 +2888,6 @@ export function MapListings({
         },
       };
     });
-
-    console.log(`📦 Cluster merging: ${smallClusters.length} small clusters → ${mergedFeatures.length} merged features`);
 
     return [...largeClusters, ...mergedFeatures];
   }, [groupFeaturesByProximity]);
@@ -2730,11 +2916,9 @@ export function MapListings({
         .slice(0, maxCount)
         .map((item: any) => item.listing);
 
-      console.log(`📋 Found ${nearbyProperties.length} nearby listings for cluster at [${clusterCoords.join(', ')}]`);
       return nearbyProperties;
 
     } catch (error) {
-      console.error('Error finding nearby listings:', error);
       return [];
     }
   }, [calculateDistance]);
@@ -2778,24 +2962,28 @@ export function MapListings({
           "circle-color": [
             "step",
             ["get", "count"],
-            "#51bbd6", // 1-49: Blue
-            50,
-            "#f1c40f", // 50-499: Yellow
+            "#51bbd6", // 1-29: Blue
+            30,
+            "#f1c40f", // 30-59: Yellow
+            60,
+            "#f39c12", // 60-149: Orange
+            150,
+            "#f28cb1", // 150-499: Pink
             500,
-            "#f28cb1", // 500-1499: Pink
-            1500,
-            "#e74c3c", // 1500-2000: Red
+            "#e74c3c", // 500+: Red
           ],
           "circle-radius": [
             "step",
             ["get", "count"],
-            10, // 1-49: Small (10px)
-            50,
-            14, // 50-499: Medium (14px)
+            10, // 1-29: Small (10px)
+            30,
+            12, // 30-59: Small-Medium (12px)
+            60,
+            14, // 60-149: Medium (14px)
+            150,
+            18, // 150-499: Large (18px)
             500,
-            18, // 500-1499: Large (18px)
-            1500,
-            22, // 1500-2000: Extra Large (22px)
+            22, // 500+: Extra Large (22px)
           ],
           "circle-stroke-width": 2,
           "circle-stroke-color": "#fff",
@@ -2815,13 +3003,15 @@ export function MapListings({
           "text-size": [
             "step",
             ["get", "count"],
-            10, // 1-49: Small text (10px)
-            50,
-            12, // 50-499: Medium text (12px)
+            10, // 1-29: Small text (10px)
+            30,
+            11, // 30-59: Small-Medium text (11px)
+            60,
+            12, // 60-149: Medium text (12px)
+            150,
+            14, // 150-499: Large text (14px)
             500,
-            14, // 500-1499: Large text (14px)
-            1500,
-            16, // 1500-2000: Extra large text (16px)
+            16, // 500+: Extra large text (16px)
           ],
         },
         paint: {
@@ -2853,6 +3043,7 @@ export function MapListings({
         const feature = e.features[0];
         const coordinates = (feature.geometry as any).coordinates;
         const clusterCount = (feature.properties as any).count;
+        const apiCount = (feature.properties as any).apiCount;
 
         // Get click position for tooltip
         const clickX = e.originalEvent.clientX;
@@ -2860,6 +3051,11 @@ export function MapListings({
 
         // Show cluster properties only at very high zoom levels
         const currentZoom = map.current.getZoom();
+
+        console.log(`\n🎯 CLUSTER CLICKED`);
+        console.log(`   Zoom Level: ${currentZoom.toFixed(2)}`);
+        console.log(`   Display Count: ${clusterCount}`);
+        console.log(`   API Count (unfiltered): ${apiCount || clusterCount}`);
 
         if (currentZoom >= 14) {
           // At high zoom, show cluster properties in tooltip using the working old method
@@ -2871,6 +3067,15 @@ export function MapListings({
             const allPropertyFeatures = sourceData.features?.filter((f: any) => {
               return f.properties?.isProperty === true; // Only properties
             }) || [];
+
+            console.log(`   Total Properties Available: ${allPropertyFeatures.length}`);
+
+            // Check if allPropertyFeatures has duplicates
+            const allMlsNumbers = allPropertyFeatures.map((f: any) => f.properties?.mlsNumber).filter(Boolean);
+            const uniqueAllMls = new Set(allMlsNumbers);
+            if (allMlsNumbers.length !== uniqueAllMls.size) {
+              console.log(`   ⚠️ DUPLICATES IN MAP DATA: ${allMlsNumbers.length} total properties, ${uniqueAllMls.size} unique MLSNumbers`);
+            }
 
             // Sort by distance to clicked coordinates and take the closest ones
             const propertiesWithDistance = allPropertyFeatures.map((f: any) => {
@@ -2884,6 +3089,9 @@ export function MapListings({
 
             // Take the closest properties up to the cluster count
             const closestProperties = propertiesWithDistance.slice(0, clusterCount);
+
+            console.log(`   Actual Properties in Cluster: ${closestProperties.length}`);
+            console.log(`   Discrepancy: ${clusterCount !== closestProperties.length ? `⚠️ ${clusterCount - closestProperties.length} missing` : '✅ Match'}`);
 
             if (closestProperties.length > 0) {
               const realProperties: ListingResult[] = closestProperties.map(({ feature }: any) => {
@@ -2911,9 +3119,34 @@ export function MapListings({
                 };
               });
 
-              console.log(`📋 Found ${realProperties.length} properties for cluster tooltip`);
+              // Check for duplicates in realProperties
+              const mlsNumbers = realProperties.map(p => p.mlsNumber);
+              const uniqueMlsNumbers = new Set(mlsNumbers);
 
-              setClusterProperties(realProperties);
+              if (mlsNumbers.length !== uniqueMlsNumbers.size) {
+                console.log(`   ⚠️ DUPLICATES IN CLUSTER TOOLTIP: ${mlsNumbers.length} total, ${uniqueMlsNumbers.size} unique`);
+
+                // Log which ones are duplicated
+                const counts = mlsNumbers.reduce((acc: Record<string, number>, mls: string) => {
+                  acc[mls] = (acc[mls] || 0) + 1;
+                  return acc;
+                }, {});
+
+                const duplicates = Object.entries(counts)
+                  .filter(([_, count]) => count > 1)
+                  .map(([mls, count]) => `${mls} (${count}x)`);
+
+                console.log(`   Duplicate MLSNumbers:`, duplicates);
+              } else {
+                console.log(`   ✅ No duplicates in cluster tooltip`);
+              }
+
+              // Deduplicate by mlsNumber
+              const uniqueProperties = realProperties.filter((property, index, self) =>
+                index === self.findIndex(p => p.mlsNumber === property.mlsNumber)
+              );
+
+              setClusterProperties(uniqueProperties);
               setClusterTooltipPosition({ x: clickX, y: clickY });
               setClusterTooltipOpen(true);
 
@@ -2958,7 +3191,9 @@ export function MapListings({
         }
 
         // Default zoom behavior for all other zoom levels
-        const targetZoom = Math.min(currentZoom + 4, 16);
+        // Zoom less aggressively at higher zoom levels
+        const zoomIncrement = currentZoom >= 14 ? 2 : (currentZoom >= 12 ? 3 : 4);
+        const targetZoom = Math.min(currentZoom + zoomIncrement, 16);
 
         map.current.easeTo({
           center: coordinates,
