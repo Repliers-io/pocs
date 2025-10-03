@@ -103,6 +103,7 @@ interface MapFilters {
   maxSqft?: number | null; // null represents "Max" (no limit)
   openHouse?: "all" | "today" | "thisWeek" | "thisWeekend" | "anytime";
   maxMaintenanceFee?: number | null; // null represents "Max" (no limit)
+  standardStatus?: string[]; // RESO-compliant status filter: Active, Pending, Closed, Cancelled
 }
 
 interface ListingResult {
@@ -1139,7 +1140,7 @@ function PropertyTypeFilter({ filters, onFiltersChange, apiKey }: PropertyTypeFi
         const url = new URL("https://api.repliers.io/listings");
         url.searchParams.set("aggregates", "details.propertyType");
         url.searchParams.set("listings", "false");
-        url.searchParams.set("status", "A");
+        url.searchParams.set("standardStatus", "Active");
 
         const response = await fetch(url.toString(), {
           headers: {
@@ -2324,9 +2325,11 @@ interface FilterPanelProps {
 function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isSqftFilterOpen, setIsSqftFilterOpen] = useState(false);
   const priceFilterRef = useRef<HTMLDivElement>(null);
+  const statusFilterRef = useRef<HTMLDivElement>(null);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
 
   const listingTypeOptions = [
@@ -2395,6 +2398,26 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
 
   const selectedOption = listingTypeOptions.find(option => option.value === filters.listingType);
 
+  // Format status filter label
+  const formatStatusLabel = () => {
+    if (!filters.standardStatus || filters.standardStatus.length === 0) {
+      return "Status: All";
+    }
+    if (filters.standardStatus.length === 1) {
+      return `Status: ${filters.standardStatus[0]}`;
+    }
+    return `Status: ${filters.standardStatus.length} selected`;
+  };
+
+  // Handle status checkbox toggle
+  const handleStatusToggle = (status: string) => {
+    const currentStatuses = filters.standardStatus || [];
+    const newStatuses = currentStatuses.includes(status)
+      ? currentStatuses.filter(s => s !== status)
+      : [...currentStatuses, status];
+    onFiltersChange({ ...filters, standardStatus: newStatuses.length > 0 ? newStatuses : undefined });
+  };
+
   // Handle click outside to close price filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -2408,6 +2431,20 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isPriceFilterOpen]);
+
+  // Handle click outside to close status filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target as Node)) {
+        setIsStatusOpen(false);
+      }
+    };
+
+    if (isStatusOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isStatusOpen]);
 
   // Handle click outside to close more filters dropdown
   useEffect(() => {
@@ -2565,6 +2602,89 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
             onApply={handlePriceFilterApply}
             onCancel={handlePriceFilterCancel}
           />
+        )}
+      </div>
+
+      {/* Status Filter Button */}
+      <div ref={statusFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+        <button
+          onClick={() => setIsStatusOpen(!isStatusOpen)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: (filters.standardStatus && filters.standardStatus.length > 0 && filters.standardStatus.length < 4) ? "#f3f4f6" : "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            textAlign: "left",
+            color: (filters.standardStatus && filters.standardStatus.length > 0 && filters.standardStatus.length < 4) ? "#1f2937" : "#374151",
+            fontWeight: (filters.standardStatus && filters.standardStatus.length > 0 && filters.standardStatus.length < 4) ? "500" : "400",
+          }}
+        >
+          <span>{formatStatusLabel()}</span>
+          <ChevronDown
+            size={16}
+            style={{
+              transform: isStatusOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+          />
+        </button>
+
+        {/* Status Filter Dropdown */}
+        {isStatusOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              marginTop: "4px",
+              padding: "12px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              zIndex: 1001,
+            }}
+          >
+            {["Active", "Pending", "Closed", "Cancelled"].map((status) => (
+              <label
+                key={status}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "8px",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.standardStatus?.includes(status) || false}
+                  onChange={() => handleStatusToggle(status)}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    cursor: "pointer",
+                  }}
+                />
+                <span style={{ fontSize: "14px", color: "#374151" }}>{status}</span>
+              </label>
+            ))}
+          </div>
         )}
       </div>
 
@@ -2906,6 +3026,7 @@ export function MapListings({
     bathrooms: "all",
     garageSpaces: "all",
     openHouse: "all",
+    standardStatus: ["Active"], // Default to showing only Active listings
   });
 
   // Handle filter changes
@@ -3193,7 +3314,15 @@ export function MapListings({
         url.searchParams.set("cluster", "true");
         url.searchParams.set("clusterPrecision", precision.toString());
         url.searchParams.set("clusterLimit", "500");
-        url.searchParams.set("status", "A");
+
+        // Apply standardStatus filter (RESO-compliant)
+        if (filters.standardStatus && filters.standardStatus.length > 0) {
+          // Set standardStatus for each selected status
+          filters.standardStatus.forEach(status => {
+            url.searchParams.append("standardStatus", status);
+          });
+        }
+
         url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
         url.searchParams.set("key", apiKey);
 
