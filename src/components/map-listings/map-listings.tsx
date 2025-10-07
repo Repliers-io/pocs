@@ -92,7 +92,7 @@ interface AutoCenterData {
 }
 
 interface MapFilters {
-  listingType: "all" | "sale" | "lease";
+  listingType: "sale" | "lease";
   propertyTypes: string[];
   minPrice?: number;
   maxPrice?: number | null; // null represents "Max" (no limit)
@@ -103,7 +103,9 @@ interface MapFilters {
   maxSqft?: number | null; // null represents "Max" (no limit)
   openHouse?: "all" | "today" | "thisWeek" | "thisWeekend" | "anytime";
   maxMaintenanceFee?: number | null; // null represents "Max" (no limit)
-  standardStatus?: string[]; // RESO-compliant status filter: Active, Pending, Closed, Cancelled
+  activeListingDays?: "1" | "3" | "7" | "30" | "90" | "all" | "15+" | "30+" | "60+" | "90+"; // Active listing date filter
+  soldListingDays?: "1" | "3" | "7" | "30" | "90" | "180" | "360" | "2025" | "2024" | "2023" | "2022" | "2021" | "2020" | "2019" | "2018" | "2017" | "2016" | "2015" | "2014" | "2013" | "2012" | "2011" | "2010" | "2009" | "2008" | "2007"; // Sold listing date filter
+  unavailableListingDays?: "1" | "3" | "7" | "30" | "90" | "180" | "360" | "2025" | "2024" | "2023" | "2022" | "2021" | "2020" | "2019" | "2018" | "2017" | "2016" | "2015" | "2014" | "2013" | "2012" | "2011" | "2010" | "2009" | "2008" | "2007"; // Unavailable listing date filter
 }
 
 interface ListingResult {
@@ -1140,7 +1142,7 @@ function PropertyTypeFilter({ filters, onFiltersChange, apiKey }: PropertyTypeFi
         const url = new URL("https://api.repliers.io/listings");
         url.searchParams.set("aggregates", "details.propertyType");
         url.searchParams.set("listings", "false");
-        url.searchParams.set("standardStatus", "Active");
+        url.searchParams.set("status", "A");
 
         const response = await fetch(url.toString(), {
           headers: {
@@ -2325,20 +2327,23 @@ interface FilterPanelProps {
 function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isActiveOpen, setIsActiveOpen] = useState(false);
+  const [isSoldOpen, setIsSoldOpen] = useState(false);
+  const [isUnavailableOpen, setIsUnavailableOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isSqftFilterOpen, setIsSqftFilterOpen] = useState(false);
   const priceFilterRef = useRef<HTMLDivElement>(null);
-  const statusFilterRef = useRef<HTMLDivElement>(null);
+  const activeFilterRef = useRef<HTMLDivElement>(null);
+  const soldFilterRef = useRef<HTMLDivElement>(null);
+  const unavailableFilterRef = useRef<HTMLDivElement>(null);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
 
   const listingTypeOptions = [
-    { value: "all", label: "All" },
     { value: "sale", label: "For Sale" },
     { value: "lease", label: "For Lease" },
   ] as const;
 
-  const handleListingTypeChange = (value: "all" | "sale" | "lease") => {
+  const handleListingTypeChange = (value: "sale" | "lease") => {
     onFiltersChange({
       ...filters,
       listingType: value,
@@ -2398,24 +2403,123 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
 
   const selectedOption = listingTypeOptions.find(option => option.value === filters.listingType);
 
-  // Format status filter label
-  const formatStatusLabel = () => {
-    if (!filters.standardStatus || filters.standardStatus.length === 0) {
-      return "Status: All";
+  // Active listing filter options
+  const activeListingOptions = [
+    { value: "1" as const, label: "Last 1 days" },
+    { value: "3" as const, label: "Last 3 days" },
+    { value: "7" as const, label: "Last 7 days" },
+    { value: "30" as const, label: "Last 30 days" },
+    { value: "90" as const, label: "Last 90 days" },
+    { value: "all" as const, label: "Listing date - All" },
+    { value: "15+" as const, label: "More than 15 days" },
+    { value: "30+" as const, label: "More than 30 days" },
+    { value: "60+" as const, label: "More than 60 days" },
+    { value: "90+" as const, label: "More than 90 days" },
+  ];
+
+  // Format active filter label
+  const formatActiveLabel = () => {
+    if (!filters.activeListingDays || filters.activeListingDays === "all") {
+      return "Active: All";
     }
-    if (filters.standardStatus.length === 1) {
-      return `Status: ${filters.standardStatus[0]}`;
-    }
-    return `Status: ${filters.standardStatus.length} selected`;
+    const option = activeListingOptions.find(opt => opt.value === filters.activeListingDays);
+    return option ? `Active: ${option.label.replace("Last ", "").replace("More than ", ">")}` : "Active: All";
   };
 
-  // Handle status checkbox toggle
-  const handleStatusToggle = (status: string) => {
-    const currentStatuses = filters.standardStatus || [];
-    const newStatuses = currentStatuses.includes(status)
-      ? currentStatuses.filter(s => s !== status)
-      : [...currentStatuses, status];
-    onFiltersChange({ ...filters, standardStatus: newStatuses.length > 0 ? newStatuses : undefined });
+  // Handle active listing filter change
+  const handleActiveFilterChange = (value: typeof filters.activeListingDays) => {
+    onFiltersChange({ ...filters, activeListingDays: value, soldListingDays: undefined, unavailableListingDays: undefined });
+    setIsActiveOpen(false);
+  };
+
+  // Sold listing filter options
+  const soldListingOptions = [
+    { value: "1" as const, label: "Last 1 days" },
+    { value: "3" as const, label: "Last 3 days" },
+    { value: "7" as const, label: "Last 7 days" },
+    { value: "30" as const, label: "Last 30 days" },
+    { value: "90" as const, label: "Last 90 days" },
+    { value: "180" as const, label: "Last 180 days" },
+    { value: "360" as const, label: "Last 360 days" },
+    { value: "2025" as const, label: "Year 2025" },
+    { value: "2024" as const, label: "Year 2024" },
+    { value: "2023" as const, label: "Year 2023" },
+    { value: "2022" as const, label: "Year 2022" },
+    { value: "2021" as const, label: "Year 2021" },
+    { value: "2020" as const, label: "Year 2020" },
+    { value: "2019" as const, label: "Year 2019" },
+    { value: "2018" as const, label: "Year 2018" },
+    { value: "2017" as const, label: "Year 2017" },
+    { value: "2016" as const, label: "Year 2016" },
+    { value: "2015" as const, label: "Year 2015" },
+    { value: "2014" as const, label: "Year 2014" },
+    { value: "2013" as const, label: "Year 2013" },
+    { value: "2012" as const, label: "Year 2012" },
+    { value: "2011" as const, label: "Year 2011" },
+    { value: "2010" as const, label: "Year 2010" },
+    { value: "2009" as const, label: "Year 2009" },
+    { value: "2008" as const, label: "Year 2008" },
+    { value: "2007" as const, label: "Year 2007" },
+  ];
+
+  // Format sold filter label
+  const formatSoldLabel = () => {
+    if (!filters.soldListingDays) {
+      return "Sold";
+    }
+    const option = soldListingOptions.find(opt => opt.value === filters.soldListingDays);
+    return option ? `Sold: ${option.label.replace("Last ", "").replace("Year ", "")}` : "Sold";
+  };
+
+  // Handle sold listing filter change
+  const handleSoldFilterChange = (value: typeof filters.soldListingDays) => {
+    onFiltersChange({ ...filters, soldListingDays: value, activeListingDays: undefined, unavailableListingDays: undefined });
+    setIsSoldOpen(false);
+  };
+
+  // Unavailable listing filter options (same as sold)
+  const unavailableListingOptions = [
+    { value: "1" as const, label: "Last 1 days" },
+    { value: "3" as const, label: "Last 3 days" },
+    { value: "7" as const, label: "Last 7 days" },
+    { value: "30" as const, label: "Last 30 days" },
+    { value: "90" as const, label: "Last 90 days" },
+    { value: "180" as const, label: "Last 180 days" },
+    { value: "360" as const, label: "Last 360 days" },
+    { value: "2025" as const, label: "Year 2025" },
+    { value: "2024" as const, label: "Year 2024" },
+    { value: "2023" as const, label: "Year 2023" },
+    { value: "2022" as const, label: "Year 2022" },
+    { value: "2021" as const, label: "Year 2021" },
+    { value: "2020" as const, label: "Year 2020" },
+    { value: "2019" as const, label: "Year 2019" },
+    { value: "2018" as const, label: "Year 2018" },
+    { value: "2017" as const, label: "Year 2017" },
+    { value: "2016" as const, label: "Year 2016" },
+    { value: "2015" as const, label: "Year 2015" },
+    { value: "2014" as const, label: "Year 2014" },
+    { value: "2013" as const, label: "Year 2013" },
+    { value: "2012" as const, label: "Year 2012" },
+    { value: "2011" as const, label: "Year 2011" },
+    { value: "2010" as const, label: "Year 2010" },
+    { value: "2009" as const, label: "Year 2009" },
+    { value: "2008" as const, label: "Year 2008" },
+    { value: "2007" as const, label: "Year 2007" },
+  ];
+
+  // Format unavailable filter label
+  const formatUnavailableLabel = () => {
+    if (!filters.unavailableListingDays) {
+      return "Unavailable";
+    }
+    const option = unavailableListingOptions.find(opt => opt.value === filters.unavailableListingDays);
+    return option ? `Unavailable: ${option.label.replace("Last ", "").replace("Year ", "")}` : "Unavailable";
+  };
+
+  // Handle unavailable listing filter change
+  const handleUnavailableFilterChange = (value: typeof filters.unavailableListingDays) => {
+    onFiltersChange({ ...filters, unavailableListingDays: value, activeListingDays: undefined, soldListingDays: undefined });
+    setIsUnavailableOpen(false);
   };
 
   // Handle click outside to close price filter dropdown
@@ -2432,19 +2536,47 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
     }
   }, [isPriceFilterOpen]);
 
-  // Handle click outside to close status filter dropdown
+  // Handle click outside to close active filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target as Node)) {
-        setIsStatusOpen(false);
+      if (activeFilterRef.current && !activeFilterRef.current.contains(event.target as Node)) {
+        setIsActiveOpen(false);
       }
     };
 
-    if (isStatusOpen) {
+    if (isActiveOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isStatusOpen]);
+  }, [isActiveOpen]);
+
+  // Handle click outside to close sold filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (soldFilterRef.current && !soldFilterRef.current.contains(event.target as Node)) {
+        setIsSoldOpen(false);
+      }
+    };
+
+    if (isSoldOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isSoldOpen]);
+
+  // Handle click outside to close unavailable filter dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (unavailableFilterRef.current && !unavailableFilterRef.current.contains(event.target as Node)) {
+        setIsUnavailableOpen(false);
+      }
+    };
+
+    if (isUnavailableOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isUnavailableOpen]);
 
   // Handle click outside to close more filters dropdown
   useEffect(() => {
@@ -2488,14 +2620,16 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
           style={{
             width: "100%",
             padding: "8px 12px",
-            backgroundColor: "white",
-            border: "1px solid #d1d5db",
+            backgroundColor: filters.listingType === "sale" ? "#d1fae5" : "#f3e8ff",
+            border: filters.listingType === "sale" ? "1px solid #86efac" : "1px solid #d8b4fe",
             borderRadius: "6px",
             fontSize: "14px",
+            fontWeight: "500",
             cursor: "pointer",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            color: "#1f2937",
           }}
         >
           <span>{selectedOption?.label}</span>
@@ -2605,14 +2739,14 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
         )}
       </div>
 
-      {/* Status Filter Button */}
-      <div ref={statusFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+      {/* Active Listings Filter Button */}
+      <div ref={activeFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
         <button
-          onClick={() => setIsStatusOpen(!isStatusOpen)}
+          onClick={() => setIsActiveOpen(!isActiveOpen)}
           style={{
             width: "100%",
             padding: "8px 12px",
-            backgroundColor: (filters.standardStatus && filters.standardStatus.length > 0 && filters.standardStatus.length < 4) ? "#f3f4f6" : "white",
+            backgroundColor: (filters.activeListingDays && filters.activeListingDays !== "all") ? "#f3f4f6" : "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
@@ -2621,22 +2755,22 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
             justifyContent: "space-between",
             alignItems: "center",
             textAlign: "left",
-            color: (filters.standardStatus && filters.standardStatus.length > 0 && filters.standardStatus.length < 4) ? "#1f2937" : "#374151",
-            fontWeight: (filters.standardStatus && filters.standardStatus.length > 0 && filters.standardStatus.length < 4) ? "500" : "400",
+            color: (filters.activeListingDays && filters.activeListingDays !== "all") ? "#1f2937" : "#374151",
+            fontWeight: (filters.activeListingDays && filters.activeListingDays !== "all") ? "500" : "400",
           }}
         >
-          <span>{formatStatusLabel()}</span>
+          <span>{formatActiveLabel()}</span>
           <ChevronDown
             size={16}
             style={{
-              transform: isStatusOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transform: isActiveOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s"
             }}
           />
         </button>
 
-        {/* Status Filter Dropdown */}
-        {isStatusOpen && (
+        {/* Active Filter Dropdown */}
+        {isActiveOpen && (
           <div
             style={{
               position: "absolute",
@@ -2652,9 +2786,9 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
               zIndex: 1001,
             }}
           >
-            {["Active", "Pending", "Closed", "Cancelled"].map((status) => (
+            {activeListingOptions.map((option) => (
               <label
-                key={status}
+                key={option.value}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2671,9 +2805,10 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
                 }}
               >
                 <input
-                  type="checkbox"
-                  checked={filters.standardStatus?.includes(status) || false}
-                  onChange={() => handleStatusToggle(status)}
+                  type="radio"
+                  name="activeListingFilter"
+                  checked={filters.activeListingDays === option.value || (!filters.activeListingDays && option.value === "all")}
+                  onChange={() => handleActiveFilterChange(option.value)}
                   style={{
                     marginRight: "8px",
                     width: "16px",
@@ -2681,7 +2816,179 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
                     cursor: "pointer",
                   }}
                 />
-                <span style={{ fontSize: "14px", color: "#374151" }}>{status}</span>
+                <span style={{ fontSize: "14px", color: "#374151" }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sold Listings Filter Button */}
+      <div ref={soldFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+        <button
+          onClick={() => setIsSoldOpen(!isSoldOpen)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: filters.soldListingDays ? "#f3f4f6" : "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            textAlign: "left",
+            color: filters.soldListingDays ? "#1f2937" : "#374151",
+            fontWeight: filters.soldListingDays ? "500" : "400",
+          }}
+        >
+          <span>{formatSoldLabel()}</span>
+          <ChevronDown
+            size={16}
+            style={{
+              transform: isSoldOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+          />
+        </button>
+
+        {/* Sold Filter Dropdown */}
+        {isSoldOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              marginTop: "4px",
+              padding: "12px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              zIndex: 1001,
+              maxHeight: "400px",
+              overflowY: "auto",
+            }}
+          >
+            {soldListingOptions.map((option) => (
+              <label
+                key={option.value}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "8px",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <input
+                  type="radio"
+                  name="soldListingFilter"
+                  checked={filters.soldListingDays === option.value}
+                  onChange={() => handleSoldFilterChange(option.value)}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    cursor: "pointer",
+                  }}
+                />
+                <span style={{ fontSize: "14px", color: "#374151" }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Unavailable Listings Filter Button */}
+      <div ref={unavailableFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+        <button
+          onClick={() => setIsUnavailableOpen(!isUnavailableOpen)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: filters.unavailableListingDays ? "#f3f4f6" : "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            textAlign: "left",
+            color: filters.unavailableListingDays ? "#1f2937" : "#374151",
+            fontWeight: filters.unavailableListingDays ? "500" : "400",
+          }}
+        >
+          <span>{formatUnavailableLabel()}</span>
+          <ChevronDown
+            size={16}
+            style={{
+              transform: isUnavailableOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+          />
+        </button>
+
+        {/* Unavailable Filter Dropdown */}
+        {isUnavailableOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              marginTop: "4px",
+              padding: "12px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              zIndex: 1001,
+              maxHeight: "400px",
+              overflowY: "auto",
+            }}
+          >
+            {unavailableListingOptions.map((option) => (
+              <label
+                key={option.value}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "8px",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <input
+                  type="radio"
+                  name="unavailableListingFilter"
+                  checked={filters.unavailableListingDays === option.value}
+                  onChange={() => handleUnavailableFilterChange(option.value)}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    cursor: "pointer",
+                  }}
+                />
+                <span style={{ fontSize: "14px", color: "#374151" }}>{option.label}</span>
               </label>
             ))}
           </div>
@@ -3020,13 +3327,13 @@ export function MapListings({
 
   // Filter state
   const [filters, setFilters] = useState<MapFilters>({
-    listingType: "all",
+    listingType: "sale",
     propertyTypes: [],
     bedrooms: "all",
     bathrooms: "all",
     garageSpaces: "all",
     openHouse: "all",
-    standardStatus: ["Active"], // Default to showing only Active listings
+    activeListingDays: "all", // Default to showing all Active listings
   });
 
   // Handle filter changes
@@ -3315,24 +3622,102 @@ export function MapListings({
         url.searchParams.set("clusterPrecision", precision.toString());
         url.searchParams.set("clusterLimit", "500");
 
-        // Apply standardStatus filter (RESO-compliant)
-        if (filters.standardStatus && filters.standardStatus.length > 0) {
-          // Set standardStatus for each selected status
-          filters.standardStatus.forEach(status => {
-            url.searchParams.append("standardStatus", status);
-          });
+        // Apply status filtering - Active, Sold, Unavailable, or default to Active
+        if (filters.soldListingDays) {
+          // Sold listings: status=U with lastStatus=Sld,Sc
+          url.searchParams.set("status", "U");
+          url.searchParams.append("lastStatus", "Sld");
+          url.searchParams.append("lastStatus", "Sc");
+
+          // Apply sold date filter
+          const value = filters.soldListingDays;
+          const numValue = parseInt(value);
+
+          if (numValue >= 2007 && numValue <= 2025) {
+            // Year selection (e.g., "2024")
+            const minDate = `${value}-01-01`;
+            const maxDate = `${value}-12-31`;
+            url.searchParams.set("minSoldDate", minDate);
+            url.searchParams.set("maxSoldDate", maxDate);
+            console.log(`[Sold Filter] Year ${value} - minSoldDate=${minDate}, maxSoldDate=${maxDate}`);
+          } else {
+            // Day range selection (e.g., "30", "90", "180", "360")
+            // "Last X days" means listings that sold within the last X days
+            const now = new Date();
+            const minDate = new Date(now);
+            minDate.setDate(minDate.getDate() - numValue);
+            const minDateStr = minDate.toISOString().split('T')[0];
+            const maxDateStr = now.toISOString().split('T')[0];
+            url.searchParams.set("minSoldDate", minDateStr);
+            url.searchParams.set("maxSoldDate", maxDateStr);
+            console.log(`[Sold Filter] Last ${numValue} days - minSoldDate=${minDateStr}, maxSoldDate=${maxDateStr}`);
+          }
+        } else if (filters.unavailableListingDays) {
+          // Unavailable listings: status=U without lastStatus filter
+          url.searchParams.set("status", "U");
+
+          // Apply unavailable date filter using unavailableDate
+          const value = filters.unavailableListingDays;
+          const numValue = parseInt(value);
+
+          if (numValue >= 2007 && numValue <= 2025) {
+            // Year selection (e.g., "2024")
+            const minDate = `${value}-01-01`;
+            const maxDate = `${value}-12-31`;
+            url.searchParams.set("minUnavailableDate", minDate);
+            url.searchParams.set("maxUnavailableDate", maxDate);
+            console.log(`[Unavailable Filter] Year ${value} - minUnavailableDate=${minDate}, maxUnavailableDate=${maxDate}`);
+          } else {
+            // Day range selection (e.g., "30", "90", "180", "360")
+            // "Last X days" means listings that went unavailable within the last X days
+            const now = new Date();
+            const minDate = new Date(now);
+            minDate.setDate(minDate.getDate() - numValue);
+            const minDateStr = minDate.toISOString().split('T')[0];
+            const maxDateStr = now.toISOString().split('T')[0];
+            url.searchParams.set("minUnavailableDate", minDateStr);
+            url.searchParams.set("maxUnavailableDate", maxDateStr);
+            console.log(`[Unavailable Filter] Last ${numValue} days - minUnavailableDate=${minDateStr}, maxUnavailableDate=${maxDateStr}`);
+          }
+        } else {
+          // Active listings: status=A with date filtering
+          url.searchParams.set("status", "A");
+
+          // Apply listing date filter based on activeListingDays
+          if (filters.activeListingDays && filters.activeListingDays !== "all") {
+            const now = new Date();
+            const value = filters.activeListingDays;
+
+            if (value.endsWith("+")) {
+              // "More than X days" - listings listed before X days ago
+              const days = parseInt(value.replace("+", ""));
+              const date = new Date(now);
+              date.setDate(date.getDate() - days);
+              const dateStr = date.toISOString().split('T')[0];
+              url.searchParams.set("maxListDate", dateStr);
+              console.log(`[Active Filter] More than ${days} days - maxListDate=${dateStr}`);
+            } else {
+              // "Last X days" - listings listed within last X days
+              const days = parseInt(value);
+              const date = new Date(now);
+              date.setDate(date.getDate() - days);
+              const dateStr = date.toISOString().split('T')[0];
+              url.searchParams.set("minListDate", dateStr);
+              console.log(`[Active Filter] Last ${days} days - minListDate=${dateStr}`);
+            }
+          }
         }
+
+        console.log(`[API Call] ${url.toString()}`);
 
         url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
         url.searchParams.set("key", apiKey);
 
         // Apply listing type filter
-        if (filters.listingType !== "all") {
-          if (filters.listingType === "sale") {
-            url.searchParams.set("type", "Sale");
-          } else if (filters.listingType === "lease") {
-            url.searchParams.set("type", "Lease");
-          }
+        if (filters.listingType === "sale") {
+          url.searchParams.set("type", "Sale");
+        } else if (filters.listingType === "lease") {
+          url.searchParams.set("type", "Lease");
         }
 
         // Apply property type filter
