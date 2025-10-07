@@ -2419,11 +2419,18 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
 
   // Format active filter label
   const formatActiveLabel = () => {
-    if (!filters.activeListingDays || filters.activeListingDays === "all") {
-      return "Active: All";
+    if (filters.activeListingDays === undefined) {
+      return "Off";
+    }
+    if (filters.activeListingDays === "all") {
+      return "All";
     }
     const option = activeListingOptions.find(opt => opt.value === filters.activeListingDays);
-    return option ? `Active: ${option.label.replace("Last ", "").replace("More than ", ">")}` : "Active: All";
+    return option ? option.label.replace("Last ", "").replace("More than ", ">") : "All";
+  };
+
+  const isActiveFilterActive = () => {
+    return filters.activeListingDays !== undefined;
   };
 
   // Handle active listing filter change
@@ -2465,10 +2472,14 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   // Format sold filter label
   const formatSoldLabel = () => {
     if (!filters.soldListingDays) {
-      return "Sold";
+      return "Off";
     }
     const option = soldListingOptions.find(opt => opt.value === filters.soldListingDays);
-    return option ? `Sold: ${option.label.replace("Last ", "").replace("Year ", "")}` : "Sold";
+    return option ? option.label.replace("Last ", "").replace("Year ", "") : "Off";
+  };
+
+  const isSoldFilterActive = () => {
+    return !!filters.soldListingDays;
   };
 
   // Handle sold listing filter change
@@ -2510,10 +2521,14 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
   // Format unavailable filter label
   const formatUnavailableLabel = () => {
     if (!filters.unavailableListingDays) {
-      return "Unavailable";
+      return "Off";
     }
     const option = unavailableListingOptions.find(opt => opt.value === filters.unavailableListingDays);
-    return option ? `Unavailable: ${option.label.replace("Last ", "").replace("Year ", "")}` : "Unavailable";
+    return option ? option.label.replace("Last ", "").replace("Year ", "") : "Off";
+  };
+
+  const isUnavailableFilterActive = () => {
+    return !!filters.unavailableListingDays;
   };
 
   // Handle unavailable listing filter change
@@ -2592,12 +2607,31 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
     }
   }, [isMoreOpen]);
 
+  const handleClearFilters = () => {
+    onFiltersChange({
+      listingType: "sale",
+      propertyTypes: [],
+      minPrice: undefined,
+      maxPrice: null,
+      bedrooms: undefined,
+      bathrooms: undefined,
+      garageSpaces: undefined,
+      minSqft: undefined,
+      maxSqft: null,
+      openHouse: undefined,
+      maxMaintenanceFee: null,
+      activeListingDays: "all",
+      soldListingDays: undefined,
+      unavailableListingDays: undefined,
+    });
+  };
+
   return (
     <div
       style={{
         position: "absolute",
         top: "16px",
-        left: "60px", // Position to the right of zoom controls
+        left: "16px",
         backgroundColor: "rgba(255, 255, 255, 0.95)",
         borderRadius: "8px",
         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
@@ -2609,8 +2643,31 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
         minWidth: "200px",
       }}
     >
-      <div style={{ marginBottom: "8px", fontSize: "12px", fontWeight: "600", color: "#6b7280" }}>
-        FILTERS
+      <div style={{
+        marginBottom: "8px",
+        fontSize: "12px",
+        fontWeight: "600",
+        color: "#6b7280",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}>
+        <span>FILTERS</span>
+        <button
+          onClick={handleClearFilters}
+          style={{
+            padding: "2px 8px",
+            fontSize: "11px",
+            fontWeight: "500",
+            color: "#6b7280",
+            backgroundColor: "transparent",
+            border: "1px solid #d1d5db",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Clear
+        </button>
       </div>
 
       {/* Listing Type Dropdown */}
@@ -2745,28 +2802,44 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
           onClick={() => setIsActiveOpen(!isActiveOpen)}
           style={{
             width: "100%",
-            padding: "8px 12px",
-            backgroundColor: (filters.activeListingDays && filters.activeListingDays !== "all") ? "#f3f4f6" : "white",
+            padding: "0",
+            backgroundColor: "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
             cursor: "pointer",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            textAlign: "left",
-            color: (filters.activeListingDays && filters.activeListingDays !== "all") ? "#1f2937" : "#374151",
-            fontWeight: (filters.activeListingDays && filters.activeListingDays !== "all") ? "500" : "400",
+            overflow: "hidden",
           }}
         >
-          <span>{formatActiveLabel()}</span>
-          <ChevronDown
-            size={16}
+          <div
             style={{
-              transform: isActiveOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              width: "48px",
+              backgroundColor: isActiveFilterActive() ? "#10b981" : "#e5e7eb",
+              flexShrink: 0,
             }}
           />
+          <div
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              textAlign: "left",
+              color: "#1f2937",
+              fontWeight: "500",
+            }}
+          >
+            <span>Active: {formatActiveLabel()}</span>
+            <ChevronDown
+              size={16}
+              style={{
+                transform: isActiveOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s"
+              }}
+            />
+          </div>
         </button>
 
         {/* Active Filter Dropdown */}
@@ -2829,28 +2902,44 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
           onClick={() => setIsSoldOpen(!isSoldOpen)}
           style={{
             width: "100%",
-            padding: "8px 12px",
-            backgroundColor: filters.soldListingDays ? "#f3f4f6" : "white",
+            padding: "0",
+            backgroundColor: "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
             cursor: "pointer",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            textAlign: "left",
-            color: filters.soldListingDays ? "#1f2937" : "#374151",
-            fontWeight: filters.soldListingDays ? "500" : "400",
+            overflow: "hidden",
           }}
         >
-          <span>{formatSoldLabel()}</span>
-          <ChevronDown
-            size={16}
+          <div
             style={{
-              transform: isSoldOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              width: "48px",
+              backgroundColor: isSoldFilterActive() ? "#8b7fa8" : "#e5e7eb",
+              flexShrink: 0,
             }}
           />
+          <div
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              textAlign: "left",
+              color: "#1f2937",
+              fontWeight: "500",
+            }}
+          >
+            <span>Sold: {formatSoldLabel()}</span>
+            <ChevronDown
+              size={16}
+              style={{
+                transform: isSoldOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s"
+              }}
+            />
+          </div>
         </button>
 
         {/* Sold Filter Dropdown */}
@@ -2915,28 +3004,44 @@ function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
           onClick={() => setIsUnavailableOpen(!isUnavailableOpen)}
           style={{
             width: "100%",
-            padding: "8px 12px",
-            backgroundColor: filters.unavailableListingDays ? "#f3f4f6" : "white",
+            padding: "0",
+            backgroundColor: "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
             cursor: "pointer",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            textAlign: "left",
-            color: filters.unavailableListingDays ? "#1f2937" : "#374151",
-            fontWeight: filters.unavailableListingDays ? "500" : "400",
+            overflow: "hidden",
           }}
         >
-          <span>{formatUnavailableLabel()}</span>
-          <ChevronDown
-            size={16}
+          <div
             style={{
-              transform: isUnavailableOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              width: "48px",
+              backgroundColor: isUnavailableFilterActive() ? "#f59e0b" : "#e5e7eb",
+              flexShrink: 0,
             }}
           />
+          <div
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              textAlign: "left",
+              color: "#1f2937",
+              fontWeight: "500",
+            }}
+          >
+            <span>Unavailable: {formatUnavailableLabel()}</span>
+            <ChevronDown
+              size={16}
+              style={{
+                transform: isUnavailableOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s"
+              }}
+            />
+          </div>
         </button>
 
         {/* Unavailable Filter Dropdown */}
