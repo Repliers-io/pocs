@@ -103,7 +103,7 @@ export function MapListings({
         feature.properties.isProperty &&
         feature.properties.listPrice
       ) {
-        const { listPrice } = feature.properties;
+        const { listPrice, status, lastStatus } = feature.properties;
         const type = feature.properties.type || 'Sale';
         const [lng, lat] = feature.geometry.coordinates;
 
@@ -118,7 +118,7 @@ export function MapListings({
           return;
         }
 
-        const bubble = createPriceBubble(numericPrice, type);
+        const bubble = createPriceBubble(numericPrice, type, status, lastStatus);
 
         const marker = new mapboxgl.Marker({
           element: bubble,

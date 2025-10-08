@@ -5,7 +5,11 @@ import { PropertyTypeFilter } from "./PropertyTypeFilter";
 import { PriceRangeFilter } from "./PriceRangeFilter";
 import { SquareFootageFilter } from "./SquareFootageFilter";
 
-export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelProps) {
+export function FilterPanel({
+  filters,
+  onFiltersChange,
+  apiKey,
+}: FilterPanelProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
   const [isActiveOpen, setIsActiveOpen] = useState(false);
@@ -32,7 +36,10 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     setIsDropdownOpen(false);
   };
 
-  const handlePriceFilterApply = (minPrice: number, maxPrice: number | null) => {
+  const handlePriceFilterApply = (
+    minPrice: number,
+    maxPrice: number | null
+  ) => {
     onFiltersChange({
       ...filters,
       minPrice: minPrice || undefined,
@@ -68,7 +75,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     const formatPrice = (price: number) => {
       if (price >= 1000000) {
         const millions = price / 1000000;
-        return `$${millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10}M`;
+        return `$${
+          millions >= 10 ? Math.round(millions) : Math.round(millions * 10) / 10
+        }M`;
       }
       if (price >= 1000) {
         return `$${Math.round(price / 1000)}K`;
@@ -82,11 +91,13 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     return `${minText} - ${maxText}`;
   };
 
-  const selectedOption = listingTypeOptions.find(option => option.value === filters.listingType);
+  const selectedOption = listingTypeOptions.find(
+    (option) => option.value === filters.listingType
+  );
 
   // Active listing filter options
   const activeListingOptions = [
-    { value: "1" as const, label: "Last 1 days" },
+    { value: "1" as const, label: "Last 24 hours" },
     { value: "3" as const, label: "Last 3 days" },
     { value: "7" as const, label: "Last 7 days" },
     { value: "30" as const, label: "Last 30 days" },
@@ -106,8 +117,12 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     if (filters.activeListingDays === "all") {
       return "All";
     }
-    const option = activeListingOptions.find(opt => opt.value === filters.activeListingDays);
-    return option ? option.label.replace("Last ", "").replace("More than ", ">") : "All";
+    const option = activeListingOptions.find(
+      (opt) => opt.value === filters.activeListingDays
+    );
+    return option
+      ? option.label.replace("Last ", "").replace("More than ", ">")
+      : "All";
   };
 
   const isActiveFilterActive = () => {
@@ -115,7 +130,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
   };
 
   // Handle active listing filter change (supports bundled searches - doesn't clear other status filters)
-  const handleActiveFilterChange = (value: typeof filters.activeListingDays) => {
+  const handleActiveFilterChange = (
+    value: typeof filters.activeListingDays
+  ) => {
     onFiltersChange({ ...filters, activeListingDays: value });
     setIsActiveOpen(false);
   };
@@ -127,7 +144,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
   // Sold listing filter options
   const soldListingOptions = [
-    { value: "1" as const, label: "Last 1 days" },
+    { value: "1" as const, label: "Last 24 hours" },
     { value: "3" as const, label: "Last 3 days" },
     { value: "7" as const, label: "Last 7 days" },
     { value: "30" as const, label: "Last 30 days" },
@@ -160,8 +177,12 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     if (!filters.soldListingDays) {
       return "Off";
     }
-    const option = soldListingOptions.find(opt => opt.value === filters.soldListingDays);
-    return option ? option.label.replace("Last ", "").replace("Year ", "") : "Off";
+    const option = soldListingOptions.find(
+      (opt) => opt.value === filters.soldListingDays
+    );
+    return option
+      ? option.label.replace("Last ", "").replace("Year ", "")
+      : "Off";
   };
 
   const isSoldFilterActive = () => {
@@ -181,7 +202,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
   // Unavailable listing filter options (same as sold)
   const unavailableListingOptions = [
-    { value: "1" as const, label: "Last 1 days" },
+    { value: "1" as const, label: "Last 24 hours" },
     { value: "3" as const, label: "Last 3 days" },
     { value: "7" as const, label: "Last 7 days" },
     { value: "30" as const, label: "Last 30 days" },
@@ -214,8 +235,12 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     if (!filters.unavailableListingDays) {
       return "Off";
     }
-    const option = unavailableListingOptions.find(opt => opt.value === filters.unavailableListingDays);
-    return option ? option.label.replace("Last ", "").replace("Year ", "") : "Off";
+    const option = unavailableListingOptions.find(
+      (opt) => opt.value === filters.unavailableListingDays
+    );
+    return option
+      ? option.label.replace("Last ", "").replace("Year ", "")
+      : "Off";
   };
 
   const isUnavailableFilterActive = () => {
@@ -223,7 +248,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
   };
 
   // Handle unavailable listing filter change (supports bundled searches - doesn't clear other status filters)
-  const handleUnavailableFilterChange = (value: typeof filters.unavailableListingDays) => {
+  const handleUnavailableFilterChange = (
+    value: typeof filters.unavailableListingDays
+  ) => {
     onFiltersChange({ ...filters, unavailableListingDays: value });
     setIsUnavailableOpen(false);
   };
@@ -236,70 +263,90 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
   // Handle click outside to close price filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (priceFilterRef.current && !priceFilterRef.current.contains(event.target as Node)) {
+      if (
+        priceFilterRef.current &&
+        !priceFilterRef.current.contains(event.target as Node)
+      ) {
         setIsPriceFilterOpen(false);
       }
     };
 
     if (isPriceFilterOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isPriceFilterOpen]);
 
   // Handle click outside to close active filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (activeFilterRef.current && !activeFilterRef.current.contains(event.target as Node)) {
+      if (
+        activeFilterRef.current &&
+        !activeFilterRef.current.contains(event.target as Node)
+      ) {
         setIsActiveOpen(false);
       }
     };
 
     if (isActiveOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isActiveOpen]);
 
   // Handle click outside to close sold filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (soldFilterRef.current && !soldFilterRef.current.contains(event.target as Node)) {
+      if (
+        soldFilterRef.current &&
+        !soldFilterRef.current.contains(event.target as Node)
+      ) {
         setIsSoldOpen(false);
       }
     };
 
     if (isSoldOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isSoldOpen]);
 
   // Handle click outside to close unavailable filter dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (unavailableFilterRef.current && !unavailableFilterRef.current.contains(event.target as Node)) {
+      if (
+        unavailableFilterRef.current &&
+        !unavailableFilterRef.current.contains(event.target as Node)
+      ) {
         setIsUnavailableOpen(false);
       }
     };
 
     if (isUnavailableOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isUnavailableOpen]);
 
   // Handle click outside to close more filters dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (moreFiltersRef.current && !moreFiltersRef.current.contains(event.target as Node)) {
+      if (
+        moreFiltersRef.current &&
+        !moreFiltersRef.current.contains(event.target as Node)
+      ) {
         setIsMoreOpen(false);
       }
     };
 
     if (isMoreOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isMoreOpen]);
 
@@ -339,15 +386,17 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
         minWidth: "200px",
       }}
     >
-      <div style={{
-        marginBottom: "8px",
-        fontSize: "12px",
-        fontWeight: "600",
-        color: "#6b7280",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}>
+      <div
+        style={{
+          marginBottom: "8px",
+          fontSize: "12px",
+          fontWeight: "600",
+          color: "#6b7280",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <span>FILTERS</span>
         <button
           onClick={handleClearFilters}
@@ -373,8 +422,12 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
           style={{
             width: "100%",
             padding: "8px 12px",
-            backgroundColor: filters.listingType === "sale" ? "#d1fae5" : "#f3e8ff",
-            border: filters.listingType === "sale" ? "1px solid #86efac" : "1px solid #d8b4fe",
+            backgroundColor:
+              filters.listingType === "sale" ? "#d1fae5" : "#f3e8ff",
+            border:
+              filters.listingType === "sale"
+                ? "1px solid #86efac"
+                : "1px solid #d8b4fe",
             borderRadius: "6px",
             fontSize: "14px",
             fontWeight: "500",
@@ -390,7 +443,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             size={16}
             style={{
               transform: isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              transition: "transform 0.2s",
             }}
           />
         </button>
@@ -417,13 +470,19 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                 style={{
                   width: "100%",
                   padding: "8px 12px",
-                  backgroundColor: filters.listingType === option.value ? "#f3f4f6" : "white",
+                  backgroundColor:
+                    filters.listingType === option.value ? "#f3f4f6" : "white",
                   border: "none",
                   fontSize: "14px",
                   cursor: "pointer",
                   textAlign: "left",
-                  borderRadius: option === listingTypeOptions[0] ? "6px 6px 0 0" :
-                            option === listingTypeOptions[listingTypeOptions.length - 1] ? "0 0 6px 6px" : "0",
+                  borderRadius:
+                    option === listingTypeOptions[0]
+                      ? "6px 6px 0 0"
+                      : option ===
+                        listingTypeOptions[listingTypeOptions.length - 1]
+                      ? "0 0 6px 6px"
+                      : "0",
                 }}
                 onMouseEnter={(e) => {
                   if (filters.listingType !== option.value) {
@@ -451,13 +510,17 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
       />
 
       {/* Price Filter Button */}
-      <div ref={priceFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+      <div
+        ref={priceFilterRef}
+        style={{ position: "relative", marginBottom: "12px" }}
+      >
         <button
           onClick={() => setIsPriceFilterOpen(!isPriceFilterOpen)}
           style={{
             width: "100%",
             padding: "8px 12px",
-            backgroundColor: (filters.minPrice || filters.maxPrice) ? "#f3f4f6" : "white",
+            backgroundColor:
+              filters.minPrice || filters.maxPrice ? "#f3f4f6" : "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
@@ -466,8 +529,8 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             justifyContent: "space-between",
             alignItems: "center",
             textAlign: "left",
-            color: (filters.minPrice || filters.maxPrice) ? "#1f2937" : "#374151",
-            fontWeight: (filters.minPrice || filters.maxPrice) ? "500" : "400",
+            color: filters.minPrice || filters.maxPrice ? "#1f2937" : "#374151",
+            fontWeight: filters.minPrice || filters.maxPrice ? "500" : "400",
           }}
         >
           <span>{formatPriceRange()}</span>
@@ -475,7 +538,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             size={16}
             style={{
               transform: isPriceFilterOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              transition: "transform 0.2s",
             }}
           />
         </button>
@@ -493,7 +556,10 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
       </div>
 
       {/* Active Listings Filter Button */}
-      <div ref={activeFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+      <div
+        ref={activeFilterRef}
+        style={{ position: "relative", marginBottom: "12px" }}
+      >
         <div
           style={{
             width: "100%",
@@ -539,7 +605,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
               size={16}
               style={{
                 transform: isActiveOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s"
+                transition: "transform 0.2s",
               }}
             />
           </button>
@@ -583,7 +649,10 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                 <input
                   type="radio"
                   name="activeListingFilter"
-                  checked={filters.activeListingDays === option.value || (!filters.activeListingDays && option.value === "all")}
+                  checked={
+                    filters.activeListingDays === option.value ||
+                    (!filters.activeListingDays && option.value === "all")
+                  }
                   onChange={() => handleActiveFilterChange(option.value)}
                   style={{
                     marginRight: "8px",
@@ -592,7 +661,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                     cursor: "pointer",
                   }}
                 />
-                <span style={{ fontSize: "14px", color: "#374151" }}>{option.label}</span>
+                <span style={{ fontSize: "14px", color: "#374151" }}>
+                  {option.label}
+                </span>
               </label>
             ))}
           </div>
@@ -600,7 +671,10 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
       </div>
 
       {/* Sold Listings Filter Button */}
-      <div ref={soldFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+      <div
+        ref={soldFilterRef}
+        style={{ position: "relative", marginBottom: "12px" }}
+      >
         <div
           style={{
             width: "100%",
@@ -646,7 +720,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
               size={16}
               style={{
                 transform: isSoldOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s"
+                transition: "transform 0.2s",
               }}
             />
           </button>
@@ -701,7 +775,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                     cursor: "pointer",
                   }}
                 />
-                <span style={{ fontSize: "14px", color: "#374151" }}>{option.label}</span>
+                <span style={{ fontSize: "14px", color: "#374151" }}>
+                  {option.label}
+                </span>
               </label>
             ))}
           </div>
@@ -709,7 +785,10 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
       </div>
 
       {/* Unavailable Listings Filter Button */}
-      <div ref={unavailableFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
+      <div
+        ref={unavailableFilterRef}
+        style={{ position: "relative", marginBottom: "12px" }}
+      >
         <div
           style={{
             width: "100%",
@@ -729,7 +808,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             }}
             style={{
               width: "48px",
-              backgroundColor: isUnavailableFilterActive() ? "#f59e0b" : "#e5e7eb",
+              backgroundColor: isUnavailableFilterActive()
+                ? "#f59e0b"
+                : "#e5e7eb",
               flexShrink: 0,
               cursor: isUnavailableFilterActive() ? "pointer" : "default",
             }}
@@ -750,12 +831,14 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
               border: "none",
             }}
           >
-            <span>Unavailable: {formatUnavailableLabel()}</span>
+            <span>De-listed: {formatUnavailableLabel()}</span>
             <ChevronDown
               size={16}
               style={{
-                transform: isUnavailableOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s"
+                transform: isUnavailableOpen
+                  ? "rotate(180deg)"
+                  : "rotate(0deg)",
+                transition: "transform 0.2s",
               }}
             />
           </button>
@@ -810,7 +893,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                     cursor: "pointer",
                   }}
                 />
-                <span style={{ fontSize: "14px", color: "#374151" }}>{option.label}</span>
+                <span style={{ fontSize: "14px", color: "#374151" }}>
+                  {option.label}
+                </span>
               </label>
             ))}
           </div>
@@ -818,13 +903,25 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
       </div>
 
       {/* More Filters Button */}
-      <div ref={moreFiltersRef} style={{ position: "relative", marginBottom: "12px" }}>
+      <div
+        ref={moreFiltersRef}
+        style={{ position: "relative", marginBottom: "12px" }}
+      >
         <button
           onClick={() => setIsMoreOpen(!isMoreOpen)}
           style={{
             width: "100%",
             padding: "8px 12px",
-            backgroundColor: (filters.bedrooms !== "all" || filters.bathrooms !== "all" || filters.garageSpaces !== "all" || filters.minSqft || filters.maxSqft || (filters.openHouse && filters.openHouse !== "all") || filters.maxMaintenanceFee) ? "#f3f4f6" : "white",
+            backgroundColor:
+              filters.bedrooms !== "all" ||
+              filters.bathrooms !== "all" ||
+              filters.garageSpaces !== "all" ||
+              filters.minSqft ||
+              filters.maxSqft ||
+              (filters.openHouse && filters.openHouse !== "all") ||
+              filters.maxMaintenanceFee
+                ? "#f3f4f6"
+                : "white",
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
@@ -834,7 +931,16 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             alignItems: "center",
             textAlign: "left",
             color: "#374151",
-            fontWeight: (filters.bedrooms !== "all" || filters.bathrooms !== "all" || filters.garageSpaces !== "all" || filters.minSqft || filters.maxSqft || (filters.openHouse && filters.openHouse !== "all") || filters.maxMaintenanceFee) ? "500" : "400",
+            fontWeight:
+              filters.bedrooms !== "all" ||
+              filters.bathrooms !== "all" ||
+              filters.garageSpaces !== "all" ||
+              filters.minSqft ||
+              filters.maxSqft ||
+              (filters.openHouse && filters.openHouse !== "all") ||
+              filters.maxMaintenanceFee
+                ? "500"
+                : "400",
           }}
         >
           <span>More Filters</span>
@@ -842,7 +948,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             size={16}
             style={{
               transform: isMoreOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              transition: "transform 0.2s",
             }}
           />
         </button>
@@ -866,19 +972,31 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
           >
             {/* Bedrooms Filter */}
             <div>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
                 BEDROOMS
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {["all", "0", "1", "2", "3", "4", "5+"].map((value) => (
                   <button
                     key={value}
-                    onClick={() => onFiltersChange({ ...filters, bedrooms: value as any })}
+                    onClick={() =>
+                      onFiltersChange({ ...filters, bedrooms: value as any })
+                    }
                     style={{
                       padding: "8px 16px",
-                      backgroundColor: filters.bedrooms === value ? "#3b82f6" : "white",
+                      backgroundColor:
+                        filters.bedrooms === value ? "#3b82f6" : "white",
                       color: filters.bedrooms === value ? "white" : "#374151",
-                      border: `1px solid ${filters.bedrooms === value ? "#3b82f6" : "#d1d5db"}`,
+                      border: `1px solid ${
+                        filters.bedrooms === value ? "#3b82f6" : "#d1d5db"
+                      }`,
                       borderRadius: "6px",
                       fontSize: "14px",
                       fontWeight: filters.bedrooms === value ? "600" : "400",
@@ -904,19 +1022,31 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
             {/* Bathrooms Filter */}
             <div>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
                 BATHROOMS
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {["all", "1+", "2+", "3+", "4+", "5+"].map((value) => (
                   <button
                     key={value}
-                    onClick={() => onFiltersChange({ ...filters, bathrooms: value as any })}
+                    onClick={() =>
+                      onFiltersChange({ ...filters, bathrooms: value as any })
+                    }
                     style={{
                       padding: "8px 16px",
-                      backgroundColor: filters.bathrooms === value ? "#3b82f6" : "white",
+                      backgroundColor:
+                        filters.bathrooms === value ? "#3b82f6" : "white",
                       color: filters.bathrooms === value ? "white" : "#374151",
-                      border: `1px solid ${filters.bathrooms === value ? "#3b82f6" : "#d1d5db"}`,
+                      border: `1px solid ${
+                        filters.bathrooms === value ? "#3b82f6" : "#d1d5db"
+                      }`,
                       borderRadius: "6px",
                       fontSize: "14px",
                       fontWeight: filters.bathrooms === value ? "600" : "400",
@@ -942,22 +1072,39 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
             {/* Garage/Parking Filter */}
             <div>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
                 GARAGE / PARKING
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {["all", "1+", "2+", "3+", "4+", "5+"].map((value) => (
                   <button
                     key={value}
-                    onClick={() => onFiltersChange({ ...filters, garageSpaces: value as any })}
+                    onClick={() =>
+                      onFiltersChange({
+                        ...filters,
+                        garageSpaces: value as any,
+                      })
+                    }
                     style={{
                       padding: "8px 16px",
-                      backgroundColor: filters.garageSpaces === value ? "#3b82f6" : "white",
-                      color: filters.garageSpaces === value ? "white" : "#374151",
-                      border: `1px solid ${filters.garageSpaces === value ? "#3b82f6" : "#d1d5db"}`,
+                      backgroundColor:
+                        filters.garageSpaces === value ? "#3b82f6" : "white",
+                      color:
+                        filters.garageSpaces === value ? "white" : "#374151",
+                      border: `1px solid ${
+                        filters.garageSpaces === value ? "#3b82f6" : "#d1d5db"
+                      }`,
                       borderRadius: "6px",
                       fontSize: "14px",
-                      fontWeight: filters.garageSpaces === value ? "600" : "400",
+                      fontWeight:
+                        filters.garageSpaces === value ? "600" : "400",
                       cursor: "pointer",
                       transition: "all 0.2s",
                     }}
@@ -980,7 +1127,14 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
             {/* Square Footage Filter */}
             <div>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
                 SQUARE FOOTAGE
               </div>
               <SquareFootageFilter
@@ -994,7 +1148,14 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
             {/* Open House Filter */}
             <div>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
                 OPEN HOUSE
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -1003,16 +1164,21 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                   { value: "today", label: "Today" },
                   { value: "thisWeekend", label: "This Weekend" },
                   { value: "thisWeek", label: "This Week" },
-                  { value: "anytime", label: "Anytime" }
+                  { value: "anytime", label: "Anytime" },
                 ].map(({ value, label }) => (
                   <button
                     key={value}
-                    onClick={() => onFiltersChange({ ...filters, openHouse: value as any })}
+                    onClick={() =>
+                      onFiltersChange({ ...filters, openHouse: value as any })
+                    }
                     style={{
                       padding: "8px 16px",
-                      backgroundColor: filters.openHouse === value ? "#3b82f6" : "white",
+                      backgroundColor:
+                        filters.openHouse === value ? "#3b82f6" : "white",
                       color: filters.openHouse === value ? "white" : "#374151",
-                      border: `1px solid ${filters.openHouse === value ? "#3b82f6" : "#d1d5db"}`,
+                      border: `1px solid ${
+                        filters.openHouse === value ? "#3b82f6" : "#d1d5db"
+                      }`,
                       borderRadius: "6px",
                       fontSize: "14px",
                       fontWeight: filters.openHouse === value ? "600" : "400",
@@ -1038,22 +1204,41 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
             {/* Maintenance Fee Filter */}
             <div>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                }}
+              >
                 MAX MAINTENANCE FEE
               </div>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
                 <input
                   type="number"
                   placeholder="Enter max fee"
                   value={filters.maxMaintenanceFee || ""}
                   onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value) : undefined;
-                    onFiltersChange({ ...filters, maxMaintenanceFee: value || null });
+                    const value = e.target.value
+                      ? parseInt(e.target.value)
+                      : undefined;
+                    onFiltersChange({
+                      ...filters,
+                      maxMaintenanceFee: value || null,
+                    });
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const value = e.currentTarget.value ? parseInt(e.currentTarget.value) : undefined;
-                      onFiltersChange({ ...filters, maxMaintenanceFee: value || null });
+                    if (e.key === "Enter") {
+                      const value = e.currentTarget.value
+                        ? parseInt(e.currentTarget.value)
+                        : undefined;
+                      onFiltersChange({
+                        ...filters,
+                        maxMaintenanceFee: value || null,
+                      });
                     }
                   }}
                   style={{
