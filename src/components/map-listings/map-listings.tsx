@@ -77,7 +77,7 @@ export function MapListings({
     bathrooms: "all",
     garageSpaces: "all",
     openHouse: "all",
-    activeListingDays: "all", // Default to showing all Active listings
+    // activeListingDays is undefined by default, will auto-default to "all" Active if no status filters selected
   });
 
   // Handle filter changes
@@ -269,6 +269,244 @@ export function MapListings({
     ];
   }, []);
 
+  // Helper: Build query parameters for a specific status type (for bundled searches)
+  const buildStatusQueryParams = useCallback((
+    statusType: 'active' | 'sold' | 'unavailable',
+    statusValue: string,
+    zoom: number
+  ): Record<string, any> => {
+    const params: Record<string, any> = {};
+
+    // Status-specific filters
+    if (statusType === 'active') {
+      params.status = 'A';
+
+      // Apply listing date filter
+      if (statusValue !== 'all') {
+        const now = new Date();
+        if (statusValue.endsWith('+')) {
+          const days = parseInt(statusValue.replace('+', ''));
+          const date = new Date(now);
+          date.setDate(date.getDate() - days);
+          params.maxListDate = date.toISOString().split('T')[0];
+        } else {
+          const days = parseInt(statusValue);
+          const date = new Date(now);
+          date.setDate(date.getDate() - days);
+          params.minListDate = date.toISOString().split('T')[0];
+        }
+      }
+    } else if (statusType === 'sold') {
+      params.status = 'U';
+      // For POST requests, try both Sld and Sc as separate parameters would work in GET,
+      // but for JSON body we'll just use the primary one
+      params.lastStatus = 'Sld';
+
+      // Apply sold date filter
+      const numValue = parseInt(statusValue);
+      if (numValue >= 2007 && numValue <= 2025) {
+        params.minSoldDate = `${statusValue}-01-01`;
+        params.maxSoldDate = `${statusValue}-12-31`;
+      } else {
+        const now = new Date();
+        const minDate = new Date(now);
+        minDate.setDate(minDate.getDate() - numValue);
+        params.minSoldDate = minDate.toISOString().split('T')[0];
+        params.maxSoldDate = now.toISOString().split('T')[0];
+      }
+    } else if (statusType === 'unavailable') {
+      params.status = 'U';
+      // Unavailable listings: Don't specify lastStatus to get all U listings
+      // The unavailableDate filter should help differentiate from Sold listings
+      // Note: This will include Sold listings that have unavailableDate set
+      // If we need to exclude Sold, we may need a different API approach
+
+      // Apply unavailable date filter
+      const numValue = parseInt(statusValue);
+      if (numValue >= 2007 && numValue <= 2025) {
+        params.minUnavailableDate = `${statusValue}-01-01`;
+        params.maxUnavailableDate = `${statusValue}-12-31`;
+      } else {
+        const now = new Date();
+        const minDate = new Date(now);
+        minDate.setDate(minDate.getDate() - numValue);
+        params.minUnavailableDate = minDate.toISOString().split('T')[0];
+        params.maxUnavailableDate = now.toISOString().split('T')[0];
+      }
+    }
+
+    // Common filters that apply to all status types
+    if (filters.listingType === 'sale') {
+      params.type = 'Sale';
+    } else if (filters.listingType === 'lease') {
+      params.type = 'Lease';
+    }
+
+    if (filters.propertyTypes.length === 1) {
+      params['details.propertyType'] = filters.propertyTypes[0];
+    }
+
+    if (filters.minPrice && filters.minPrice > 0) {
+      params.minPrice = filters.minPrice;
+    }
+    if (filters.maxPrice && filters.maxPrice > 0) {
+      params.maxPrice = filters.maxPrice;
+    }
+
+    if (filters.bedrooms && filters.bedrooms !== 'all') {
+      if (filters.bedrooms === '5+') {
+        params.minBedrooms = 5;
+      } else {
+        params.minBedrooms = parseInt(filters.bedrooms);
+        params.maxBedrooms = parseInt(filters.bedrooms);
+      }
+    }
+
+    if (filters.bathrooms && filters.bathrooms !== 'all') {
+      params.minBaths = parseInt(filters.bathrooms.replace('+', ''));
+    }
+
+    if (filters.garageSpaces && filters.garageSpaces !== 'all') {
+      params.minGarageSpaces = parseInt(filters.garageSpaces.replace('+', ''));
+    }
+
+    if (filters.minSqft && filters.minSqft > 0) {
+      params.minSqft = filters.minSqft;
+    }
+    if (filters.maxSqft && filters.maxSqft > 0) {
+      params.maxSqft = filters.maxSqft;
+    }
+
+    if (filters.openHouse && filters.openHouse !== 'all') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let minDate: Date | null = null;
+      let maxDate: Date | null = null;
+
+      if (filters.openHouse === 'today') {
+        minDate = today;
+        maxDate = today;
+      } else if (filters.openHouse === 'thisWeekend') {
+        const dayOfWeek = today.getDay();
+        const daysUntilSaturday = dayOfWeek === 0 ? 6 : 6 - dayOfWeek;
+        const saturday = new Date(today);
+        saturday.setDate(today.getDate() + daysUntilSaturday);
+        const sunday = new Date(saturday);
+        sunday.setDate(saturday.getDate() + 1);
+        minDate = saturday;
+        maxDate = sunday;
+      } else if (filters.openHouse === 'thisWeek') {
+        minDate = today;
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
+        maxDate = endOfWeek;
+      } else if (filters.openHouse === 'anytime') {
+        minDate = today;
+      }
+
+      if (minDate) {
+        params.minOpenHouseDate = minDate.toISOString().split('T')[0];
+        if (maxDate) {
+          params.maxOpenHouseDate = maxDate.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    return params;
+  }, [filters]);
+
+  // Helper function to calculate distance between two coordinates (in meters)
+  const calculateDistance = useCallback((coord1: [number, number], coord2: [number, number]): number => {
+    const [lng1, lat1] = coord1;
+    const [lng2, lat2] = coord2;
+
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }, []);
+
+  // Group features by proximity
+  const groupFeaturesByProximity = useCallback((features: any[], radiusMeters: number): any[][] => {
+    const groups: any[][] = [];
+    const processed = new Set<number>();
+
+    features.forEach((feature, index) => {
+      if (processed.has(index)) return;
+
+      const group = [feature];
+      processed.add(index);
+
+      const featureCoords = feature.geometry.coordinates as [number, number];
+
+      // Find all other features within radius
+      features.forEach((otherFeature, otherIndex) => {
+        if (processed.has(otherIndex) || index === otherIndex) return;
+
+        const otherCoords = otherFeature.geometry.coordinates as [number, number];
+        const distance = calculateDistance(featureCoords, otherCoords);
+
+        if (distance <= radiusMeters) {
+          group.push(otherFeature);
+          processed.add(otherIndex);
+        }
+      });
+
+      groups.push(group);
+    });
+
+    return groups;
+  }, [calculateDistance]);
+
+  // Merge small clusters (blue/yellow ones) while keeping large clusters intact
+  const mergeSmallClusters = useCallback((features: any[], zoom: number): any[] => {
+    // Define what counts as a "small cluster" that should be merged
+    // More aggressive merging at mid-zoom to reduce clutter
+    const smallClusterThreshold = zoom <= 10 ? 30 : (zoom <= 12 ? 60 : (zoom <= 13 ? 100 : 30));
+    const mergeRadius = zoom <= 10 ? 500 : (zoom <= 12 ? 300 : (zoom <= 13 ? 200 : 100)); // meters
+
+    const smallClusters = features.filter(f => f.properties.count <= smallClusterThreshold);
+    const largeClusters = features.filter(f => f.properties.count > smallClusterThreshold);
+
+    if (smallClusters.length === 0) {
+      return features; // No small clusters to merge
+    }
+
+    // Group small clusters by proximity for merging
+    const smallClusterGroups = groupFeaturesByProximity(smallClusters, mergeRadius);
+
+    const mergedFeatures = smallClusterGroups.map(group => {
+      if (group.length === 1) {
+        return group[0]; // Single cluster, no merging needed
+      }
+
+      // Merge multiple small clusters into one larger cluster
+      const totalCount = group.reduce((sum, cluster) => sum + cluster.properties.count, 0);
+      const avgLng = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[0], 0) / group.length;
+      const avgLat = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[1], 0) / group.length;
+
+      return {
+        type: "Feature" as const,
+        properties: {
+          count: totalCount,
+          precision: group[0].properties.precision,
+          id: `merged-${group.map(c => c.properties.id).join('-')}`,
+          members: [], // Could combine members if needed
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [avgLng, avgLat] as [number, number],
+        },
+      };
+    });
+
+    return [...largeClusters, ...mergedFeatures];
+  }, [groupFeaturesByProximity]);
+
   // Fetch clusters from Repliers API
   const fetchClusters = useCallback(
     async (bounds: mapboxgl.LngLatBounds) => {
@@ -293,241 +531,150 @@ export function MapListings({
       // Update last fetch params
       lastFetchParams.current = { bounds: boundsKey, zoom: roundedZoom, filters: filtersKey };
 
-
-
       currentZoomLevel.current = zoom;
-
-
       setError(null);
 
-
       try {
-        const url = new URL("https://api.repliers.io/listings");
-        url.searchParams.set("cluster", "true");
-        url.searchParams.set("clusterPrecision", precision.toString());
-        url.searchParams.set("clusterLimit", "500");
+        // Detect which status filters are active
+        const activeStatuses: Array<{type: 'active' | 'sold' | 'unavailable', value: string}> = [];
 
-        // Apply status filtering - Active, Sold, Unavailable, or default to Active
-        if (filters.soldListingDays) {
-          // Sold listings: status=U with lastStatus=Sld,Sc
-          url.searchParams.set("status", "U");
-          url.searchParams.append("lastStatus", "Sld");
-          url.searchParams.append("lastStatus", "Sc");
+        if (filters.activeListingDays !== undefined) {
+          activeStatuses.push({ type: 'active', value: filters.activeListingDays });
+        }
+        if (filters.soldListingDays !== undefined) {
+          activeStatuses.push({ type: 'sold', value: filters.soldListingDays });
+        }
+        if (filters.unavailableListingDays !== undefined) {
+          activeStatuses.push({ type: 'unavailable', value: filters.unavailableListingDays });
+        }
 
-          // Apply sold date filter
-          const value = filters.soldListingDays;
-          const numValue = parseInt(value);
+        // Default to active if no status filters are set
+        if (activeStatuses.length === 0) {
+          activeStatuses.push({ type: 'active', value: 'all' });
+        }
 
-          if (numValue >= 2007 && numValue <= 2025) {
-            // Year selection (e.g., "2024")
-            const minDate = `${value}-01-01`;
-            const maxDate = `${value}-12-31`;
-            url.searchParams.set("minSoldDate", minDate);
-            url.searchParams.set("maxSoldDate", maxDate);
-            console.log(`[Sold Filter] Year ${value} - minSoldDate=${minDate}, maxSoldDate=${maxDate}`);
+        // Check if we need bundled search (multiple status types)
+        const needsBundledSearch = activeStatuses.length > 1;
+
+        let data: any;
+
+        if (needsBundledSearch) {
+          // BUNDLED SEARCH: Multiple status types active
+          console.log(`[Bundled Search] Multiple status filters active:`, activeStatuses.map(s => s.type));
+
+          // Build queries array (only include search filters, not cluster/listings params)
+          const queries = activeStatuses.map(({ type, value }) => {
+            const queryParams = buildStatusQueryParams(type, value, zoom);
+
+            // Add the map polygon to each query
+            queryParams.map = boundsToPolygon(bounds);
+
+            return queryParams;
+          });
+
+          // Build URL with global parameters (cluster settings go in query string, not body)
+          const url = new URL('https://api.repliers.io/listings');
+          url.searchParams.set('cluster', 'true');
+          url.searchParams.set('clusterPrecision', precision.toString());
+          url.searchParams.set('clusterLimit', '500');
+          url.searchParams.set('clusterFields', 'mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class');
+
+          // At high zoom, request individual listings (global params)
+          if (zoom >= 14) {
+            url.searchParams.set('listings', 'true');
+            url.searchParams.set('fields', 'address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map');
+            url.searchParams.set('pageSize', '500');
           } else {
-            // Day range selection (e.g., "30", "90", "180", "360")
-            // "Last X days" means listings that sold within the last X days
-            const now = new Date();
-            const minDate = new Date(now);
-            minDate.setDate(minDate.getDate() - numValue);
-            const minDateStr = minDate.toISOString().split('T')[0];
-            const maxDateStr = now.toISOString().split('T')[0];
-            url.searchParams.set("minSoldDate", minDateStr);
-            url.searchParams.set("maxSoldDate", maxDateStr);
-            console.log(`[Sold Filter] Last ${numValue} days - minSoldDate=${minDateStr}, maxSoldDate=${maxDateStr}`);
+            url.searchParams.set('listings', 'false');
           }
-        } else if (filters.unavailableListingDays) {
-          // Unavailable listings: status=U without lastStatus filter
-          url.searchParams.set("status", "U");
 
-          // Apply unavailable date filter using unavailableDate
-          const value = filters.unavailableListingDays;
-          const numValue = parseInt(value);
+          // Make POST request with bundled queries
+          const requestBody = { queries };
+          console.log(`[Bundled Search] POST Request Body:`, JSON.stringify(requestBody, null, 2));
+          console.log(`[Bundled Search] POST URL:`, url.toString());
 
-          if (numValue >= 2007 && numValue <= 2025) {
-            // Year selection (e.g., "2024")
-            const minDate = `${value}-01-01`;
-            const maxDate = `${value}-12-31`;
-            url.searchParams.set("minUnavailableDate", minDate);
-            url.searchParams.set("maxUnavailableDate", maxDate);
-            console.log(`[Unavailable Filter] Year ${value} - minUnavailableDate=${minDate}, maxUnavailableDate=${maxDate}`);
-          } else {
-            // Day range selection (e.g., "30", "90", "180", "360")
-            // "Last X days" means listings that went unavailable within the last X days
-            const now = new Date();
-            const minDate = new Date(now);
-            minDate.setDate(minDate.getDate() - numValue);
-            const minDateStr = minDate.toISOString().split('T')[0];
-            const maxDateStr = now.toISOString().split('T')[0];
-            url.searchParams.set("minUnavailableDate", minDateStr);
-            url.searchParams.set("maxUnavailableDate", maxDateStr);
-            console.log(`[Unavailable Filter] Last ${numValue} days - minUnavailableDate=${minDateStr}, maxUnavailableDate=${maxDateStr}`);
+          const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+              'REPLIERS-API-KEY': apiKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[Bundled Search] Error Response:`, errorText);
+            throw new Error(`Bundled API Error: ${response.status} ${response.statusText} - ${errorText}`);
           }
+
+          data = await response.json();
+
+          // The bundled search API automatically merges results from all queries
+          // Response structure is identical to single search (aggregates.map.clusters, listings, etc.)
+          const clusters = data.aggregates?.map?.clusters || [];
+          const listings = data.listings || [];
+          console.log(`[Bundled Search] API returned ${clusters.length} clusters and ${listings.length} listings (already merged)`);
+
         } else {
-          // Active listings: status=A with date filtering
-          url.searchParams.set("status", "A");
+          // SINGLE SEARCH: Only one status type active (original GET request logic)
+          const { type: statusType, value: statusValue } = activeStatuses[0];
+          console.log(`[Single Search] Status: ${statusType}, Value: ${statusValue}`);
 
-          // Apply listing date filter based on activeListingDays
-          if (filters.activeListingDays && filters.activeListingDays !== "all") {
-            const now = new Date();
-            const value = filters.activeListingDays;
+          const url = new URL("https://api.repliers.io/listings");
+          url.searchParams.set("cluster", "true");
+          url.searchParams.set("clusterPrecision", precision.toString());
+          url.searchParams.set("clusterLimit", "500");
 
-            if (value.endsWith("+")) {
-              // "More than X days" - listings listed before X days ago
-              const days = parseInt(value.replace("+", ""));
-              const date = new Date(now);
-              date.setDate(date.getDate() - days);
-              const dateStr = date.toISOString().split('T')[0];
-              url.searchParams.set("maxListDate", dateStr);
-              console.log(`[Active Filter] More than ${days} days - maxListDate=${dateStr}`);
+          // Build query params for single status
+          const queryParams = buildStatusQueryParams(statusType, statusValue, zoom);
+
+          // Add all params to URL
+          Object.entries(queryParams).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              value.forEach(v => url.searchParams.append(key, v.toString()));
             } else {
-              // "Last X days" - listings listed within last X days
-              const days = parseInt(value);
-              const date = new Date(now);
-              date.setDate(date.getDate() - days);
-              const dateStr = date.toISOString().split('T')[0];
-              url.searchParams.set("minListDate", dateStr);
-              console.log(`[Active Filter] Last ${days} days - minListDate=${dateStr}`);
+              url.searchParams.set(key, value.toString());
             }
-          }
-        }
+          });
 
-        console.log(`[API Call] ${url.toString()}`);
-
-        url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
-        url.searchParams.set("key", apiKey);
-
-        // Apply listing type filter
-        if (filters.listingType === "sale") {
-          url.searchParams.set("type", "Sale");
-        } else if (filters.listingType === "lease") {
-          url.searchParams.set("type", "Lease");
-        }
-
-        // Apply property type filter
-        if (filters.propertyTypes.length === 1) {
-          // Single property type - works perfectly
-          url.searchParams.set("details.propertyType", filters.propertyTypes[0]);
-        } else if (filters.propertyTypes.length > 1) {
-          // Multiple property types - API doesn't support this well
-          // Fall back to no server-side filtering and handle client-side
-        }
-
-        // Apply price range filters
-        if (filters.minPrice && filters.minPrice > 0) {
-          url.searchParams.set("minPrice", filters.minPrice.toString());
-        }
-        if (filters.maxPrice && filters.maxPrice > 0) {
-          url.searchParams.set("maxPrice", filters.maxPrice.toString());
-        }
-
-        // Apply bedrooms filter
-        if (filters.bedrooms && filters.bedrooms !== "all") {
-          if (filters.bedrooms === "5+") {
-            url.searchParams.set("minBedrooms", "5");
-          } else {
-            // For specific bedroom counts (0, 1, 2, 3, 4), set exact match
-            url.searchParams.set("minBedrooms", filters.bedrooms);
-            url.searchParams.set("maxBedrooms", filters.bedrooms);
-          }
-        }
-
-        // Apply bathrooms filter
-        if (filters.bathrooms && filters.bathrooms !== "all") {
-          // For "1+", "2+", etc., extract the number and set minBaths
-          const minBaths = filters.bathrooms.replace("+", "");
-          url.searchParams.set("minBaths", minBaths);
-        }
-
-        // Apply garage/parking filter
-        if (filters.garageSpaces && filters.garageSpaces !== "all") {
-          // For "1+", "2+", etc., extract the number and set minGarageSpaces
-          const minGarageSpaces = filters.garageSpaces.replace("+", "");
-          url.searchParams.set("minGarageSpaces", minGarageSpaces);
-        }
-
-        // Apply square footage filter
-        if (filters.minSqft && filters.minSqft > 0) {
-          url.searchParams.set("minSqft", filters.minSqft.toString());
-        }
-        if (filters.maxSqft && filters.maxSqft > 0) {
-          url.searchParams.set("maxSqft", filters.maxSqft.toString());
-        }
-
-        // Apply open house filter
-        if (filters.openHouse && filters.openHouse !== "all") {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          let minDate: Date | null = null;
-          let maxDate: Date | null = null;
-
-          if (filters.openHouse === "today") {
-            minDate = today;
-            maxDate = today;
-          } else if (filters.openHouse === "thisWeekend") {
-            // Find next Saturday and Sunday
-            const dayOfWeek = today.getDay();
-            const daysUntilSaturday = dayOfWeek === 0 ? 6 : 6 - dayOfWeek;
-            const saturday = new Date(today);
-            saturday.setDate(today.getDate() + daysUntilSaturday);
-            const sunday = new Date(saturday);
-            sunday.setDate(saturday.getDate() + 1);
-            minDate = saturday;
-            maxDate = sunday;
-          } else if (filters.openHouse === "thisWeek") {
-            minDate = today;
-            const endOfWeek = new Date(today);
-            endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
-            maxDate = endOfWeek;
-          } else if (filters.openHouse === "anytime") {
-            minDate = today;
-            // No max date for "anytime"
-          }
-
-          if (minDate) {
-            const formatDate = (date: Date) => date.toISOString().split('T')[0];
-            url.searchParams.set("minOpenHouseDate", formatDate(minDate));
-            if (maxDate) {
-              url.searchParams.set("maxOpenHouseDate", formatDate(maxDate));
-            }
-          }
-        }
-
-        // Always request cluster fields for tooltips to work
-        url.searchParams.set(
-          "clusterFields",
-          "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
-        );
-
-        // At high zoom levels, also get individual properties
-        if (zoom >= 14) {
-          url.searchParams.set("listings", "true");
+          // Add common parameters
+          url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
+          url.searchParams.set("key", apiKey);
           url.searchParams.set(
-            "fields",
-            "address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map"
+            "clusterFields",
+            "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
           );
-          url.searchParams.set("pageSize", "500");
-        } else {
-          url.searchParams.set("listings", "false");
+
+          // At high zoom levels, also get individual properties
+          if (zoom >= 14) {
+            url.searchParams.set("listings", "true");
+            url.searchParams.set(
+              "fields",
+              "address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map"
+            );
+            url.searchParams.set("pageSize", "500");
+          } else {
+            url.searchParams.set("listings", "false");
+          }
+
+          console.log(`[API Call] ${url.toString()}`);
+
+          const response = await fetch(url.toString(), {
+            headers: {
+              "REPLIERS-API-KEY": apiKey,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              `API Error: ${response.status} ${response.statusText}`
+            );
+          }
+
+          data = await response.json();
         }
-
-
-        const response = await fetch(url.toString(), {
-          headers: {
-            "REPLIERS-API-KEY": apiKey,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(
-            `API Error: ${response.status} ${response.statusText}`
-          );
-        }
-
-        const data = await response.json();
 
 
         // Process clusters - they're nested under aggregates.map.clusters
@@ -874,105 +1021,13 @@ export function MapListings({
         setError(errorMessage);
       }
     },
-    [apiKey, getClusterPrecision, boundsToPolygon, addPriceMarkers, filters]
+    [apiKey, getClusterPrecision, boundsToPolygon, addPriceMarkers, filters, buildStatusQueryParams, groupFeaturesByProximity, mergeSmallClusters]
   );
 
   // Update the ref whenever fetchClusters changes
   useEffect(() => {
     fetchClustersRef.current = fetchClusters;
   }, [fetchClusters]);
-
-  // Helper function to calculate distance between two coordinates (in meters)
-  const calculateDistance = useCallback((coord1: [number, number], coord2: [number, number]): number => {
-    const [lng1, lat1] = coord1;
-    const [lng2, lat2] = coord2;
-
-    const R = 6371000; // Earth's radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }, []);
-
-  // Group features by proximity
-  const groupFeaturesByProximity = useCallback((features: any[], radiusMeters: number): any[][] => {
-    const groups: any[][] = [];
-    const processed = new Set<number>();
-
-    features.forEach((feature, index) => {
-      if (processed.has(index)) return;
-
-      const group = [feature];
-      processed.add(index);
-
-      const featureCoords = feature.geometry.coordinates as [number, number];
-
-      // Find all other features within radius
-      features.forEach((otherFeature, otherIndex) => {
-        if (processed.has(otherIndex) || index === otherIndex) return;
-
-        const otherCoords = otherFeature.geometry.coordinates as [number, number];
-        const distance = calculateDistance(featureCoords, otherCoords);
-
-        if (distance <= radiusMeters) {
-          group.push(otherFeature);
-          processed.add(otherIndex);
-        }
-      });
-
-      groups.push(group);
-    });
-
-    return groups;
-  }, [calculateDistance]);
-
-  // Merge small clusters (blue/yellow ones) while keeping large clusters intact
-  const mergeSmallClusters = useCallback((features: any[], zoom: number): any[] => {
-    // Define what counts as a "small cluster" that should be merged
-    // More aggressive merging at mid-zoom to reduce clutter
-    const smallClusterThreshold = zoom <= 10 ? 30 : (zoom <= 12 ? 60 : (zoom <= 13 ? 100 : 30));
-    const mergeRadius = zoom <= 10 ? 500 : (zoom <= 12 ? 300 : (zoom <= 13 ? 200 : 100)); // meters
-
-    const smallClusters = features.filter(f => f.properties.count <= smallClusterThreshold);
-    const largeClusters = features.filter(f => f.properties.count > smallClusterThreshold);
-
-    if (smallClusters.length === 0) {
-      return features; // No small clusters to merge
-    }
-
-    // Group small clusters by proximity for merging
-    const smallClusterGroups = groupFeaturesByProximity(smallClusters, mergeRadius);
-
-    const mergedFeatures = smallClusterGroups.map(group => {
-      if (group.length === 1) {
-        return group[0]; // Single cluster, no merging needed
-      }
-
-      // Merge multiple small clusters into one larger cluster
-      const totalCount = group.reduce((sum, cluster) => sum + cluster.properties.count, 0);
-      const avgLng = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[0], 0) / group.length;
-      const avgLat = group.reduce((sum, cluster) => sum + cluster.geometry.coordinates[1], 0) / group.length;
-
-      return {
-        type: "Feature" as const,
-        properties: {
-          count: totalCount,
-          precision: group[0].properties.precision,
-          id: `merged-${group.map(c => c.properties.id).join('-')}`,
-          members: [], // Could combine members if needed
-        },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [avgLng, avgLat] as [number, number],
-        },
-      };
-    });
-
-    return [...largeClusters, ...mergedFeatures];
-  }, [groupFeaturesByProximity]);
 
   // Initialize map
   useEffect(() => {

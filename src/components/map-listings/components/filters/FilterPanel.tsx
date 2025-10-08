@@ -114,10 +114,15 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     return filters.activeListingDays !== undefined;
   };
 
-  // Handle active listing filter change
+  // Handle active listing filter change (supports bundled searches - doesn't clear other status filters)
   const handleActiveFilterChange = (value: typeof filters.activeListingDays) => {
-    onFiltersChange({ ...filters, activeListingDays: value, soldListingDays: undefined, unavailableListingDays: undefined });
+    onFiltersChange({ ...filters, activeListingDays: value });
     setIsActiveOpen(false);
+  };
+
+  // Handle clearing active filter (click on colored bar)
+  const handleClearActiveFilter = () => {
+    onFiltersChange({ ...filters, activeListingDays: undefined });
   };
 
   // Sold listing filter options
@@ -163,10 +168,15 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     return !!filters.soldListingDays;
   };
 
-  // Handle sold listing filter change
+  // Handle sold listing filter change (supports bundled searches - doesn't clear other status filters)
   const handleSoldFilterChange = (value: typeof filters.soldListingDays) => {
-    onFiltersChange({ ...filters, soldListingDays: value, activeListingDays: undefined, unavailableListingDays: undefined });
+    onFiltersChange({ ...filters, soldListingDays: value });
     setIsSoldOpen(false);
+  };
+
+  // Handle clearing sold filter (click on colored bar)
+  const handleClearSoldFilter = () => {
+    onFiltersChange({ ...filters, soldListingDays: undefined });
   };
 
   // Unavailable listing filter options (same as sold)
@@ -212,10 +222,15 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
     return !!filters.unavailableListingDays;
   };
 
-  // Handle unavailable listing filter change
+  // Handle unavailable listing filter change (supports bundled searches - doesn't clear other status filters)
   const handleUnavailableFilterChange = (value: typeof filters.unavailableListingDays) => {
-    onFiltersChange({ ...filters, unavailableListingDays: value, activeListingDays: undefined, soldListingDays: undefined });
+    onFiltersChange({ ...filters, unavailableListingDays: value });
     setIsUnavailableOpen(false);
+  };
+
+  // Handle clearing unavailable filter (click on colored bar)
+  const handleClearUnavailableFilter = () => {
+    onFiltersChange({ ...filters, unavailableListingDays: undefined });
   };
 
   // Handle click outside to close price filter dropdown
@@ -479,8 +494,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
       {/* Active Listings Filter Button */}
       <div ref={activeFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
-        <button
-          onClick={() => setIsActiveOpen(!isActiveOpen)}
+        <div
           style={{
             width: "100%",
             padding: "0",
@@ -488,19 +502,24 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
-            cursor: "pointer",
             display: "flex",
             overflow: "hidden",
           }}
         >
           <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClearActiveFilter();
+            }}
             style={{
               width: "48px",
               backgroundColor: isActiveFilterActive() ? "#10b981" : "#e5e7eb",
               flexShrink: 0,
+              cursor: isActiveFilterActive() ? "pointer" : "default",
             }}
           />
-          <div
+          <button
+            onClick={() => setIsActiveOpen(!isActiveOpen)}
             style={{
               flex: 1,
               padding: "8px 12px",
@@ -510,6 +529,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
               textAlign: "left",
               color: "#1f2937",
               fontWeight: "500",
+              cursor: "pointer",
+              backgroundColor: "transparent",
+              border: "none",
             }}
           >
             <span>Active: {formatActiveLabel()}</span>
@@ -520,8 +542,8 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                 transition: "transform 0.2s"
               }}
             />
-          </div>
-        </button>
+          </button>
+        </div>
 
         {/* Active Filter Dropdown */}
         {isActiveOpen && (
@@ -579,8 +601,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
       {/* Sold Listings Filter Button */}
       <div ref={soldFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
-        <button
-          onClick={() => setIsSoldOpen(!isSoldOpen)}
+        <div
           style={{
             width: "100%",
             padding: "0",
@@ -588,19 +609,24 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
-            cursor: "pointer",
             display: "flex",
             overflow: "hidden",
           }}
         >
           <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClearSoldFilter();
+            }}
             style={{
               width: "48px",
               backgroundColor: isSoldFilterActive() ? "#8b7fa8" : "#e5e7eb",
               flexShrink: 0,
+              cursor: isSoldFilterActive() ? "pointer" : "default",
             }}
           />
-          <div
+          <button
+            onClick={() => setIsSoldOpen(!isSoldOpen)}
             style={{
               flex: 1,
               padding: "8px 12px",
@@ -610,6 +636,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
               textAlign: "left",
               color: "#1f2937",
               fontWeight: "500",
+              cursor: "pointer",
+              backgroundColor: "transparent",
+              border: "none",
             }}
           >
             <span>Sold: {formatSoldLabel()}</span>
@@ -620,8 +649,8 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                 transition: "transform 0.2s"
               }}
             />
-          </div>
-        </button>
+          </button>
+        </div>
 
         {/* Sold Filter Dropdown */}
         {isSoldOpen && (
@@ -681,8 +710,7 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
 
       {/* Unavailable Listings Filter Button */}
       <div ref={unavailableFilterRef} style={{ position: "relative", marginBottom: "12px" }}>
-        <button
-          onClick={() => setIsUnavailableOpen(!isUnavailableOpen)}
+        <div
           style={{
             width: "100%",
             padding: "0",
@@ -690,19 +718,24 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             fontSize: "14px",
-            cursor: "pointer",
             display: "flex",
             overflow: "hidden",
           }}
         >
           <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClearUnavailableFilter();
+            }}
             style={{
               width: "48px",
               backgroundColor: isUnavailableFilterActive() ? "#f59e0b" : "#e5e7eb",
               flexShrink: 0,
+              cursor: isUnavailableFilterActive() ? "pointer" : "default",
             }}
           />
-          <div
+          <button
+            onClick={() => setIsUnavailableOpen(!isUnavailableOpen)}
             style={{
               flex: 1,
               padding: "8px 12px",
@@ -712,6 +745,9 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
               textAlign: "left",
               color: "#1f2937",
               fontWeight: "500",
+              cursor: "pointer",
+              backgroundColor: "transparent",
+              border: "none",
             }}
           >
             <span>Unavailable: {formatUnavailableLabel()}</span>
@@ -722,8 +758,8 @@ export function FilterPanel({ filters, onFiltersChange, apiKey }: FilterPanelPro
                 transition: "transform 0.2s"
               }}
             />
-          </div>
-        </button>
+          </button>
+        </div>
 
         {/* Unavailable Filter Dropdown */}
         {isUnavailableOpen && (
