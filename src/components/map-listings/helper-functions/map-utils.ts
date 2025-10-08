@@ -36,15 +36,39 @@ export const formatMapPrice = (price: number, type: string): string => {
 };
 
 /**
+ * Determine the background color for a price bubble based on status and listing type
+ */
+const getPriceBubbleColor = (status?: string, lastStatus?: string, type?: string): string => {
+  // Check if this is a sold property (status='U' and lastStatus='Sld' or 'Sc')
+  if (status === 'U' && (lastStatus === 'Sld' || lastStatus === 'Sc')) {
+    return '#8b7fa8'; // Purple/gray for sold properties
+  }
+
+  // Check if this is an unavailable property (status='U' but not sold)
+  if (status === 'U') {
+    return '#f59e0b'; // Orange for unavailable properties
+  }
+
+  // Active listings (status='A' or default) - use listing type
+  const isLease = type === "Lease";
+  return isLease ? '#a855f7' : '#22c55e'; // Purple for lease, brighter green for sale
+};
+
+/**
  * Create a price bubble HTML element for map markers
  */
-export const createPriceBubble = (price: number, type: string): HTMLElement => {
+export const createPriceBubble = (
+  price: number,
+  type: string,
+  status?: string,
+  lastStatus?: string
+): HTMLElement => {
   const formattedPrice = formatMapPrice(price, type);
-  const isLease = type === "Lease";
+  const backgroundColor = getPriceBubbleColor(status, lastStatus, type);
 
   const bubble = document.createElement('div');
   bubble.style.cssText = `
-    background-color: ${isLease ? '#a855f7' : '#22c55e'};
+    background-color: ${backgroundColor};
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
