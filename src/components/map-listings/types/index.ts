@@ -98,9 +98,10 @@ export interface MapFilters {
   maxSqft?: number | null; // null represents "Max" (no limit)
   openHouse?: "all" | "today" | "thisWeek" | "thisWeekend" | "anytime";
   maxMaintenanceFee?: number | null; // null represents "Max" (no limit)
-  activeListingDays?: "1" | "3" | "7" | "30" | "90" | "all" | "15+" | "30+" | "60+" | "90+"; // Active listing date filter
-  soldListingDays?: "1" | "3" | "7" | "30" | "90" | "180" | "360" | "2025" | "2024" | "2023" | "2022" | "2021" | "2020" | "2019" | "2018" | "2017" | "2016" | "2015" | "2014" | "2013" | "2012" | "2011" | "2010" | "2009" | "2008" | "2007"; // Sold listing date filter
-  unavailableListingDays?: "1" | "3" | "7" | "30" | "90" | "180" | "360" | "2025" | "2024" | "2023" | "2022" | "2021" | "2020" | "2019" | "2018" | "2017" | "2016" | "2015" | "2014" | "2013" | "2012" | "2011" | "2010" | "2009" | "2008" | "2007"; // Unavailable listing date filter
+  // Status filters - can be enabled/disabled independently for bundled searches
+  activeListingDays?: "1" | "3" | "7" | "30" | "90" | "all" | "15+" | "30+" | "60+" | "90+"; // Active listing date filter (undefined = off)
+  soldListingDays?: "1" | "3" | "7" | "30" | "90" | "180" | "360" | "2025" | "2024" | "2023" | "2022" | "2021" | "2020" | "2019" | "2018" | "2017" | "2016" | "2015" | "2014" | "2013" | "2012" | "2011" | "2010" | "2009" | "2008" | "2007"; // Sold listing date filter (undefined = off)
+  unavailableListingDays?: "1" | "3" | "7" | "30" | "90" | "180" | "360" | "2025" | "2024" | "2023" | "2022" | "2021" | "2020" | "2019" | "2018" | "2017" | "2016" | "2015" | "2014" | "2013" | "2012" | "2011" | "2010" | "2009" | "2008" | "2007"; // Unavailable listing date filter (undefined = off)
 }
 
 export interface ListingResult {
