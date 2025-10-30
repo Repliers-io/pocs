@@ -251,7 +251,8 @@ export function MapListings({
     if (zoom <= 10) return 12; // Metropolitan level (increased from 8)
     if (zoom <= 12) return 16; // City level (increased from 12)
     if (zoom <= 14) return 20; // District level (increased from 16)
-    return 25; // Street level (increased from 20, max precision for fine-grained clustering)
+    if (zoom <= 17) return 25; // Street level (increased from 20)
+    return 29; // Very high zoom - maximum precision to break up clusters
   }, []);
 
   // Convert bounds to polygon format for Repliers API
@@ -574,18 +575,27 @@ export function MapListings({
 
           // Build URL with global parameters (cluster settings go in query string, not body)
           const url = new URL('https://api.repliers.io/listings');
-          url.searchParams.set('cluster', 'true');
-          url.searchParams.set('clusterPrecision', precision.toString());
-          url.searchParams.set('clusterLimit', '500');
-          url.searchParams.set('clusterFields', 'mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class');
 
-          // At high zoom, request individual listings (global params)
-          if (zoom >= 14) {
+          // At very high zoom (18+), disable clustering entirely to get individual listings only
+          if (zoom >= 18) {
+            url.searchParams.set('cluster', 'false');
             url.searchParams.set('listings', 'true');
             url.searchParams.set('fields', 'address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map');
             url.searchParams.set('pageSize', '500');
           } else {
-            url.searchParams.set('listings', 'false');
+            url.searchParams.set('cluster', 'true');
+            url.searchParams.set('clusterPrecision', precision.toString());
+            url.searchParams.set('clusterLimit', '500');
+            url.searchParams.set('clusterFields', 'mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class');
+
+            // At high zoom, also request individual listings (global params)
+            if (zoom >= 14) {
+              url.searchParams.set('listings', 'true');
+              url.searchParams.set('fields', 'address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map');
+              url.searchParams.set('pageSize', '500');
+            } else {
+              url.searchParams.set('listings', 'false');
+            }
           }
 
           // Make POST request with bundled queries
@@ -622,9 +632,6 @@ export function MapListings({
           console.log(`[Single Search] Status: ${statusType}, Value: ${statusValue}`);
 
           const url = new URL("https://api.repliers.io/listings");
-          url.searchParams.set("cluster", "true");
-          url.searchParams.set("clusterPrecision", precision.toString());
-          url.searchParams.set("clusterLimit", "500");
 
           // Build query params for single status
           const queryParams = buildStatusQueryParams(statusType, statusValue, zoom);
@@ -641,13 +648,10 @@ export function MapListings({
           // Add common parameters
           url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
           url.searchParams.set("key", apiKey);
-          url.searchParams.set(
-            "clusterFields",
-            "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
-          );
 
-          // At high zoom levels, also get individual properties
-          if (zoom >= 14) {
+          // At very high zoom (18+), disable clustering entirely to get individual listings only
+          if (zoom >= 18) {
+            url.searchParams.set("cluster", "false");
             url.searchParams.set("listings", "true");
             url.searchParams.set(
               "fields",
@@ -655,7 +659,25 @@ export function MapListings({
             );
             url.searchParams.set("pageSize", "500");
           } else {
-            url.searchParams.set("listings", "false");
+            url.searchParams.set("cluster", "true");
+            url.searchParams.set("clusterPrecision", precision.toString());
+            url.searchParams.set("clusterLimit", "500");
+            url.searchParams.set(
+              "clusterFields",
+              "mlsNumber,listPrice,coordinates,type,address.*,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,lastStatus,images,status,class"
+            );
+
+            // At high zoom levels, also get individual properties
+            if (zoom >= 14) {
+              url.searchParams.set("listings", "true");
+              url.searchParams.set(
+                "fields",
+                "address.*,mlsNumber,listPrice,details.numBedrooms,details.numBedroomsPlus,details.numBathrooms,details.numBathroomsPlus,details.numGarageSpaces,details.propertyType,type,lastStatus,images,status,class,coordinates,latitude,longitude,geo,location,map"
+              );
+              url.searchParams.set("pageSize", "500");
+            } else {
+              url.searchParams.set("listings", "false");
+            }
           }
 
           console.log(`[API Call] ${url.toString()}`);
@@ -685,6 +707,7 @@ export function MapListings({
         // Debug: Log API response structure
         const rawListings = data.listings || data.results || [];
         console.log(`\n📦 API RESPONSE DEBUG (zoom: ${zoom.toFixed(2)})`);
+        console.log(`   Clustering: ${zoom >= 18 ? 'DISABLED (individual listings only)' : 'ENABLED'}`);
         console.log(`   Total clusters from API: ${clusters.length}`);
         console.log(`   Total raw listings from API: ${rawListings.length}`);
 
@@ -808,11 +831,14 @@ export function MapListings({
             // Store the actual cluster members for tooltip display
             const clusterMembers = cluster.properties || cluster.map || [];
 
+            // Always use API's cluster count initially
+            // At zoom 14+, this will be recalculated by recalculateClusterCounts()
+            const actualCount = cluster.count || 1;
 
             clusterFeatures.push({
               type: "Feature" as const,
               properties: {
-                count: cluster.count || 1,
+                count: actualCount, // Use actual filtered count
                 apiCount: cluster.count || 1, // Store original API count for debugging
                 precision: cluster.precision || precision,
                 id: `cluster-${index}`,
@@ -835,10 +861,17 @@ export function MapListings({
           singlePropertyFeatures.map(f => f.properties.mlsNumber)
         );
 
+        console.log(`   Processing ${rawListings.length} raw listings into property features...`);
+
+        let filteredForDuplicate = 0;
+        let filteredForCoords = 0;
+        let filteredForPropertyType = 0;
+
         const propertyFeatures: PropertyFeature[] = rawListings
           .filter((listing: any) => {
             // Skip if this property is already in singlePropertyFeatures
             if (singlePropertyMlsNumbers.has(listing.mlsNumber)) {
+              filteredForDuplicate++;
               return false;
             }
             // Only include listings with valid coordinates
@@ -854,11 +887,20 @@ export function MapListings({
                        listing.lat;
             const hasValidCoords = lng !== undefined && lat !== undefined && !isNaN(lng) && !isNaN(lat);
 
+            if (!hasValidCoords) {
+              filteredForCoords++;
+              return false;
+            }
+
             // Apply client-side property type filter for multiple selections
             const matchesFilter = matchesPropertyTypeFilter(listing.details?.propertyType);
 
+            if (!matchesFilter) {
+              filteredForPropertyType++;
+              return false;
+            }
 
-            return hasValidCoords && matchesFilter;
+            return true;
           })
           .map(
           (listing: any) => {
@@ -905,17 +947,14 @@ export function MapListings({
           const allAvailableProperties = [...allProperties, ...singleProps];
 
           return clusters.map(cluster => {
-            const clusterCoords = cluster.geometry.coordinates;
+            const clusterCoords = cluster.geometry.coordinates as [number, number];
 
-            // Find properties near this cluster (within reasonable distance)
+            // Find properties near this cluster using the SAME 50m radius as proximity grouping
             const nearbyProperties = allAvailableProperties.filter(prop => {
-              const propCoords = prop.geometry.coordinates;
-              const distance = Math.sqrt(
-                Math.pow(propCoords[0] - clusterCoords[0], 2) +
-                Math.pow(propCoords[1] - clusterCoords[1], 2)
-              );
-              // Use a small distance threshold (approximately 100 meters in degrees)
-              return distance < 0.001;
+              const propCoords = prop.geometry.coordinates as [number, number];
+              const distance = calculateDistance(clusterCoords, propCoords);
+              // Use 50 meters to match groupFeaturesByProximity
+              return distance <= 50;
             });
 
             // If no nearby properties found, keep original count (cluster is valid but properties not loaded yet)
@@ -932,11 +971,22 @@ export function MapListings({
           });
         };
 
+        console.log(`   Property features created: ${propertyFeatures.length}`);
+        console.log(`   Single property features created: ${singlePropertyFeatures.length}`);
+        console.log(`   Cluster features: ${clusterFeatures.length}`);
+        if (rawListings.length > 0 && propertyFeatures.length === 0) {
+          console.log(`   ⚠️ Filtering issue: ${filteredForDuplicate} duplicates, ${filteredForCoords} invalid coords, ${filteredForPropertyType} wrong property type`);
+        }
+
         // Apply recalculation only when we have any properties (individual or single)
         const hasProperties = propertyFeatures.length > 0 || singlePropertyFeatures.length > 0;
         const updatedClusterFeatures = zoom >= 14 && hasProperties
           ? recalculateClusterCounts(clusterFeatures, propertyFeatures, singlePropertyFeatures)
           : clusterFeatures;
+
+        if (zoom >= 14 && hasProperties) {
+          console.log(`   Recalculated cluster counts at zoom ${zoom.toFixed(2)}`);
+        }
 
         // Combine features - at zoom 14+, use proximity-based grouping
         let allFeatures: any[];
@@ -961,7 +1011,19 @@ export function MapListings({
             const clusterPropertyCount = clusters.reduce((sum, c) => sum + (c.properties?.count || 0), 0);
             const individualPropertyCount = properties.length;
 
-            // Decision logic for what to show:
+            // At very high zoom (17+), strongly prefer showing individual properties
+            if (zoom >= 17) {
+              if (properties.length > 0) {
+                // Show all individual properties - clustering should break down at this zoom
+                return properties;
+              } else if (clusters.length > 0) {
+                // Only show cluster if no individual properties available
+                return clusters[0];
+              }
+              return null;
+            }
+
+            // Decision logic for what to show at zoom 14-16:
             if (properties.length > 3) {
               // Too many individual bubbles would be messy → show largest cluster
               return clusters.length > 0 ? clusters.reduce((largest, current) =>
@@ -1162,6 +1224,18 @@ export function MapListings({
         console.log(`   Zoom Level: ${currentZoom.toFixed(2)}`);
         console.log(`   Display Count: ${clusterCount}`);
         console.log(`   API Count (unfiltered): ${apiCount || clusterCount}`);
+
+        // At zoom 18+, clusters shouldn't exist (we request individual listings only)
+        // If they do exist, it's likely a small cluster that needs more zoom
+        if (currentZoom >= 18) {
+          console.log(`   ⚠️ Cluster exists at zoom 18+, zooming in further to break it apart`);
+          map.current.easeTo({
+            center: coordinates,
+            zoom: Math.min(currentZoom + 1, 22),
+            duration: 500,
+          });
+          return;
+        }
 
         if (currentZoom >= 14) {
           // At high zoom, show cluster properties in tooltip using the working old method
