@@ -25,10 +25,12 @@ This component was built as a proof-of-concept for TrustedOnly to help them:
 ## 🚀 Features
 
 ### ✅ Complete POC - All Features Implemented
-- **Agent Directory Loading**: Uses aggregates to load all agents from your MLS
-- **Listing Counts**: Shows total listing count (active + sold) for each agent
-- **Sortable Table**: Click column headers to sort by name or listing count
-- **Filter/Search**: Filter agents by name in real-time
+- **Two-Tab Interface**: Switch between Agents and Brokerages views
+- **Agent Directory**: Browse agents with search functionality (loads first 100 by default)
+- **Brokerage Directory**: View all brokerages with agent counts and addresses
+- **Keyword Search**: Search for agents or brokerages with 3+ character minimum
+- **Search Button**: Explicit search control with Enter key support (no auto-debounce)
+- **Dynamic Brokerage Loading**: Click a brokerage to load ALL its agents via fresh API call
 - **Agent Selection**: Select an agent to view their detailed dashboard
 - **Agent Profile Card**: Complete contact info, brokerage details, and position
 - **Listings Breakdown**: Active vs sold listings count with real-time data
@@ -44,13 +46,17 @@ This component was built as a proof-of-concept for TrustedOnly to help them:
 
 ## 📖 How to Use
 
-1. **Component Loads Automatically**: On mount, fetches all agents using aggregates
-2. **View Agent List**: See all agents sorted by listing count (highest first)
-3. **Sort & Filter**:
-   - Click column headers to sort
-   - Use search box to filter by name
-4. **Select an Agent**: Click "View Details" to select an agent
-5. **Test Different Keys**: Use the Controls panel to test with different API keys
+1. **Agents Tab**:
+   - On mount, loads first 100 agents from the MLS
+   - Use search to find specific agents (3+ characters)
+   - Click "Search" button or press Enter to execute search
+   - Click an agent to view their detailed performance dashboard
+2. **Brokerages Tab**:
+   - View all brokerages extracted from member data
+   - See agent count and address for each brokerage
+   - Click a brokerage to dynamically load ALL agents from that brokerage
+   - Then click any agent to view their dashboard
+3. **Test Different Keys**: Use the Controls panel to test with different API keys
 
 ## 🔑 API Key
 
@@ -63,22 +69,28 @@ The component requires a valid Repliers API key. You can:
 
 **API Approach:**
 
-Since the \`agents\` field is an array and cannot be aggregated directly using the aggregates parameter (attempting to do so returns a 400 error: "does not match any of the allowed types"), we use an alternative approach:
+The component uses the \`/members\` endpoint for efficient agent and brokerage discovery:
 
-1. Fetch up to 1000 listings with \`fields=agents\` to minimize data transfer
-2. Manually extract unique agents from the \`agents[]\` array in each listing
-3. Count listing occurrences for each agent
-4. Build the agent directory from this processed data
+1. **Initial Load (Agents Tab)**: Fetches first 100 members using \`GET /members\`
+2. **Search**: Uses keyword parameter \`GET /members?keywords={query}\` for targeted searches
+3. **Brokerage Loading**: When a brokerage is selected, makes a fresh API call with brokerage name/officeId to fetch ALL agents from that brokerage
+4. **Agent Identification**: Uses \`agentId\` (not name) as the primary identifier for all subsequent API calls
 
 **API Endpoints Used:**
-- \`/listings?status=A&status=U&limit=1000&fields=agents\` - Fetch listings to build agent directory
-- \`/listings?agent={name}&status=A&limit=1\` - Get active listings count for selected agent
-- \`/listings?agent={name}&status=U&limit=1\` - Get sold listings count for selected agent
-- \`/listings?agent={name}&status=U&listings=false&statistics=...\` - Get sold listing statistics
-- \`/listings?agent={name}&status=A&listings=false&statistics=...\` - Get active listing statistics
-- \`/listings?agent={name}&status=A&status=U&limit=100&fields=address.city\` - Get location data
+- \`GET /members\` - Load first 100 agents on mount (Agents tab)
+- \`GET /members?keywords={query}\` - Search for agents or brokerages
+- \`GET /members?keywords={brokerageNameOrOfficeId}\` - Load all agents for a specific brokerage
+- \`GET /listings?agentId={id}&status=A&limit=1\` - Get active listings count for selected agent
+- \`GET /listings?agentId={id}&status=U&limit=1\` - Get sold listings count for selected agent
+- \`GET /listings?agentId={id}&status=U&listings=false&statistics=...\` - Get sold listing statistics
+- \`GET /listings?agentId={id}&status=A&listings=false&statistics=...\` - Get active listing statistics
+- \`GET /listings?agentId={id}&status=A&status=U&limit=100&fields=address.city\` - Get location data
 
-**Note:** This approach works well for MLSs with moderate listing counts. For very large datasets (10,000+ listings), consider implementing pagination or using alternative filtering strategies.
+**Key Implementation Details:**
+- **agentId filtering**: All listing API calls use \`agentId\` parameter for precise filtering
+- **Brokerage extraction**: Brokerages are built from member data (brokerage.name, officeId, address)
+- **Dynamic loading**: Selecting a brokerage triggers a fresh API call to get complete agent list
+- **Search UX**: Explicit search button (no debounce) with Enter key support for better user control
 
 **Props:**
 - \`apiKey\` (required): Your Repliers API key
@@ -124,13 +136,14 @@ type Story = StoryObj<typeof AgentDashboard>;
  * **Complete Agent Performance Dashboard POC**
  *
  * This is the full interactive demo showing all implemented features.
- * The component automatically loads all agents on mount and provides detailed
- * insights when you select an agent.
+ * The component uses the /members endpoint to provide efficient agent and brokerage discovery.
  *
  * **What's Implemented:**
- * - Agent directory with listing counts (all agents in MLS)
- * - Sortable table (by name or count)
- * - Real-time filtering
+ * - Two-tab interface (Agents and Brokerages)
+ * - Agent directory (loads first 100 members on mount)
+ * - Brokerage directory (extracted from member data with counts and addresses)
+ * - Keyword search with explicit search button
+ * - Dynamic brokerage agent loading (click brokerage to load ALL its agents)
  * - Agent selection with detailed view
  * - Complete agent profile (contact info, brokerage, position)
  * - Listings breakdown (active vs sold counts)
@@ -139,11 +152,16 @@ type Story = StoryObj<typeof AgentDashboard>;
  * - Error handling for invalid API keys
  *
  * **Try these interactions:**
- * 1. Watch the agent list load automatically
- * 2. Click column headers to sort by name or listing count
- * 3. Use the search box to filter agents by name
- * 4. Click "View Details" to select an agent
- * 5. Explore the agent's complete profile with:
+ * 1. **Agents Tab**:
+ *    - Watch the first 100 agents load automatically
+ *    - Use search to find specific agents (3+ characters)
+ *    - Click "Search" or press Enter to execute
+ *    - Click an agent card to view their dashboard
+ * 2. **Brokerages Tab**:
+ *    - View all brokerages with agent counts
+ *    - Click a brokerage to dynamically load ALL its agents
+ *    - Click any agent from the brokerage to view their dashboard
+ * 3. **Agent Dashboard**:
  *    - Auto-generated specialization badges
  *    - Contact information and brokerage details
  *    - Active vs sold listings breakdown
@@ -169,20 +187,28 @@ export const FullPOC: Story = {
         story: `
 🎯 **Full POC - Ready for Testing & Demonstration!**
 
-**All features are complete and fully functional.** This dashboard demonstrates the complete agent performance analytics system.
+**All features are complete and fully functional.** This dashboard demonstrates the complete agent performance analytics system with efficient member-based discovery.
 
 **What to test:**
-1. **Agent Directory**: Component loads all agents automatically on mount
-2. **Sorting & Filtering**: Click column headers to sort, use search to filter by name
-3. **Agent Selection**: Click "View Details" on any agent to see their complete profile
-4. **Profile Information**: View contact details, brokerage info, and position
-5. **Listings Breakdown**: See active vs sold listings count with real-time data
-6. **Performance Metrics**:
-   - Median sale price and average list price
-   - Average and median days on market
-   - Price range (min/max)
+1. **Agents Tab**:
+   - Automatically loads first 100 agents on mount
+   - Search for specific agents (3+ characters, click Search or press Enter)
+   - Click any agent card to view their complete profile
+2. **Brokerages Tab**:
+   - View all brokerages extracted from member data
+   - See agent count and address for each brokerage
+   - Click a brokerage to dynamically load ALL its agents
+   - Click any agent from the brokerage list to view their dashboard
+3. **Agent Dashboard** (after selection):
+   - Auto-generated specialization badges based on performance
+   - Contact details, brokerage info, and position
+   - Active vs sold listings breakdown with real-time data
+   - Performance metrics: prices, days on market, price range
    - Top 5 locations by listing count
-7. **Auto-Categorization**: Watch specialization badges appear based on agent's performance data
+4. **Search Functionality**:
+   - Explicit search button (no auto-debounce)
+   - Enter key support for quick searches
+   - Clear button to reset search
 
 **Auto-Categorization in Action:**
 The system intelligently categorizes agents by analyzing their metrics:
@@ -194,10 +220,12 @@ The system intelligently categorizes agents by analyzing their metrics:
 - Geographic concentration (>60% in one city) gets 📍 City Specialist tag
 
 **API Implementation:**
-The component uses parallel API calls for optimal performance:
-- Initial load: Fetches all listings to build agent directory
-- On selection: Simultaneously fetches active count, sold count, and statistics
-- Statistics API: Uses \`listings=false&statistics=...\` for efficient metric calculation
+The component uses the /members endpoint for efficient discovery:
+- Initial load: \`GET /members\` (first 100 members)
+- Search: \`GET /members?keywords={query}\` for targeted discovery
+- Brokerage agents: Fresh API call with brokerage name/officeId to get ALL agents
+- Agent filtering: Uses \`agentId\` parameter (not name) for precise listing queries
+- Parallel calls: Simultaneously fetches active count, sold count, and statistics on agent selection
 
 Use the Controls panel to test with different API keys!
         `,

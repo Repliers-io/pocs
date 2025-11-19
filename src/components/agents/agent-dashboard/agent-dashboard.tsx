@@ -48,9 +48,25 @@ export interface AgentDetails {
 
 // Type for aggregate results
 export interface AgentAggregate {
+  agentId: string; // Primary identifier - from member.agentId
   agentName: string;
-  listingCount: number;
-  agentDetails?: AgentDetails; // Store first occurrence of agent details
+  listingCount?: number; // Optional - will be calculated when agent is selected
+  agentDetails?: AgentDetails; // Store member details from /members endpoint
+}
+
+// Type for brokerage aggregation
+export interface BrokerageAggregate {
+  brokerageName: string;
+  officeId?: string;
+  agentCount: number;
+  address?: {
+    address1?: string;
+    address2?: string;
+    city?: string;
+    state?: string;
+    postal?: string;
+    country?: string;
+  };
 }
 
 export interface AgentDashboardProps {
@@ -77,12 +93,25 @@ export interface AgentDashboardProps {
  * @returns JSX.Element
  */
 export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"agents" | "brokerages">("agents");
+
   // Step 1: Agent List State
   const [agents, setAgents] = useState<AgentAggregate[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<AgentAggregate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+
+  // Brokerage state
+  const [brokerages, setBrokerages] = useState<BrokerageAggregate[]>([]);
+  const [filteredBrokerages, setFilteredBrokerages] = useState<BrokerageAggregate[]>([]);
+  const [selectedBrokerage, setSelectedBrokerage] = useState<string | null>(null);
+
+  // Brokerage agents state (agents loaded when brokerage is selected)
+  const [brokerageAgents, setBrokerageAgents] = useState<AgentAggregate[]>([]);
+  const [isLoadingBrokerageAgents, setIsLoadingBrokerageAgents] = useState(false);
+  const [brokerageAgentsError, setBrokerageAgentsError] = useState<string | null>(null);
 
   // Filter and sort state
   const [filterQuery, setFilterQuery] = useState("");
@@ -108,25 +137,13 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
   // Step 5: Auto-categorization state
   const [categories, setCategories] = useState<Array<{ name: string; color: string; icon: string }>>([]);
 
-  // Load agents on mount
+  // Load initial agents on mount (Agents tab only)
   useEffect(() => {
-    if (apiKey) {
+    if (apiKey && activeTab === "agents") {
       loadAgentList();
     }
-  }, [apiKey]);
-
-  // Filter agents when search query changes
-  useEffect(() => {
-    if (!filterQuery.trim()) {
-      setFilteredAgents(agents);
-      return;
-    }
-
-    const filtered = agents.filter((agent) =>
-      agent.agentName.toLowerCase().includes(filterQuery.toLowerCase())
-    );
-    setFilteredAgents(filtered);
-  }, [filterQuery, agents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, activeTab]);
 
   // Sort agents when sort options change
   useEffect(() => {
@@ -135,15 +152,15 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
         const comparison = a.agentName.localeCompare(b.agentName);
         return sortOrder === "asc" ? comparison : -comparison;
       } else {
-        const comparison = a.listingCount - b.listingCount;
+        const comparison = (a.listingCount || 0) - (b.listingCount || 0);
         return sortOrder === "asc" ? comparison : -comparison;
       }
     });
     setFilteredAgents(sorted);
   }, [sortBy, sortOrder]);
 
-  // Load agent list using aggregates
-  const loadAgentList = async () => {
+  // Load members and build both agents and brokerages lists
+  const loadAgentList = async (keywords?: string) => {
     if (!apiKey) {
       setError("API key is required");
       return;
@@ -153,11 +170,14 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     setError(null);
 
     try {
-      // Since agents is an array and can't be aggregated directly,
-      // we'll fetch listings and manually build the agent list from the agents array
-      console.log("Fetching listings to build agent directory...");
+      console.log("Fetching members from /members endpoint...");
 
-      const url = `https://api.repliers.io/listings?status=A&status=U&limit=1000&fields=agents`;
+      // Build URL with optional keywords parameter
+      let url = `https://api.repliers.io/members`;
+      if (keywords && keywords.trim()) {
+        url += `?keywords=${encodeURIComponent(keywords.trim())}`;
+      }
+
       const response = await fetch(url, {
         headers: {
           "REPLIERS-API-KEY": apiKey,
@@ -169,7 +189,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
         if (response.status === 401) {
           throw new Error("Invalid API key");
         } else if (response.status === 403) {
-          throw new Error("API key doesn't have permission for listings endpoint");
+          throw new Error("API key doesn't have permission for members endpoint");
         } else if (response.status === 429) {
           throw new Error("Too many requests. Please wait a moment");
         } else {
@@ -178,60 +198,143 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
       }
 
       const data = await response.json();
-      console.log(`Fetched ${data.listings?.length || 0} listings`);
+      console.log(`Fetched ${data.members?.length || 0} members`);
 
-      // Build agent list from the listings and store agent details
-      const agentMap = new Map<string, { count: number; details: AgentDetails }>();
-
-      data.listings?.forEach((listing: any) => {
-        if (listing.agents && Array.isArray(listing.agents)) {
-          listing.agents.forEach((agent: any) => {
-            if (agent.name) {
-              const existing = agentMap.get(agent.name);
-              if (existing) {
-                // Increment count for existing agent
-                existing.count += 1;
-              } else {
-                // Store new agent with details
-                agentMap.set(agent.name, {
-                  count: 1,
-                  details: agent as AgentDetails,
-                });
-              }
-            }
-          });
-        }
-      });
-
-      console.log(`Found ${agentMap.size} unique agents`);
-
-      // Transform map into agent list
-      const agentList: AgentAggregate[] = Array.from(agentMap.entries())
-        .map(([name, data]) => ({
-          agentName: name,
-          listingCount: data.count,
-          agentDetails: data.details,
+      // Transform members into agent list
+      const agentList: AgentAggregate[] = (data.members || [])
+        .map((member: any) => ({
+          agentId: member.agentId || member.id, // Use agentId as primary identifier
+          agentName: member.name || "Unknown",
+          agentDetails: member as AgentDetails,
         }))
-        .filter((agent) => agent.agentName && agent.agentName.trim() !== "");
+        .filter((agent: AgentAggregate) => agent.agentId && agent.agentName.trim() !== "");
 
-      // Sort by listing count (descending) by default
-      agentList.sort((a, b) => b.listingCount - a.listingCount);
+      // Sort by name by default (since we don't have listing counts yet)
+      agentList.sort((a, b) => a.agentName.localeCompare(b.agentName));
 
       console.log(`Displaying ${agentList.length} agents`, agentList.slice(0, 5));
 
       setAgents(agentList);
       setFilteredAgents(agentList);
+
+      // Build brokerages list from members
+      const brokerageMap = new Map<string, { count: number; details: any }>();
+
+      (data.members || []).forEach((member: any) => {
+        const brokerageName = member.brokerage?.name;
+        if (brokerageName && brokerageName.trim()) {
+          const existing = brokerageMap.get(brokerageName);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            brokerageMap.set(brokerageName, {
+              count: 1,
+              details: {
+                officeId: member.officeId,
+                address: member.brokerage?.address,
+              },
+            });
+          }
+        }
+      });
+
+      const brokerageList: BrokerageAggregate[] = Array.from(brokerageMap.entries())
+        .map(([name, data]) => ({
+          brokerageName: name,
+          officeId: data.details.officeId,
+          agentCount: data.count,
+          address: data.details.address,
+        }))
+        .sort((a, b) => b.agentCount - a.agentCount); // Sort by agent count descending
+
+      console.log(`Found ${brokerageList.length} unique brokerages`, brokerageList.slice(0, 5));
+
+      setBrokerages(brokerageList);
+      setFilteredBrokerages(brokerageList);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to load agents";
+        err instanceof Error ? err.message : "Failed to load members";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch listings breakdown for selected agent
-  const loadAgentListings = async (agentName: string) => {
+  // Handle search button click
+  const handleSearch = () => {
+    if (!filterQuery.trim()) {
+      // If search is empty, reload initial data
+      loadAgentList();
+      return;
+    }
+    loadAgentList(filterQuery.trim());
+  };
+
+  // Load all agents from a selected brokerage
+  const loadBrokerageAgents = async (brokerageName: string, officeId?: string) => {
+    if (!apiKey) return;
+
+    setIsLoadingBrokerageAgents(true);
+    setBrokerageAgentsError(null);
+    setBrokerageAgents([]);
+
+    try {
+      console.log(`Fetching agents for brokerage: ${brokerageName}`);
+
+      // Use officeId if available, otherwise use brokerage name
+      const searchKeyword = officeId || brokerageName;
+      const url = `https://api.repliers.io/members?keywords=${encodeURIComponent(searchKeyword)}`;
+
+      const response = await fetch(url, {
+        headers: {
+          "REPLIERS-API-KEY": apiKey,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Invalid API key");
+        } else if (response.status === 403) {
+          throw new Error("API key doesn't have permission for members endpoint");
+        } else if (response.status === 429) {
+          throw new Error("Too many requests. Please wait a moment");
+        } else {
+          throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+        }
+      }
+
+      const data = await response.json();
+      console.log(`Fetched ${data.members?.length || 0} agents for brokerage`);
+
+      // Filter agents that actually belong to this brokerage
+      const brokerageMembers: AgentAggregate[] = (data.members || [])
+        .filter((member: any) => member.brokerage?.name === brokerageName)
+        .map((member: any) => ({
+          agentId: member.agentId || member.id,
+          agentName: member.name || "Unknown",
+          agentDetails: member as AgentDetails,
+        }))
+        .filter((agent: AgentAggregate) => agent.agentId && agent.agentName.trim() !== "");
+
+      // Sort by name
+      brokerageMembers.sort((a, b) => a.agentName.localeCompare(b.agentName));
+
+      console.log(`Displaying ${brokerageMembers.length} agents for ${brokerageName}`);
+
+      setBrokerageAgents(brokerageMembers);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load brokerage agents";
+      setBrokerageAgentsError(errorMessage);
+      console.error("Error loading brokerage agents:", err);
+    } finally {
+      setIsLoadingBrokerageAgents(false);
+    }
+  };
+
+  // Fetch listings breakdown for selected agent using agentId
+  const loadAgentListings = async (agentId: string) => {
     if (!apiKey) return;
 
     setIsLoadingListings(true);
@@ -240,10 +343,10 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     setSoldListingsCount(null);
 
     try {
-      // Fetch active and sold listings in parallel
+      // Fetch active and sold listings in parallel using agentId
       const [activeResponse, soldResponse] = await Promise.all([
         fetch(
-          `https://api.repliers.io/listings?agent=${encodeURIComponent(agentName)}&status=A&limit=1`,
+          `https://api.repliers.io/listings?agentId=${encodeURIComponent(agentId)}&status=A&limit=1`,
           {
             headers: {
               "REPLIERS-API-KEY": apiKey,
@@ -252,7 +355,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
           }
         ),
         fetch(
-          `https://api.repliers.io/listings?agent=${encodeURIComponent(agentName)}&status=U&limit=1`,
+          `https://api.repliers.io/listings?agentId=${encodeURIComponent(agentId)}&status=U&limit=1`,
           {
             headers: {
               "REPLIERS-API-KEY": apiKey,
@@ -275,7 +378,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
       setActiveListingsCount(activeData.count || 0);
       setSoldListingsCount(soldData.count || 0);
 
-      console.log(`Agent "${agentName}" - Active: ${activeData.count}, Sold: ${soldData.count}`);
+      console.log(`Agent ID "${agentId}" - Active: ${activeData.count}, Sold: ${soldData.count}`);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load listings breakdown";
@@ -286,8 +389,8 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     }
   };
 
-  // Calculate performance metrics using statistics API
-  const loadPerformanceMetrics = async (agentName: string) => {
+  // Calculate performance metrics using statistics API using agentId
+  const loadPerformanceMetrics = async (agentId: string) => {
     if (!apiKey) return;
 
     setIsLoadingMetrics(true);
@@ -300,14 +403,14 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     setTopLocations([]);
 
     try {
-      // Use statistics API for sold listings (with correct parameter names)
-      const soldStatsUrl = `https://api.repliers.io/listings?agent=${encodeURIComponent(agentName)}&status=U&listings=false&statistics=med-soldPrice,min-soldPrice,max-soldPrice,avg-daysOnMarket,med-daysOnMarket`;
+      // Use statistics API for sold listings using agentId
+      const soldStatsUrl = `https://api.repliers.io/listings?agentId=${encodeURIComponent(agentId)}&status=U&listings=false&statistics=med-soldPrice,min-soldPrice,max-soldPrice,avg-daysOnMarket,med-daysOnMarket`;
 
-      // Use statistics API for active listings (with correct parameter names)
-      const activeStatsUrl = `https://api.repliers.io/listings?agent=${encodeURIComponent(agentName)}&status=A&listings=false&statistics=avg-listPrice,min-listPrice,max-listPrice`;
+      // Use statistics API for active listings using agentId
+      const activeStatsUrl = `https://api.repliers.io/listings?agentId=${encodeURIComponent(agentId)}&status=A&listings=false&statistics=avg-listPrice,min-listPrice,max-listPrice`;
 
-      // Fetch location data separately
-      const locationsUrl = `https://api.repliers.io/listings?agent=${encodeURIComponent(agentName)}&status=A&status=U&limit=100&fields=address.city`;
+      // Fetch location data separately using agentId
+      const locationsUrl = `https://api.repliers.io/listings?agentId=${encodeURIComponent(agentId)}&status=A&status=U&limit=100&fields=address.city`;
 
       console.log("Statistics URLs:", {
         soldStatsUrl,
@@ -411,7 +514,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
 
       setTopLocations(locations);
 
-      console.log(`Statistics for "${agentName}":`, {
+      console.log(`Statistics for agent ID "${agentId}":`, {
         medianSalePrice: soldStats.soldPrice?.med,
         averageListPrice: activeStats.listPrice?.avg,
         averageDaysOnMarket: soldStats.daysOnMarket?.avg,
@@ -499,11 +602,26 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
       // Clear categories when agent is deselected
       setCategories([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAgent, apiKey]);
 
-  // Handle agent selection
-  const handleAgentSelect = (agentName: string) => {
-    setSelectedAgent(agentName);
+  // Load brokerage agents when brokerage is selected
+  useEffect(() => {
+    if (selectedBrokerage) {
+      const brokerageData = brokerages.find((b) => b.brokerageName === selectedBrokerage);
+      loadBrokerageAgents(selectedBrokerage, brokerageData?.officeId);
+    } else {
+      // Clear brokerage agents when deselected
+      setBrokerageAgents([]);
+      setBrokerageAgentsError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrokerage, apiKey]);
+
+  // Handle agent selection - now uses agentId
+  const handleAgentSelect = (agentId: string) => {
+    setSelectedAgent(agentId);
+    setSelectedBrokerage(null); // Clear brokerage when selecting agent
   };
 
   // Toggle sort order
@@ -530,43 +648,90 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
 
       {/* Main Content - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Agent List */}
+        {/* Left Sidebar - Agent/Brokerage List */}
         <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("agents")}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === "agents"
+                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              Agents
+            </button>
+            <button
+              onClick={() => setActiveTab("brokerages")}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === "brokerages"
+                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              Brokerages
+            </button>
+          </div>
+
           {/* Search Header */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900">
-                Agents
+                {activeTab === "agents" ? "Agents" : "Brokerages"}
               </h2>
-              {!isLoading && agents.length > 0 && (
+              {!isLoading && (activeTab === "agents" ? agents.length > 0 : brokerages.length > 0) && (
                 <span className="text-sm text-gray-600 font-medium">
-                  {filteredAgents.length}
+                  {activeTab === "agents" ? filteredAgents.length : filteredBrokerages.length}
                 </span>
               )}
             </div>
 
-            {/* Filter Input */}
-            {!isLoading && agents.length > 0 && (
-              <div className="relative flex items-center bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
-                <Search className="text-gray-400 w-4 h-4 mr-2" />
+            {/* Search Input with Button */}
+            <div className="space-y-2">
+              <div className="relative flex items-center bg-gray-50 rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
+                <Search className="text-gray-400 w-4 h-4 ml-3" />
                 <input
                   type="text"
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
-                  placeholder="Search agents..."
-                  className="flex-grow bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearch();
+                    }
+                  }}
+                  placeholder={`Search ${activeTab === "agents" ? "agents" : "brokerages"}...`}
+                  className="flex-grow bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 px-3 py-2"
                 />
+                {filterQuery && (
+                  <button
+                    onClick={() => {
+                      setFilterQuery("");
+                      loadAgentList();
+                    }}
+                    className="text-gray-400 hover:text-gray-600 px-2"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
-            )}
+              <button
+                onClick={handleSearch}
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {isLoading ? "Searching..." : "Search"}
+              </button>
+            </div>
           </div>
 
-          {/* Agent List - Scrollable */}
+          {/* List - Scrollable */}
           <div className="flex-1 overflow-y-auto">
             {/* Loading State */}
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-12 px-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-3" />
-                <p className="text-sm text-gray-600">Loading agents...</p>
+                <p className="text-sm text-gray-600">Loading {activeTab}...</p>
               </div>
             )}
 
@@ -576,7 +741,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
                 <div className="flex items-start gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
                   <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold text-sm">Error loading agents</div>
+                    <div className="font-semibold text-sm">Error loading {activeTab}</div>
                     <div className="text-xs mt-1">{error}</div>
                   </div>
                 </div>
@@ -584,14 +749,14 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
             )}
 
             {/* Agent Cards */}
-            {!isLoading && !error && filteredAgents.length > 0 && (
+            {activeTab === "agents" && !isLoading && !error && filteredAgents.length > 0 && (
               <div className="divide-y divide-gray-100">
                 {filteredAgents.map((agent, index) => (
                   <button
-                    key={`${agent.agentName}-${index}`}
-                    onClick={() => handleAgentSelect(agent.agentName)}
+                    key={`${agent.agentId}-${index}`}
+                    onClick={() => handleAgentSelect(agent.agentId)}
                     className={`w-full p-4 text-left transition-colors hover:bg-gray-50 ${
-                      selectedAgent === agent.agentName
+                      selectedAgent === agent.agentId
                         ? "bg-blue-50 border-l-4 border-blue-500"
                         : "border-l-4 border-transparent"
                     }`}
@@ -599,14 +764,14 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
                     <div className="flex items-start gap-3">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          selectedAgent === agent.agentName
+                          selectedAgent === agent.agentId
                             ? "bg-blue-500"
                             : "bg-gray-100"
                         }`}
                       >
                         <User
                           className={`w-5 h-5 ${
-                            selectedAgent === agent.agentName
+                            selectedAgent === agent.agentId
                               ? "text-white"
                               : "text-gray-600"
                           }`}
@@ -618,7 +783,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
                         </div>
                         <div className="flex items-center gap-1 mt-1">
                           <span className="text-xs text-gray-500 font-mono">
-                            ID: {agent.agentDetails?.agentId || "N/A"}
+                            ID: {agent.agentId}
                           </span>
                         </div>
                       </div>
@@ -628,8 +793,61 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
               </div>
             )}
 
+            {/* Brokerage Cards */}
+            {activeTab === "brokerages" && !isLoading && !error && filteredBrokerages.length > 0 && (
+              <div className="divide-y divide-gray-100">
+                {filteredBrokerages.map((brokerage, index) => (
+                  <button
+                    key={`${brokerage.brokerageName}-${index}`}
+                    onClick={() => {
+                      setSelectedBrokerage(brokerage.brokerageName);
+                      setSelectedAgent(null); // Clear agent when selecting brokerage
+                    }}
+                    className={`w-full p-4 text-left transition-colors hover:bg-gray-50 ${
+                      selectedBrokerage === brokerage.brokerageName
+                        ? "bg-blue-50 border-l-4 border-blue-500"
+                        : "border-l-4 border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          selectedBrokerage === brokerage.brokerageName
+                            ? "bg-blue-500"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        <Building2
+                          className={`w-5 h-5 ${
+                            selectedBrokerage === brokerage.brokerageName
+                              ? "text-white"
+                              : "text-gray-600"
+                          }`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
+                          {brokerage.brokerageName}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-xs text-gray-500">
+                            {brokerage.agentCount} agent{brokerage.agentCount !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        {brokerage.address?.city && (
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {brokerage.address.city}{brokerage.address.state && `, ${brokerage.address.state}`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Empty Filter Results */}
-            {!isLoading && !error && filteredAgents.length === 0 && agents.length > 0 && (
+            {activeTab === "agents" && !isLoading && !error && filteredAgents.length === 0 && agents.length > 0 && (
               <div className="text-center py-12 px-4">
                 <Search className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                 <h3 className="text-sm font-semibold text-gray-700 mb-1">
@@ -641,8 +859,20 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
               </div>
             )}
 
+            {activeTab === "brokerages" && !isLoading && !error && filteredBrokerages.length === 0 && brokerages.length > 0 && (
+              <div className="text-center py-12 px-4">
+                <Search className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                <h3 className="text-sm font-semibold text-gray-700 mb-1">
+                  No brokerages found
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Try adjusting your search
+                </p>
+              </div>
+            )}
+
             {/* Empty State */}
-            {!isLoading && !error && agents.length === 0 && (
+            {activeTab === "agents" && !isLoading && !error && agents.length === 0 && (
               <div className="text-center py-12 px-4">
                 <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
                   <User className="w-6 h-6 text-gray-400" />
@@ -651,7 +881,21 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
                   No agents available
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Check your API key
+                  Search to find agents
+                </p>
+              </div>
+            )}
+
+            {activeTab === "brokerages" && !isLoading && !error && brokerages.length === 0 && (
+              <div className="text-center py-12 px-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Building2 className="w-6 h-6 text-gray-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-1">
+                  No brokerages available
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Search to find brokerages
                 </p>
               </div>
             )}
@@ -683,26 +927,141 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
           )}
         </div>
 
-        {/* Right Panel - Agent Details */}
+        {/* Right Panel - Details */}
         <div className="flex-1 bg-gray-50 overflow-y-auto">
-          {!selectedAgent && (
+          {!selectedAgent && !selectedBrokerage && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center px-4">
                 <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="w-10 h-10 text-gray-400" />
+                  {activeTab === "agents" ? (
+                    <User className="w-10 h-10 text-gray-400" />
+                  ) : (
+                    <Building2 className="w-10 h-10 text-gray-400" />
+                  )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  No Agent Selected
+                  {activeTab === "agents" ? "No Agent Selected" : "No Brokerage Selected"}
                 </h3>
                 <p className="text-gray-500 max-w-sm">
-                  Select an agent from the list to view their performance dashboard and metrics
+                  {activeTab === "agents"
+                    ? "Select an agent from the list to view their performance dashboard and metrics"
+                    : "Select a brokerage to view agents from that brokerage"}
                 </p>
               </div>
             </div>
           )}
 
+          {/* Brokerage View - Show agents from selected brokerage */}
+          {selectedBrokerage && !selectedAgent && (() => {
+            const brokerageData = brokerages.find((b) => b.brokerageName === selectedBrokerage);
+
+            return (
+              <div className="p-6">
+                {/* Brokerage Header */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                          {selectedBrokerage}
+                        </h2>
+                        <div className="flex items-center gap-2 mt-2">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            <span className="font-semibold">
+                              {isLoadingBrokerageAgents ? "..." : brokerageAgents.length}
+                            </span>{" "}
+                            agents
+                          </span>
+                        </div>
+                        {brokerageData?.address && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {brokerageData.address.address1 && `${brokerageData.address.address1}, `}
+                            {brokerageData.address.city && `${brokerageData.address.city}, `}
+                            {brokerageData.address.state && `${brokerageData.address.state} `}
+                            {brokerageData.address.postal}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedBrokerage(null)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Agents in this brokerage */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-gray-600" />
+                    Agents in this Brokerage
+                  </h3>
+
+                  {/* Loading State */}
+                  {isLoadingBrokerageAgents && (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    </div>
+                  )}
+
+                  {/* Error State */}
+                  {brokerageAgentsError && !isLoadingBrokerageAgents && (
+                    <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{brokerageAgentsError}</span>
+                    </div>
+                  )}
+
+                  {/* Agent Cards */}
+                  {!isLoadingBrokerageAgents && !brokerageAgentsError && brokerageAgents.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {brokerageAgents.map((agent) => (
+                        <button
+                          key={agent.agentId}
+                          onClick={() => {
+                            setSelectedAgent(agent.agentId);
+                            setSelectedBrokerage(null);
+                          }}
+                          className="p-3 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                        >
+                          <div className="font-medium text-gray-900">{agent.agentName}</div>
+                          <div className="text-xs text-gray-500 mt-1">ID: {agent.agentId}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {!isLoadingBrokerageAgents && !brokerageAgentsError && brokerageAgents.length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-6">No agents found for this brokerage</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {selectedAgent && (() => {
-            const agentData = agents.find((a) => a.agentName === selectedAgent);
+            // Look for agent in both main agents array and brokerage agents array
+            const agentData = agents.find((a) => a.agentId === selectedAgent) ||
+                             brokerageAgents.find((a) => a.agentId === selectedAgent);
             const details = agentData?.agentDetails;
 
             return (
@@ -716,20 +1075,20 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
                       </div>
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900">
-                          {selectedAgent}
+                          {agentData?.agentName || "Unknown Agent"}
                         </h2>
                         <div className="flex items-center gap-2 mt-2">
                           <TrendingUp className="w-4 h-4 text-gray-400" />
                           <span className="text-sm text-gray-600">
                             <span className="font-semibold">
-                              {agentData?.listingCount || 0}
+                              {(activeListingsCount || 0) + (soldListingsCount || 0)}
                             </span>{" "}
                             total listings
                           </span>
                         </div>
-                        {details?.agentId && (
+                        {agentData?.agentId && (
                           <div className="text-xs text-gray-500 mt-1">
-                            ID: {details.agentId}
+                            ID: {agentData.agentId}
                           </div>
                         )}
                       </div>
