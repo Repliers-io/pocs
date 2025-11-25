@@ -1,274 +1,284 @@
 # Repliers Real Estate Chatbot PoC
 
-An intelligent real estate chatbot that acts as the first point of contact for visitors to real estate brokerage websites. Built using the Model Context Protocol (MCP) and powered by Repliers API, this proof-of-concept demonstrates how AI can naturally understand property search queries and deliver personalized listing results.
+A modern, interactive real estate chatbot widget built as a Storybook component. Features a floating chat button and conversational interface designed for property search assistance on brokerage websites.
 
-## 🎯 Project Overview
+## 🎯 Overview
 
-This PoC creates a conversational AI assistant similar to [Zillow's ChatGPT plugin](https://www.zillowgroup.com/news/discover-zillows-plugin-on-chatgpt/), but powered by Repliers' real-time MLS data and AI capabilities.
+This PoC provides a production-ready chat widget component that can be embedded into any real estate website. Built with React, TypeScript, and Tailwind CSS, it offers a warm, inviting interface for visitors to search properties through natural conversation.
 
-### Key Features
+**Current Status**: UI Foundation Complete (Phase 1)
+**Next Phase**: MCP Integration for live property search
 
-- **Natural Language Understanding**: Users describe what they're looking for in plain English
-- **Intelligent Search**: Leverages Repliers NLP endpoint to extract search criteria from conversational queries
-- **MCP Architecture**: Uses Model Context Protocol for standardized LLM-to-API communication
-- **Real-time MLS Data**: Accesses live property listings through Repliers API
-- **Multi-LLM Support**: Initially built for ChatGPT, designed to work with Claude, and other LLM providers
+## ✨ Features
 
-### Example Interaction
+### Current Implementation (v1.0)
 
-```
-User: "I'm looking for a 3 bedroom house in Toronto under $800k"
-Assistant: [Analyzes query via Repliers NLP]
-           [Searches listings with extracted criteria]
-           "I found several options for you! Here are 5 houses in Toronto
-           with 3 bedrooms under $800k..."
-```
+- 🏠 **Floating Action Button** - Animated button with smooth hover effects and position options
+- 💬 **Chat Interface** - Modal panel with professional, warm design
+- 📱 **Fully Responsive** - Full-screen on mobile, elegant panel on desktop
+- 🎨 **White-Label Ready** - Customizable branding (logo, name, colors, messages)
+- ♿ **Accessible** - ARIA labels, keyboard navigation, semantic HTML
+- ⚡ **Mock Runtime** - Simulated responses for testing (MCP integration ready)
+- 📚 **Storybook Stories** - Multiple demos showcasing different configurations
 
-## 🏗️ Architecture
+### Coming Soon (Phase 2 - MCP Integration)
 
-```
-User Interface (Web Chat)
-         ↓
-    ChatGPT API
-         ↓
-   MCP Server (Repliers)
-         ↓
-   Repliers API
-    ├─ NLP Endpoint (query understanding)
-    └─ Listings Endpoint (property search)
-```
-
-### Technology Stack
-
-- **MCP Server**: Node.js-based Repliers MCP Server
-- **LLM Provider**: OpenAI ChatGPT (Phase 1), expandable to Claude and others
-- **Frontend**: React web application (or simple HTML/JS for PoC)
-- **API**: Repliers Realtime Real Estate API
-  - NLP Endpoint for natural language processing
-  - Listings Search & Filter API
-
-## 📋 Prerequisites
-
-- Node.js v20+ (required for MCP server)
-- Repliers API Key ([get yours here](https://repliers.com))
-- OpenAI API Key for ChatGPT integration
-- npm or yarn package manager
+- 🔗 **Repliers MCP Server** - Connect to real-time MLS data
+- 🧠 **Natural Language Processing** - Repliers NLP API for query understanding
+- 🏡 **Property Search** - Live listing results based on conversation
+- 💾 **Conversation Memory** - Persistent chat history across sessions
+- 📊 **Property Cards** - Rich listing display with images and details
 
 ## 🚀 Quick Start
 
-### 1. Clone the Repository
+### View in Storybook
 
 ```bash
-git clone https://github.com/Repliers-io/pocs/real-estate-chatbot
-cd real-estate-chatbot
+npm run storybook
 ```
 
-### 2. Set Up MCP Server
+Navigate to: **pocs → Chatbot → Real Estate Chatbot**
 
-```bash
-# Clone Repliers MCP Server (if not already in monorepo)
-git clone https://github.com/Repliers-io/mcp-server
-cd mcp-server
-npm install
+### Use in Your Application
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env and add your REPLIERS_API_KEY
+```tsx
+import { Chatbot } from "@/components/chatbot";
+
+function App() {
+  return (
+    <div>
+      {/* Your page content */}
+
+      <Chatbot
+        brokerageName="Acme Realty"
+        brokerageLogo="/logo.png"
+        position="bottom-right"
+        welcomeMessage="Hi! I'm here to help you find your perfect home."
+      />
+    </div>
+  );
+}
 ```
 
-### 3. Configure ChatGPT Integration
-
-```bash
-cd ../chatbot-frontend
-npm install
-
-# Add your OpenAI API key
-echo "OPENAI_API_KEY=your_openai_key" >> .env
-echo "MCP_SERVER_URL=http://localhost:3000" >> .env
-```
-
-### 4. Run the Application
-
-**Terminal 1 - Start MCP Server:**
-
-```bash
-cd mcp-server
-node mcpServer.js
-```
-
-**Terminal 2 - Start Frontend:**
-
-```bash
-cd chatbot-frontend
-npm start
-```
-
-Visit `http://localhost:3001` to interact with the chatbot.
-
-## 📁 Project Structure
+## 📁 Component Structure
 
 ```
-real-estate-chatbot/
-├── README.md                          # This file
-├── docs/
-│   ├── architecture.md                # Detailed architecture documentation
-│   ├── api-integration.md             # Repliers API integration guide
-│   └── mcp-protocol.md                # MCP protocol explanation
-├── mcp-server/                        # Repliers MCP Server (git submodule)
-│   ├── mcpServer.js                   # MCP server entry point
-│   ├── tools/                         # MCP tools for Repliers API
-│   ├── .env                           # Environment configuration
-│   └── package.json
-├── chatbot-frontend/                  # Web interface
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ChatWidget.jsx         # Main chat interface
-│   │   │   ├── PropertyCard.jsx       # Listing display component
-│   │   │   └── MessageBubble.jsx      # Chat message component
-│   │   ├── services/
-│   │   │   ├── openaiService.js       # ChatGPT API integration
-│   │   │   └── mcpClient.js           # MCP client for tool calls
-│   │   ├── App.jsx
-│   │   └── index.js
-│   ├── public/
-│   ├── .env
-│   └── package.json
-├── tests/                             # Test suites
-│   ├── mcp-integration.test.js
-│   └── e2e.test.js
-└── examples/                          # Example queries and responses
-    └── sample-conversations.md
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-**MCP Server (.env)**
-
-```env
-REPLIERS_API_KEY=your_repliers_api_key
-PORT=3000
-```
-
-**Frontend (.env)**
-
-```env
-OPENAI_API_KEY=your_openai_api_key
-MCP_SERVER_URL=http://localhost:3000
-REACT_APP_BOT_NAME=Repliers Assistant
+src/components/chatbot/
+├── types/
+│   └── index.ts                    # TypeScript interfaces
+├── utils/
+│   └── constants.ts                # Default values and labels
+├── hooks/
+│   └── useChatRuntime.ts          # Mock runtime (MCP integration point)
+├── components/
+│   ├── FloatingButton.tsx         # Floating action button
+│   └── ChatWidget.tsx             # Main chat interface
+├── chatbot.tsx                     # Main component
+├── chatbot.stories.tsx            # Storybook stories
+├── index.ts                        # Public exports
+└── readme.md                       # This file
 ```
 
 ## 🎨 Customization
 
-### Branding
+### Component Props
 
-Update `chatbot-frontend/src/config/branding.js`:
-
-```javascript
-export const branding = {
-  primaryColor: "#your-brand-color",
-  botName: "Your Brokerage Assistant",
-  welcomeMessage: "Hi! I can help you find properties...",
-  logoUrl: "/path/to/logo.png",
-};
+```typescript
+interface ChatbotProps {
+  brokerageName?: string;           // "Real Estate Assistant"
+  brokerageLogo?: string;           // URL to logo image
+  primaryColor?: string;            // "#3B82F6" (future feature)
+  position?: "bottom-right" | "bottom-left";  // "bottom-right"
+  welcomeMessage?: string;          // Custom greeting
+  placeholder?: string;             // Input placeholder text
+}
 ```
 
-### Conversation Flow
+### Example Configurations
 
-The chatbot behavior can be customized by modifying the system prompt in `chatbot-frontend/src/services/openaiService.js`.
+**Basic Usage:**
+```tsx
+<Chatbot />
+```
 
-## 📚 API Reference
+**Custom Branding:**
+```tsx
+<Chatbot
+  brokerageName="Downtown Realty"
+  brokerageLogo="https://example.com/logo.png"
+  welcomeMessage="Welcome! Tell me what you're looking for."
+  placeholder="e.g., 2 bed condo with parking..."
+/>
+```
 
-### Repliers API Endpoints Used
+**Left Position:**
+```tsx
+<Chatbot position="bottom-left" />
+```
 
-1. **NLP Endpoint**: `/nlp`
+## 🏗️ Architecture
 
-   - Extracts structured search criteria from natural language
-   - [Documentation](https://help.repliers.com/en/article/utilizing-ai-powered-nlp-for-real-estate-listing-searches-1fvddra/)
+### Current (Phase 1 - UI Foundation)
 
-2. **Listings Search**: `/listings`
-   - Retrieves properties based on filter criteria
-   - [Documentation](https://help.repliers.com/en/article/searching-filtering-and-pagination-guide-1q1n7x0/)
+```
+React Component (Chatbot)
+    ├── FloatingButton
+    └── ChatWidget
+        └── useChatRuntime (mock)
+            └── Mock responses
+```
+
+### Future (Phase 2 - MCP Integration)
+
+```
+React Component (Chatbot)
+    ├── FloatingButton
+    └── ChatWidget
+        └── useChatRuntime
+            └── MCP Server (Repliers)
+                └── Repliers API
+                    ├─ NLP Endpoint (query understanding)
+                    └─ Listings Endpoint (property search)
+```
+
+## 🔧 Development
+
+### Prerequisites
+
+- Node.js v20+
+- npm or yarn
+- This POCs repository
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+Already includes:
+- `@assistant-ui/react` - Chat UI primitives
+- `lucide-react` - Icons
+- `tailwindcss` - Styling
+
+### Run Storybook
+
+```bash
+npm run storybook
+```
+
+### Build
+
+```bash
+npm run build
+```
 
 ## 🧪 Testing
 
-```bash
-# Run unit tests
-npm test
+### Storybook Stories
 
-# Run integration tests
-npm run test:integration
+1. **Default** - Standard chatbot with default settings
+2. **Custom Branding** - Example with brokerage name and logo
+3. **Left Positioned** - Button on bottom-left
+4. **Alternative Branding** - Different styling example
+5. **Mobile View** - Mobile viewport demonstration
+6. **In Context** - Embedded in mock real estate website
 
-# Test MCP server connection
-npm run test:mcp
+### Manual Testing Checklist
+
+- [ ] Floating button appears in correct position
+- [ ] Button animates on hover (scale effect)
+- [ ] Click button to open chat widget
+- [ ] Widget opens with smooth animation
+- [ ] Welcome message displays correctly
+- [ ] Type and send a message
+- [ ] Mock response appears after 1 second
+- [ ] Loading indicator shows while waiting
+- [ ] Close button (X) closes the widget
+- [ ] Test on mobile viewport (full-screen mode)
+- [ ] Test keyboard navigation (Tab, Enter, Escape)
+
+### Test Queries (for future MCP integration)
+
 ```
-
-### Manual Testing Scenarios
-
-Test the chatbot with these queries:
-
 - "Show me 3 bedroom condos in downtown Toronto"
 - "I need a house with a backyard, under $900k"
 - "What's available in Leslieville with 2+ bathrooms?"
 - "Find me properties near subway stations"
-
-## 🚢 Deployment
-
-### Deploy MCP Server
-
-```bash
-# Using Docker
-cd mcp-server
-docker build -t repliers-mcp-server .
-docker run -p 3000:3000 -e REPLIERS_API_KEY=your_key repliers-mcp-server
+- "2 bed 2 bath condo with parking under $700k"
 ```
 
-### Deploy Frontend
+## 🔮 Roadmap
 
-```bash
-# Build for production
-cd chatbot-frontend
-npm run build
+### Phase 1: UI Foundation ✅ COMPLETE
+- [x] Floating action button component
+- [x] Chat widget modal/panel
+- [x] Responsive design (mobile + desktop)
+- [x] Customizable branding
+- [x] Mock runtime for testing
+- [x] Storybook stories
+- [x] TypeScript types
+- [x] Accessibility features
 
-# Deploy to Vercel/Netlify/your hosting provider
-```
+### Phase 2: MCP Integration (Next)
+- [ ] Connect to Repliers MCP Server
+- [ ] Integrate Repliers NLP API
+- [ ] Real property search functionality
+- [ ] Property card components
+- [ ] Handle listing results display
+- [ ] Error handling and loading states
 
-## 🔮 Future Enhancements
+### Phase 3: Enhanced Features
+- [ ] Conversation memory/history
+- [ ] Property comparison
+- [ ] Favorite/save properties
+- [ ] Share conversation via email
+- [ ] Agent handoff for human support
+- [ ] Analytics and tracking
+- [ ] Custom theming (primaryColor support)
 
-- [ ] Add Claude integration for multi-LLM support
-- [ ] Implement conversation memory across sessions
-- [ ] Add property comparison features
-- [ ] Integrate mortgage calculator
-- [ ] Support for voice input/output
-- [ ] Lead capture and CRM integration
+### Phase 4: Advanced
 - [ ] Multi-language support
-- [ ] Mobile app (React Native)
-- [ ] Add market analytics and neighborhood insights
+- [ ] Voice input/output
+- [ ] Mortgage calculator integration
+- [ ] Neighborhood insights
+- [ ] School district information
+- [ ] Lead capture and CRM integration
 
-## 🤝 Contributing
-
-This is an internal PoC. For questions or contributions, contact the development team.
-
-## 📖 Resources
+## 📚 Resources
 
 - [Repliers API Documentation](https://help.repliers.com)
 - [Repliers MCP Server](https://github.com/Repliers-io/mcp-server)
-- [Model Context Protocol Specification](https://modelcontextprotocol.io)
-- [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
+- [Model Context Protocol](https://modelcontextprotocol.io)
+- [@assistant-ui/react](https://www.assistant-ui.com/)
 - [Zillow ChatGPT Plugin Case Study](https://www.zillowgroup.com/news/discover-zillows-plugin-on-chatgpt/)
 
-## 📄 License
+## 🐛 Known Issues
 
-Internal use only - Repliers Inc.
+- `primaryColor` prop is accepted but not yet applied (planned for Phase 3)
+- Mock runtime always returns same response (will be replaced with MCP)
+
+## 💡 Tips
+
+**For Developers:**
+- Look for `// TODO:` comments in code for MCP integration points
+- Mock runtime is in `hooks/useChatRuntime.ts`
+- All styling uses Tailwind - customize in component files
+- Component is designed to work as a singleton (one per page)
+
+**For Designers:**
+- Customize colors in component files (search for `blue-600`, `blue-700`)
+- Adjust spacing, shadows, and rounded corners via Tailwind classes
+- Logo displays at 40x40px in header
+- Mobile breakpoint is `md:` (768px)
 
 ## 👥 Team
 
-Built with ❤️ by the Repliers Innovation Team
+Built by the Repliers Innovation Team
 
 **Project Lead**: Milan (milan@repliers.com)
 
 ---
 
-**Status**: Proof of Concept (Active Development)
+**Status**: Phase 1 Complete - UI Foundation Ready
 **Last Updated**: November 2025
+**Version**: 1.0.0
