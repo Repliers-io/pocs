@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Chatbot } from "./chatbot";
 
+// Use same sample key as map-listings component
+const SAMPLE_REPLIERS_API_KEY = "pxI19UMy9zfw9vz5lRxoGpjJWXrMnm";
+
 const meta: Meta<typeof Chatbot> = {
   title: "pocs/Chatbot/Real Estate Chatbot",
   component: Chatbot,
@@ -9,35 +12,67 @@ const meta: Meta<typeof Chatbot> = {
     docs: {
       description: {
         component: `
-# Real Estate Chatbot PoC
+# Real Estate Chatbot with NLP Integration
 
-An intelligent real estate chatbot widget that provides a floating chat interface for property search assistance.
+A conversational AI chatbot for real estate websites that uses **Repliers NLP API** to understand natural language property searches and display results in real-time.
 
-## Features
+## ✨ Features
 
-- 🏠 **Floating Action Button** - Persistent button with smooth animations
-- 💬 **Chat Interface** - Modal panel with warm, inviting design
-- 📱 **Responsive** - Full-screen on mobile, panel on desktop
-- 🎨 **Customizable** - Brand colors, logo, and messaging
+- 🗣️ **Natural Language Understanding** - Ask in plain English: "3 bedroom condo in Toronto"
+- 🔄 **Context-Aware Conversations** - Multi-turn refinement using nlpId
+- 🎨 **Visual Search** - Search by aesthetics: "modern white kitchen"
+- 🏠 **Beautiful Property Cards** - Images, specs, and details
+- 📱 **Fully Responsive** - Full-screen on mobile, panel on desktop
+- 🎨 **Customizable Branding** - Logo, colors, and messaging
 - ♿ **Accessible** - Keyboard navigation and ARIA labels
-- 🔄 **Mock Runtime** - Currently using mock responses (MCP integration coming soon)
 
-## Future Integration
+## 🧠 How It Works
 
-This component is designed to integrate with the Repliers MCP Server for:
-- Natural language property search
-- Real-time MLS data access
-- Intelligent query understanding via Repliers NLP API
+1. **User types query**: "3 bedroom condo in Toronto under $800k"
+2. **Repliers NLP API** processes the natural language
+3. **Property search** executes with extracted criteria
+4. **Results display** in beautiful property cards inline
 
-## Usage
+## 🔑 API Key
 
-Simply include the component in your application and it will render a floating chat button.
-Customize with your brokerage branding and messaging.
+This demo uses a **sample Repliers API key**. For production, get your own key at [repliers.com](https://repliers.com).
+
+## 🎯 Try These Queries
+
+- "3 bedroom condo in Toronto"
+- "House under $800k with a backyard"
+- "Modern apartment with white kitchen"
+- "Show me properties in the Annex"
+- "2 bed 2 bath with parking"
+
+## 🔗 Multi-Turn Conversations
+
+The chatbot maintains context across messages:
+1. "I want a condo"
+2. "Make it 3 bedrooms"
+3. "Under $800k"
+
+Each message refines the previous search!
         `,
       },
     },
   },
   argTypes: {
+    repliersApiKey: {
+      control: "text",
+      description: "Repliers API key (required for property search)",
+      table: {
+        type: { summary: "string" },
+        defaultValue: { summary: "Sample key provided" },
+      },
+    },
+    openaiApiKey: {
+      control: "text",
+      description: "OpenAI API key (optional - for enhanced conversation, Step 3)",
+      table: {
+        type: { summary: "string" },
+      },
+    },
     brokerageName: {
       control: "text",
       description: "Name of the brokerage to display in chat header",
@@ -55,7 +90,7 @@ Customize with your brokerage branding and messaging.
     },
     primaryColor: {
       control: "color",
-      description: "Primary brand color (future feature)",
+      description: "Primary brand color (future feature - Step 3)",
       table: {
         type: { summary: "string" },
         defaultValue: { summary: "#3B82F6" },
@@ -98,60 +133,142 @@ export default meta;
 type Story = StoryObj<typeof Chatbot>;
 
 /**
- * Default chatbot with standard branding and settings.
- * Click the floating button to open the chat interface.
+ * **Basic Property Search**
+ *
+ * This story demonstrates the core NLP-powered property search functionality.
+ * The chatbot understands natural language and returns real property listings.
+ *
+ * **Try these queries:**
+ * - "3 bedroom condo in Toronto"
+ * - "House under $800k with a backyard"
+ * - "Modern apartment with white kitchen"
+ * - "Show me properties in the Annex"
+ *
+ * **Check the browser console** to see NLP API calls and responses!
  */
-export const Default: Story = {
-  args: {},
+export const BasicPropertySearch: Story = {
+  args: {
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
+    brokerageName: "Acme Realty",
+    welcomeMessage:
+      "Hi! I'm your AI real estate assistant. Tell me what you're looking for!",
+  },
 };
 
 /**
- * Chatbot with custom branding including brokerage name and logo.
- * This demonstrates how to white-label the component for specific brokerages.
+ * **Custom Branding**
+ *
+ * This story shows how to white-label the chatbot with your brokerage's branding.
+ * Customize the name, logo, colors, and welcome message.
  */
 export const CustomBranding: Story = {
   args: {
-    brokerageName: "Acme Realty Group",
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
+    brokerageName: "Luxury Homes Toronto",
     brokerageLogo:
       "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=100&h=100&fit=crop",
     welcomeMessage:
-      "Welcome to Acme Realty! I'm here to help you find your dream home. What are you looking for?",
-    placeholder: "Tell me about your dream home...",
+      "Welcome to Luxury Homes Toronto! Let me help you find your dream property in the heart of the city.",
+    placeholder: "Describe your dream home...",
+    primaryColor: "#1e40af",
   },
 };
 
 /**
- * Chatbot positioned on the bottom-left instead of bottom-right.
- * Useful for pages where right side has other elements.
+ * **Left Position**
+ *
+ * Sometimes you need the chat button on the left side of the screen.
+ * This story demonstrates the position customization.
  */
 export const LeftPositioned: Story = {
   args: {
-    position: "bottom-left",
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
     brokerageName: "Downtown Properties",
+    position: "bottom-left",
   },
 };
 
 /**
- * Chatbot with a different brokerage and custom messaging.
+ * **Multi-Turn Conversation Demo**
+ *
+ * This story demonstrates context-aware conversations using Repliers' nlpId feature.
+ * The chatbot maintains context across multiple messages!
+ *
+ * **Try this conversation flow:**
+ * 1. Type: "I want a condo"
+ * 2. Then: "3 bedrooms"
+ * 3. Then: "In Toronto"
+ * 4. Then: "Under $800k"
+ *
+ * Each message refines the previous search using the same nlpId.
+ * Check the browser console to see the nlpId being passed!
  */
-export const AlternativeBranding: Story = {
+export const MultiTurnConversation: Story = {
   args: {
-    brokerageName: "Urban Living Real Estate",
-    brokerageLogo:
-      "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=100&h=100&fit=crop",
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
+    brokerageName: "Smart Homes Realty",
     welcomeMessage:
-      "Hi there! Looking for the perfect urban property? I can help you search apartments, condos, and houses in the city.",
-    placeholder: "e.g., 2 bed condo downtown with parking...",
-    primaryColor: "#10B981", // Green color (future feature)
+      "Hi! Start by telling me what type of property you're interested in, then we can refine from there.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+The chatbot uses Repliers' **nlpId** feature to maintain conversation context.
+Each refinement builds on previous queries, making the search feel natural and conversational.
+
+Open your browser console to see the nlpId being maintained across messages!
+        `,
+      },
+    },
   },
 };
 
 /**
- * Mobile viewport demonstration.
- * The chat interface takes up the full screen on mobile devices.
+ * **Visual Search Demo**
+ *
+ * The chatbot supports aesthetic/visual property searches!
+ * Try searching for properties by their appearance.
+ *
+ * **Try these visual queries:**
+ * - "Condo with modern white kitchen"
+ * - "House with hardwood floors"
+ * - "Apartment with marble countertops"
+ *
+ * The NLP API will include imageSearchItems in the request,
+ * ranking properties by visual match. Check the console!
+ */
+export const VisualSearch: Story = {
+  args: {
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
+    brokerageName: "Design-Forward Homes",
+    welcomeMessage:
+      "Looking for a specific style or aesthetic? Describe the look you want!",
+    placeholder: "e.g., modern kitchen, hardwood floors...",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+Visual search allows users to find properties based on aesthetics.
+The Repliers NLP API extracts visual preferences and uses imageSearchItems
+to rank properties by visual similarity.
+        `,
+      },
+    },
+  },
+};
+
+/**
+ * **Mobile View**
+ *
+ * This story demonstrates the mobile-responsive design.
+ * On mobile, the chat interface expands to fill the entire screen
+ * for an optimal user experience.
  */
 export const MobileView: Story = {
   args: {
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
     brokerageName: "Mobile Realty",
   },
   parameters: {
@@ -160,19 +277,25 @@ export const MobileView: Story = {
     },
     docs: {
       description: {
-        story:
-          "On mobile devices, the chat interface expands to fill the entire screen for better usability.",
+        story: `
+On mobile devices, the chat interface takes up the full screen.
+Property cards stack vertically for easy scrolling.
+        `,
       },
     },
   },
 };
 
 /**
- * Demonstration of the chatbot in a typical real estate website context.
- * The component integrates seamlessly into your existing design.
+ * **In Real Estate Website Context**
+ *
+ * This story shows how the chatbot looks when embedded in a typical
+ * real estate website. The floating button stays accessible while
+ * users browse properties on the page.
  */
 export const InContext: Story = {
   args: {
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
     brokerageName: "Premier Properties",
   },
   decorators: [
@@ -185,7 +308,7 @@ export const InContext: Story = {
               Premier Properties
             </h1>
             <p className="text-sm text-gray-600">
-              Your trusted real estate partner
+              Find your dream home with AI assistance
             </p>
           </div>
         </header>
@@ -194,20 +317,38 @@ export const InContext: Story = {
         <main className="container mx-auto px-6 py-12">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <h2 className="text-4xl font-bold text-gray-900">
-              Find Your Dream Home
+              AI-Powered Property Search
             </h2>
             <p className="text-xl text-gray-600">
-              Browse thousands of properties or chat with our AI assistant for
-              personalized recommendations.
+              Chat with our AI assistant to find properties that match your
+              exact needs. Just describe what you're looking for in natural
+              language!
             </p>
+
+            {/* Mock property cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg shadow-md p-6">
-                  <div className="h-48 bg-gray-200 rounded-lg mb-4" />
-                  <h3 className="font-semibold text-lg">Property {i}</h3>
-                  <p className="text-gray-600">3 bed • 2 bath • $750,000</p>
+                <div
+                  key={i}
+                  className="bg-white rounded-lg shadow-md overflow-hidden"
+                >
+                  <div className="h-48 bg-gray-200" />
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg">Property {i}</h3>
+                    <p className="text-gray-600">3 bed • 2 bath • $750,000</p>
+                  </div>
                 </div>
               ))}
+            </div>
+
+            {/* CTA */}
+            <div className="mt-12 p-8 bg-blue-600 text-white rounded-2xl">
+              <h3 className="text-2xl font-bold mb-2">
+                Try Our AI Chat Assistant
+              </h3>
+              <p className="text-blue-100">
+                Click the chat button in the bottom right to get started!
+              </p>
             </div>
           </div>
         </main>
@@ -220,8 +361,37 @@ export const InContext: Story = {
   parameters: {
     docs: {
       description: {
-        story:
-          "This story shows how the chatbot appears in a real website context. The floating button stays accessible while users browse properties.",
+        story: `
+This story shows how the chatbot integrates seamlessly into a real estate website.
+The floating button stays accessible while users browse the page.
+        `,
+      },
+    },
+  },
+};
+
+/**
+ * **Error Handling Demo**
+ *
+ * This story has an invalid API key to demonstrate error handling.
+ * Try sending a property search query to see the user-friendly error message.
+ *
+ * The chatbot gracefully handles API errors without crashing.
+ */
+export const ErrorHandling: Story = {
+  args: {
+    repliersApiKey: "invalid_api_key_for_demo",
+    brokerageName: "Error Demo",
+    welcomeMessage: "Try searching for a property to see error handling in action.",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+This story uses an invalid API key to demonstrate error handling.
+Try searching for properties to see how errors are handled gracefully
+with user-friendly messages.
+        `,
       },
     },
   },

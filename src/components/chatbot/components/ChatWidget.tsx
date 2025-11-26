@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { X, Send, Loader2 } from "lucide-react";
 import { ChatWidgetProps } from "../types";
 import { useChatRuntime } from "../hooks/useChatRuntime";
+import { PropertyResults } from "./PropertyResults";
 import { BUTTON_LABELS } from "../utils/constants";
 
 export function ChatWidget({
@@ -11,8 +12,12 @@ export function ChatWidget({
   brokerageLogo,
   welcomeMessage,
   placeholder,
+  repliersApiKey,
 }: ChatWidgetProps) {
-  const { messages, isLoading, sendMessage } = useChatRuntime(welcomeMessage);
+  const { messages, isLoading, sendMessage } = useChatRuntime(
+    repliersApiKey,
+    welcomeMessage
+  );
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,9 +65,9 @@ export function ChatWidget({
           /* Mobile: Full screen */
           inset-4 md:inset-auto
 
-          /* Desktop: Bottom right, fixed size */
+          /* Desktop: Bottom right, fixed size - wider for property cards */
           md:bottom-24 md:right-6
-          md:w-[400px] md:h-[600px]
+          md:w-[480px] md:h-[700px]
         `}
         role="dialog"
         aria-labelledby="chat-header"
@@ -97,31 +102,49 @@ export function ChatWidget({
         {/* Messages Container */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-blue-50/30 to-white">
           {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+            <div key={message.id} className="space-y-3">
+              {/* Message Bubble */}
               <div
-                className={`
-                  max-w-[85%] rounded-2xl px-4 py-3 shadow-sm
-                  ${
-                    message.role === "user"
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-sm"
-                      : "bg-white text-gray-800 rounded-bl-sm border border-gray-100"
-                  }
-                `}
+                className={`flex ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </p>
+                <div
+                  className={`
+                    max-w-[85%] rounded-2xl px-4 py-3 shadow-sm
+                    ${
+                      message.role === "user"
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-sm"
+                        : message.error
+                        ? "bg-red-50 text-red-800 rounded-bl-sm border border-red-200"
+                        : message.isLoading
+                        ? "bg-blue-50 text-blue-800 rounded-bl-sm border border-blue-200 flex items-center gap-2"
+                        : "bg-white text-gray-800 rounded-bl-sm border border-gray-100"
+                    }
+                  `}
+                >
+                  {message.isLoading && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                </div>
               </div>
+
+              {/* Property Results */}
+              {message.role === "assistant" &&
+                message.propertyResults &&
+                message.propertyResults.length > 0 && (
+                  <div className="w-full">
+                    <PropertyResults listings={message.propertyResults} />
+                  </div>
+                )}
             </div>
           ))}
 
-          {/* Loading Indicator */}
-          {isLoading && (
+          {/* Loading Indicator (for when isLoading but no loading message yet) */}
+          {isLoading && !messages.some((m) => m.isLoading) && (
             <div className="flex justify-start">
               <div className="bg-white text-gray-800 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm border border-gray-100">
                 <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
@@ -168,7 +191,7 @@ export function ChatWidget({
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Powered by AI • Press Enter to send
+            Powered by Repliers AI • Press Enter to send
           </p>
         </div>
       </div>
