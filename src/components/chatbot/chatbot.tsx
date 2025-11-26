@@ -11,15 +11,17 @@ import {
 /**
  * Real Estate Chatbot Component
  *
- * @description A fully-featured chatbot widget for real estate websites with floating button and chat interface.
- * Built with assistant-ui and designed for integration with Repliers MCP Server.
+ * @description A conversational AI chatbot for real estate websites that uses Repliers NLP API
+ * to understand natural language property searches and display results.
  *
  * Features:
  * - Floating action button with smooth animations
  * - Modal chat interface (responsive: full-screen mobile, panel desktop)
- * - Warm, friendly design aesthetic
+ * - Natural language property search powered by Repliers NLP
+ * - Context-aware multi-turn conversations using nlpId
+ * - Beautiful property cards with images and details
+ * - Visual search support (e.g., "modern white kitchen")
  * - Customizable branding (logo, colors, messages)
- * - Mock runtime (will be replaced with MCP integration)
  * - Accessible and keyboard-navigable
  *
  * @param props - The component props
@@ -28,6 +30,7 @@ import {
  * @example
  * ```tsx
  * <Chatbot
+ *   repliersApiKey="your_repliers_api_key"
  *   brokerageName="Acme Realty"
  *   brokerageLogo="/logo.png"
  *   position="bottom-right"
@@ -35,6 +38,8 @@ import {
  * ```
  */
 export function Chatbot({
+  repliersApiKey,
+  openaiApiKey, // TODO: Will be used in Step 3 for ChatGPT integration
   brokerageName = DEFAULT_BROKERAGE_NAME,
   brokerageLogo,
   primaryColor, // TODO: Apply primaryColor to theme when implementing custom theming
@@ -52,8 +57,9 @@ export function Chatbot({
     setIsOpen(false);
   };
 
-  // Suppress unused variable warning - primaryColor will be used in future theming implementation
+  // Suppress unused variable warnings - these will be used in future implementations
   void primaryColor;
+  void openaiApiKey;
 
   return (
     <>
@@ -65,6 +71,7 @@ export function Chatbot({
         brokerageLogo={brokerageLogo}
         welcomeMessage={welcomeMessage}
         placeholder={placeholder}
+        repliersApiKey={repliersApiKey}
       />
     </>
   );

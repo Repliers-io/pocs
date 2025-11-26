@@ -25,11 +25,10 @@ export function FloatingButton({
         hover:shadow-blue-500/50 hover:scale-105
         active:scale-95
         transition-all duration-300 ease-out
-        animate-slideUp
         group
       `}
       style={{
-        animation: "slideUp 0.5s ease-out",
+        animation: "slideUp 0.5s ease-out forwards",
       }}
     >
       {isOpen ? (
