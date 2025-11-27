@@ -13,9 +13,12 @@ export function ChatWidget({
   welcomeMessage,
   placeholder,
   repliersApiKey,
+  openaiApiKey,
 }: ChatWidgetProps) {
   const { messages, isLoading, sendMessage } = useChatRuntime(
     repliersApiKey,
+    openaiApiKey,
+    brokerageName,
     welcomeMessage
   );
   const [inputValue, setInputValue] = useState("");

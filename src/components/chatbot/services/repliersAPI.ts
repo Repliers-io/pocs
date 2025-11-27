@@ -1,8 +1,55 @@
 import type {
   NLPResponse,
   PropertyListing,
+  PropertyAddress,
+  RawPropertyListing,
   ListingsResponse,
 } from "../types";
+
+/**
+ * Normalize raw API listing to our UI interface
+ * Handles field mapping between API response and component expectations
+ */
+function normalizeListingData(raw: RawPropertyListing): PropertyListing {
+  // Parse sqft string to number
+  // Examples: "5000 +", "1200-1400", "2500"
+  let sqft: number | undefined;
+  if (raw.details?.sqft) {
+    const sqftStr = raw.details.sqft.replace(/[^0-9-]/g, ""); // Remove non-numeric except dash
+    if (sqftStr.includes("-")) {
+      // Range like "1200-1400" - take the average
+      const [min, max] = sqftStr.split("-").map(Number);
+      sqft = Math.round((min + max) / 2);
+    } else {
+      sqft = parseInt(sqftStr, 10);
+    }
+  }
+
+  // Normalize address structure
+  const address: PropertyAddress = {
+    streetNumber: raw.address.streetNumber || "",
+    streetName: raw.address.streetName || "",
+    streetSuffix: raw.address.streetSuffix,
+    city: raw.address.city || "",
+    province: raw.address.province,
+    postalCode: raw.address.postalCode,
+  };
+
+  return {
+    mlsNumber: raw.mlsNumber,
+    listPrice: raw.listPrice,
+    bedrooms: raw.details?.numBedrooms || 0,
+    bathrooms: raw.details?.numBathrooms || 0,
+    sqft,
+    address,
+    images: raw.images,
+    propertyType: raw.details?.propertyType,
+    status: raw.standardStatus, // Use "Active" instead of "A"
+    description: raw.details?.description,
+    listDate: raw.listDate,
+    daysOnMarket: raw.simpleDaysOnMarket || raw.daysOnMarket,
+  };
+}
 
 /**
  * Repliers NLP Service
@@ -132,22 +179,29 @@ export class RepliersNLPService {
       }
 
       const data: ListingsResponse = await response.json();
-      const listings = data.listings || [];
+      const rawListings = data.listings || [];
 
-      console.log(`✅ Found ${listings.length} properties`);
-      if (listings.length > 0) {
-        console.log("First listing (full object):", listings[0]);
-        console.log("First listing (parsed):", {
-          mlsNumber: listings[0].mlsNumber,
-          price: listings[0].listPrice,
-          bedrooms: listings[0].bedrooms,
-          bathrooms: listings[0].bathrooms,
-          address: `${listings[0].address?.streetNumber} ${listings[0].address?.streetName}, ${listings[0].address?.city}`,
+      console.log(`✅ Found ${rawListings.length} properties`);
+      if (rawListings.length > 0) {
+        console.log("First listing (raw API response):", rawListings[0]);
+
+        // Normalize the data
+        const normalized = normalizeListingData(rawListings[0]);
+        console.log("First listing (normalized for UI):", {
+          mlsNumber: normalized.mlsNumber,
+          price: normalized.listPrice,
+          bedrooms: normalized.bedrooms,
+          bathrooms: normalized.bathrooms,
+          sqft: normalized.sqft,
+          propertyType: normalized.propertyType,
+          status: normalized.status,
+          address: `${normalized.address.streetNumber} ${normalized.address.streetName}, ${normalized.address.city}`,
         });
       }
       console.groupEnd();
 
-      return listings;
+      // Normalize all listings before returning
+      return rawListings.map(normalizeListingData);
     } catch (error) {
       console.error("❌ Listings search error:", error);
       console.groupEnd();

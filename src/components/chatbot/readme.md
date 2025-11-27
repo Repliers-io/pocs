@@ -202,6 +202,161 @@ Properties ranked by visual similarity
 
 ---
 
+## 🔍 API Field Mapping & Normalization
+
+**Important:** The Repliers Listings API returns a complex nested structure that requires normalization before display.
+
+### Raw API Response Structure
+
+```typescript
+interface RawPropertyListing {
+  mlsNumber: string;
+  listPrice: number;
+  address: {
+    streetNumber: string;
+    streetName: string;
+    streetSuffix?: string;
+    city: string;
+    province?: string;
+    postalCode?: string;
+    area?: string;
+    district?: string;
+  };
+  details: {
+    numBedrooms: number;           // ⚠️ Not at root level!
+    numBathrooms: number;          // ⚠️ Not at root level!
+    numBedroomsPlus?: number;
+    numBathroomsPlus?: number;
+    propertyType: string;          // ⚠️ Not at root level!
+    sqft?: string;                 // ⚠️ String, not number! "5000 +" or "1200-1400"
+    description?: string;
+  };
+  images?: string[];               // ✅ Relative paths, need CDN prefix
+  status: string;                  // ⚠️ Single letter "A" for Active
+  standardStatus: string;          // ✅ Full text "Active"
+  listDate?: string;
+  daysOnMarket?: number;
+  simpleDaysOnMarket?: number;
+}
+```
+
+### Normalization Function
+
+The `normalizeListingData()` function in `services/repliersAPI.ts` handles all field mapping:
+
+**Field Transformations:**
+1. **Bedrooms/Bathrooms**: Extract from `details.numBedrooms` → `bedrooms`
+2. **Property Type**: Extract from `details.propertyType` → `propertyType`
+3. **Status**: Use `standardStatus` ("Active") instead of `status` ("A")
+4. **Square Feet**: Parse string `"5000 +"` or `"1200-1400"` → number
+5. **Address**: Flatten nested object → simple interface
+6. **Images**: Add CDN domain and size class for optimization
+
+**Square Footage Parsing Logic:**
+```typescript
+// "5000 +" → 5000
+// "1200-1400" → 1300 (average)
+// "2500" → 2500
+```
+
+### Debugging Display Issues
+
+During development, we encountered these common issues and fixes:
+
+**Issue 1: Price showing "$28" instead of "$2,800,000"**
+- **Cause**: Incorrect field access (was trying `listing.price` instead of `listing.listPrice`)
+- **Fix**: Use correct field name from API: `listPrice`
+
+**Issue 2: Bedrooms/Bathrooms showing "bed bath" without numbers**
+- **Cause**: Fields were `undefined` - data is in nested `details` object
+- **Fix**: Extract from `raw.details.numBedrooms` → `normalized.bedrooms`
+
+**Issue 3: Property type showing "A" instead of "Multiplex"**
+- **Cause 1**: Using `status` field (single letter) instead of `standardStatus`
+- **Cause 2**: `propertyType` is in nested `details` object
+- **Fix**: Use `raw.standardStatus` for status badge, `raw.details.propertyType` for type
+
+**Issue 4: Square footage not displaying**
+- **Cause**: API returns string like `"5000 +"`, not a number
+- **Fix**: Parse with regex, handle ranges by averaging
+
+### Images CDN Optimization
+
+Images are optimized using Repliers CDN size classes:
+
+```typescript
+// Raw API returns relative path
+raw.images[0] = "IMG-W12579198_1.jpg"
+
+// Normalized to CDN URL with size class
+normalized.images[0] = "https://cdn.repliers.io/IMG-W12579198_1.jpg?class=small"
+```
+
+Size classes:
+- `small` - Fast loading for chat previews (default)
+- `medium` - Detail views
+- `large` - Full-screen galleries
+
+### Console Logging for Debugging
+
+The service logs both raw and normalized data for debugging:
+
+```javascript
+console.log("First listing (raw API response):", rawListings[0]);
+console.log("First listing (normalized for UI):", {
+  mlsNumber: normalized.mlsNumber,
+  price: normalized.listPrice,
+  bedrooms: normalized.bedrooms,
+  bathrooms: normalized.bathrooms,
+  sqft: normalized.sqft,
+  propertyType: normalized.propertyType,
+  status: normalized.status,
+  address: `${normalized.address.streetNumber} ${normalized.address.streetName}, ${normalized.address.city}`,
+});
+```
+
+**Tip**: Always check browser console when debugging property display issues!
+
+---
+
+## 🎨 UI Design Decisions
+
+### PropertyCard Sizing
+
+Cards have been optimized for chat display (20% smaller than standard):
+
+**Image Section:**
+- Height: `h-40` (160px) - Compact 16:9 ratio
+- Badges: `text-[10px]` - Small but readable
+- Loading spinner: `w-10 h-10` - Proportional
+
+**Content Section:**
+- Price: `text-xl` (20px) - Bold and prominent
+- MLS #: `text-[10px]` - Small, below price
+- Specs (bed/bath/sqft): `text-xs` with icons only
+- Address: `text-xs` - Single line
+- Button: `text-xs` - Compact CTA
+
+**Design Philosophy:**
+- Icons provide context (no "bed", "bath", "sq ft" labels needed)
+- Vertical stacking for better mobile fit
+- Consistent spacing with Tailwind scale
+- Touch-friendly targets (min 44px tap areas)
+
+### Mobile Responsiveness
+
+**Chat Widget:**
+- Mobile: Full-screen takeover
+- Desktop: Panel overlay (400px width)
+- Breakpoint: `md:` (768px)
+
+**Property Grid:**
+- Mobile: 1 column (stacked)
+- Desktop: 2 columns
+- Uses CSS Grid for responsive layout
+
+---
+
 ## 🔧 Development
 
 ### Prerequisites
@@ -475,12 +630,17 @@ React Component (Chatbot)
 ### ✅ Phase 2: NLP Integration (Complete)
 - [x] Repliers NLP Service class
 - [x] Property search integration
-- [x] PropertyCard component
+- [x] API field normalization (`RawPropertyListing` → `PropertyListing`)
+- [x] PropertyCard component (optimized sizing)
 - [x] PropertyResults component
 - [x] Multi-turn conversations (nlpId)
 - [x] Visual search support
 - [x] Error handling
-- [x] Comprehensive Storybook demos
+- [x] Comprehensive Storybook demos (8 stories)
+- [x] Debug and fix display issues (price, beds, baths, sqft)
+- [x] Images CDN integration with size classes
+- [x] Square footage string parsing
+- [x] UI polish (20% size reduction, label removal)
 
 ### 🚧 Step 3: ChatGPT Integration (Next)
 - [ ] OpenAI API integration
@@ -552,6 +712,6 @@ Built by the Repliers Innovation Team
 
 ---
 
-**Status**: Phase 2 Complete - NLP Integration Live
-**Last Updated**: November 2025
-**Version**: 2.0.0 (NLP Integration)
+**Status**: ✅ Phase 2 Complete - NLP Integration Live & Debugged
+**Last Updated**: November 27, 2025
+**Version**: 2.1.0 (NLP Integration + Field Normalization)
