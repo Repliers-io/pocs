@@ -61,12 +61,12 @@ export function PropertyCard({ listing, onViewDetails }: PropertyCardProps) {
       aria-label={`View details for ${propertySummary}`}
     >
       {/* Property Image */}
-      <div className="relative h-48 bg-gray-200 overflow-hidden">
+      <div className="relative h-40 bg-gray-200 overflow-hidden">
         {showImage ? (
           <>
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+                <div className="w-10 h-10 border-3 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
               </div>
             )}
             <img
@@ -84,76 +84,76 @@ export function PropertyCard({ listing, onViewDetails }: PropertyCardProps) {
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-            <Home className="w-16 h-16 text-gray-400" />
+            <Home className="w-12 h-12 text-gray-400" />
           </div>
         )}
 
         {/* Property Type Badge */}
         {listing.propertyType && (
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-gray-700 shadow-md">
+          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-semibold text-gray-700 shadow-md">
             {listing.propertyType}
           </div>
         )}
 
         {/* Status Badge */}
         {listing.status && (
-          <div className="absolute top-3 right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+          <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-md">
             {listing.status}
           </div>
         )}
       </div>
 
       {/* Property Details */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-2">
         {/* Price */}
-        <div className="flex items-center justify-between">
-          <span className="text-2xl font-bold text-gray-900">
+        <div className="space-y-0.5">
+          <div className="text-xl font-bold text-gray-900">
             {formatPrice(listing.listPrice)}
-          </span>
-          <span className="text-sm text-gray-500">
+          </div>
+          <div className="text-[10px] text-gray-500">
             MLS #{listing.mlsNumber}
-          </span>
+          </div>
         </div>
 
         {/* Specs: Bedrooms, Bathrooms, Sqft */}
-        <div className="flex items-center gap-4 text-gray-600">
-          <div className="flex items-center gap-1.5" title="Bedrooms">
-            <Bed className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {listing.bedrooms} bed
+        <div className="flex items-center gap-3 text-gray-600">
+          <div className="flex items-center gap-1" title="Bedrooms">
+            <Bed className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">
+              {listing.bedrooms}
             </span>
           </div>
-          <div className="flex items-center gap-1.5" title="Bathrooms">
-            <Bath className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {listing.bathrooms} bath
+          <div className="flex items-center gap-1" title="Bathrooms">
+            <Bath className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">
+              {listing.bathrooms}
             </span>
           </div>
           {listing.sqft && (
-            <div className="flex items-center gap-1.5" title="Square footage">
-              <Maximize2 className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                {formatSqft(listing.sqft)}
+            <div className="flex items-center gap-1" title="Square footage">
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">
+                {listing.sqft.toLocaleString()}
               </span>
             </div>
           )}
         </div>
 
         {/* Address */}
-        <div className="text-sm text-gray-700 pt-1 border-t border-gray-100">
+        <div className="text-xs text-gray-700 pt-1 border-t border-gray-100">
           {formatAddress(listing.address)}
         </div>
 
         {/* View Details Button */}
         <button
           className="
-            w-full mt-2 py-2 px-4
+            w-full mt-1.5 py-1.5 px-3
             bg-gradient-to-r from-blue-600 to-blue-700
-            text-white text-sm font-semibold rounded-lg
+            text-white text-xs font-semibold rounded-lg
             hover:from-blue-700 hover:to-blue-800
             active:scale-95
             transition-all duration-200
-            flex items-center justify-center gap-2
+            flex items-center justify-center gap-1.5
           "
           onClick={(e) => {
             e.stopPropagation();

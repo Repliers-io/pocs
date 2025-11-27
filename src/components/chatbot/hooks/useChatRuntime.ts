@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { RepliersNLPService } from "../services/repliersAPI";
+import { OpenAIService } from "../services/openaiService";
 import {
   isPropertySearchQuery,
   getErrorMessage,
@@ -15,29 +16,40 @@ export interface ChatRuntime {
 }
 
 /**
- * Chat Runtime Hook with Repliers NLP Integration
+ * Chat Runtime Hook with ChatGPT + Repliers NLP Integration
  *
- * Manages chat state and integrates with Repliers NLP API for property searches.
+ * Manages chat state and intelligently routes between:
+ * - ChatGPT for conversational AI and general questions
+ * - Repliers NLP for property searches
  *
  * Features:
- * - Detects property search queries using keyword matching
- * - Calls Repliers NLP API to process natural language
- * - Fetches property listings based on NLP response
- * - Maintains conversation context using nlpId
+ * - Natural conversation with ChatGPT
+ * - Automatic property search detection
+ * - Property results integrated into conversation
+ * - Maintains context across both services
  * - Handles errors gracefully with user-friendly messages
  *
  * @param repliersApiKey - Repliers API key for NLP and listings APIs
+ * @param openaiApiKey - OpenAI API key for ChatGPT (optional)
+ * @param brokerageName - Brokerage name for ChatGPT system prompt
  * @param welcomeMessage - Initial welcome message from assistant
  * @returns ChatRuntime object with messages, loading state, and sendMessage function
  */
 export function useChatRuntime(
   repliersApiKey: string,
+  openaiApiKey?: string,
+  brokerageName: string = "Real Estate Assistant",
   welcomeMessage: string = DEFAULT_WELCOME_MESSAGE
 ): ChatRuntime {
-  // Initialize NLP service (memoized to avoid recreating on every render)
+  // Initialize services (memoized to avoid recreating on every render)
   const nlpService = useMemo(
     () => new RepliersNLPService(repliersApiKey),
     [repliersApiKey]
+  );
+
+  const chatGPT = useMemo(
+    () => openaiApiKey ? new OpenAIService(openaiApiKey, brokerageName) : null,
+    [openaiApiKey, brokerageName]
   );
 
   // Chat state
@@ -55,85 +67,60 @@ export function useChatRuntime(
    * Process property search query using NLP
    */
   const processPropertySearch = useCallback(
-    async (userMessage: string): Promise<void> => {
-      try {
-        // Step 1: Call NLP API to understand the query
-        console.log("🔍 Processing property search:", userMessage);
-        const nlpResponse = await nlpService.processQuery(userMessage);
+    async (userMessage: string): Promise<PropertyListing[]> => {
+      // Step 1: Call NLP API to understand the query
+      console.log("🔍 Processing property search:", userMessage);
+      const nlpResponse = await nlpService.processQuery(userMessage);
 
-        // Step 2: Show NLP summary as loading message
-        const searchingMessage: ChatMessage = {
-          id: `searching-${Date.now()}`,
-          role: "assistant",
-          content: `${nlpResponse.summary}...`,
-          timestamp: new Date(),
-          isLoading: true,
-        };
-        setMessages((prev) => [...prev, searchingMessage]);
+      // Step 2: Show NLP summary as loading message
+      const searchingMessage: ChatMessage = {
+        id: `searching-${Date.now()}`,
+        role: "assistant",
+        content: `${nlpResponse.summary || "Searching for properties"}...`,
+        timestamp: new Date(),
+        isLoading: true,
+      };
+      setMessages((prev) => [...prev, searchingMessage]);
 
-        // Step 3: Fetch property listings
-        const listings = await nlpService.searchListings(
-          nlpResponse.request.url,
-          nlpResponse.request.body
-        );
+      // Step 3: Fetch property listings
+      const listings = await nlpService.searchListings(
+        nlpResponse.request.url,
+        nlpResponse.request.body
+      );
 
-        // Step 4: Remove loading message and add results
-        setMessages((prev) => {
-          const withoutLoading = prev.filter((msg) => msg.id !== searchingMessage.id);
+      // Step 4: Remove loading message
+      setMessages((prev) => prev.filter((msg) => msg.id !== searchingMessage.id));
 
-          // Create result message
-          const resultMessage: ChatMessage = {
-            id: `result-${Date.now()}`,
-            role: "assistant",
-            content:
-              listings.length > 0
-                ? `I found ${listings.length} ${
-                    listings.length === 1 ? "property" : "properties"
-                  } that match your search!`
-                : "I couldn't find any properties matching those criteria. Try adjusting your search.",
-            propertyResults: listings,
-            timestamp: new Date(),
-          };
-
-          return [...withoutLoading, resultMessage];
-        });
-      } catch (error) {
-        console.error("Error processing property search:", error);
-
-        // Remove any loading messages
-        setMessages((prev) => prev.filter((msg) => !msg.isLoading));
-
-        // Add error message
-        const errorMessage: ChatMessage = {
-          id: `error-${Date.now()}`,
-          role: "assistant",
-          content: getErrorMessage(error),
-          timestamp: new Date(),
-          error: true,
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      }
+      return listings;
     },
     [nlpService]
   );
 
   /**
-   * Handle non-property queries
+   * Handle messages with ChatGPT
    */
-  const handleNonPropertyQuery = useCallback(() => {
-    const helpMessage: ChatMessage = {
-      id: `help-${Date.now()}`,
-      role: "assistant",
-      content:
-        "I specialize in helping you find properties! Try asking me something like:\n\n" +
-        "• '3 bedroom condo in Toronto'\n" +
-        "• 'House under $800k with a backyard'\n" +
-        "• 'Modern apartment with white kitchen'\n\n" +
-        "What are you looking for?",
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, helpMessage]);
-  }, []);
+  const handleChatGPTMessage = useCallback(
+    async (userMessage: string, listings?: PropertyListing[]): Promise<string> => {
+      if (!chatGPT) {
+        // Fallback if no OpenAI key
+        if (listings && listings.length > 0) {
+          return `I found ${listings.length} ${
+            listings.length === 1 ? "property" : "properties"
+          } that match your search!`;
+        }
+        return "I specialize in helping you find properties! Try asking me something like '3 bedroom condo in Toronto' or 'house under $800k with a backyard'.";
+      }
+
+      // Add property context to ChatGPT if we just searched
+      if (listings) {
+        chatGPT.addPropertyContext(listings, userMessage);
+      }
+
+      // Get ChatGPT response
+      return await chatGPT.chat(userMessage);
+    },
+    [chatGPT]
+  );
 
   /**
    * Send a message to the chatbot
@@ -154,17 +141,63 @@ export function useChatRuntime(
 
       try {
         // Detect if this is a property search query
-        if (isPropertySearchQuery(content)) {
-          await processPropertySearch(content);
+        const isPropertyQuery = isPropertySearchQuery(content);
+
+        if (isPropertyQuery) {
+          // PROPERTY SEARCH FLOW
+          // 1. Search for properties using Repliers NLP
+          const listings = await processPropertySearch(content);
+
+          // 2. Get ChatGPT response about the results (or fallback message)
+          const response = await handleChatGPTMessage(content, listings);
+
+          // 3. Add message with property results
+          const resultMessage: ChatMessage = {
+            id: `result-${Date.now()}`,
+            role: "assistant",
+            content: response,
+            propertyResults: listings.length > 0 ? listings : undefined,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, resultMessage]);
         } else {
-          // Not a property search - provide helpful guidance
-          handleNonPropertyQuery();
+          // CONVERSATION FLOW (non-property query)
+          // Use ChatGPT for conversation, or fallback to guidance
+          const response = await handleChatGPTMessage(content);
+
+          const responseMessage: ChatMessage = {
+            id: `response-${Date.now()}`,
+            role: "assistant",
+            content: response,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, responseMessage]);
         }
+
+        // Trim ChatGPT history to prevent context overflow
+        if (chatGPT) {
+          chatGPT.trimHistory(20);
+        }
+      } catch (error) {
+        console.error("Error processing message:", error);
+
+        // Remove any loading messages
+        setMessages((prev) => prev.filter((msg) => !msg.isLoading));
+
+        // Add error message
+        const errorMessage: ChatMessage = {
+          id: `error-${Date.now()}`,
+          role: "assistant",
+          content: getErrorMessage(error),
+          timestamp: new Date(),
+          error: true,
+        };
+        setMessages((prev) => [...prev, errorMessage]);
       } finally {
         setIsLoading(false);
       }
     },
-    [isLoading, processPropertySearch, handleNonPropertyQuery]
+    [isLoading, processPropertySearch, handleChatGPTMessage, chatGPT]
   );
 
   /**
@@ -172,6 +205,9 @@ export function useChatRuntime(
    */
   const resetConversation = useCallback(() => {
     nlpService.resetContext();
+    if (chatGPT) {
+      chatGPT.resetConversation();
+    }
     setMessages([
       {
         id: "welcome",
@@ -181,7 +217,7 @@ export function useChatRuntime(
       },
     ]);
     setIsLoading(false);
-  }, [nlpService, welcomeMessage]);
+  }, [nlpService, chatGPT, welcomeMessage]);
 
   return {
     messages,

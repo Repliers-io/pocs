@@ -12,14 +12,17 @@ const meta: Meta<typeof Chatbot> = {
     docs: {
       description: {
         component: `
-# Real Estate Chatbot with NLP Integration
+# Real Estate Chatbot with ChatGPT + NLP Integration
 
-A conversational AI chatbot for real estate websites that uses **Repliers NLP API** to understand natural language property searches and display results in real-time.
+A conversational AI chatbot for real estate websites that combines:
+- **OpenAI ChatGPT** for natural conversation (optional)
+- **Repliers NLP API** for property searches
 
 ## ✨ Features
 
-- 🗣️ **Natural Language Understanding** - Ask in plain English: "3 bedroom condo in Toronto"
-- 🔄 **Context-Aware Conversations** - Multi-turn refinement using nlpId
+- 🤖 **ChatGPT Conversation** - Natural, helpful dialogue (when OpenAI key provided)
+- 🗣️ **Natural Language Search** - Ask in plain English: "3 bedroom condo in Toronto"
+- 🔄 **Context-Aware** - Multi-turn refinement using nlpId
 - 🎨 **Visual Search** - Search by aesthetics: "modern white kitchen"
 - 🏠 **Beautiful Property Cards** - Images, specs, and details
 - 📱 **Fully Responsive** - Full-screen on mobile, panel on desktop
@@ -28,31 +31,42 @@ A conversational AI chatbot for real estate websites that uses **Repliers NLP AP
 
 ## 🧠 How It Works
 
-1. **User types query**: "3 bedroom condo in Toronto under $800k"
-2. **Repliers NLP API** processes the natural language
-3. **Property search** executes with extracted criteria
-4. **Results display** in beautiful property cards inline
+### With ChatGPT (OpenAI key provided):
+1. **User**: "Hello!"
+2. **ChatGPT**: "Hi! I'm here to help you find your perfect property. What are you looking for?"
+3. **User**: "3 bedroom condo in Toronto"
+4. **Repliers NLP**: Processes search → Returns properties
+5. **ChatGPT**: "I found 12 condos in Toronto with 3 bedrooms! Would you like to refine by price or neighborhood?"
 
-## 🔑 API Key
+### Without ChatGPT (fallback):
+1. **User**: "3 bedroom condo in Toronto"
+2. **System**: Processes search → Returns properties with simple confirmation
 
-This demo uses a **sample Repliers API key**. For production, get your own key at [repliers.com](https://repliers.com).
+## 🔑 API Keys
+
+**Repliers API**: Sample key provided (get yours at [repliers.com](https://repliers.com))
+**OpenAI API**: Add your key in controls to enable ChatGPT (get at [platform.openai.com](https://platform.openai.com))
 
 ## 🎯 Try These Queries
 
+**General Conversation** (with OpenAI key):
+- "Hello!"
+- "What can you help me with?"
+- "Tell me about the first property"
+
+**Property Search**:
 - "3 bedroom condo in Toronto"
 - "House under $800k with a backyard"
 - "Modern apartment with white kitchen"
 - "Show me properties in the Annex"
-- "2 bed 2 bath with parking"
 
 ## 🔗 Multi-Turn Conversations
 
-The chatbot maintains context across messages:
-1. "I want a condo"
-2. "Make it 3 bedrooms"
-3. "Under $800k"
-
-Each message refines the previous search!
+The chatbot maintains context across both systems:
+1. "Hi!" → ChatGPT responds
+2. "I want a condo" → Searches properties
+3. "Make it 3 bedrooms" → Refines search (uses nlpId)
+4. "Tell me about the first one" → ChatGPT discusses property
         `,
       },
     },
@@ -68,9 +82,10 @@ Each message refines the previous search!
     },
     openaiApiKey: {
       control: "text",
-      description: "OpenAI API key (optional - for enhanced conversation, Step 3)",
+      description: "OpenAI API key (optional - enables ChatGPT for natural conversation). Get yours at platform.openai.com",
       table: {
         type: { summary: "string" },
+        defaultValue: { summary: "undefined (uses fallback responses)" },
       },
     },
     brokerageName: {
@@ -152,6 +167,58 @@ export const BasicPropertySearch: Story = {
     brokerageName: "Acme Realty",
     welcomeMessage:
       "Hi! I'm your AI real estate assistant. Tell me what you're looking for!",
+  },
+};
+
+/**
+ * **With ChatGPT (Step 3 Complete!)**
+ *
+ * This story demonstrates the full ChatGPT + Repliers NLP integration.
+ * Paste your OpenAI API key in the controls to enable natural conversation!
+ *
+ * **Without OpenAI key**: Falls back to simple responses
+ * **With OpenAI key**: Full conversational AI with property search
+ *
+ * **Try this conversation flow:**
+ * 1. "Hello!" → ChatGPT responds warmly
+ * 2. "I'm looking for a condo" → ChatGPT asks clarifying questions
+ * 3. "3 bedrooms in Toronto" → Searches properties
+ * 4. "Under $800k" → Refines search
+ * 5. "Tell me about the first one" → ChatGPT discusses property details
+ *
+ * **Check the browser console** to see both ChatGPT and NLP API calls!
+ */
+export const WithChatGPT: Story = {
+  args: {
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
+    openaiApiKey: undefined, // ⬅️ Paste your OpenAI API key here or use Storybook controls!
+    brokerageName: "Smart Homes Realty",
+    welcomeMessage:
+      "Hi! I'm your AI assistant powered by ChatGPT. What kind of property are you looking for?",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**🎉 NEW: ChatGPT Integration!**
+
+This story showcases the intelligent conversation system that combines:
+- OpenAI ChatGPT for natural dialogue
+- Repliers NLP for property searches
+
+The chatbot automatically detects property search queries and routes them to Repliers NLP,
+while handling general conversation with ChatGPT. This creates a seamless, intelligent
+experience where users can chat naturally and search for properties in the same conversation.
+
+**How to enable ChatGPT:**
+1. Get an API key from [platform.openai.com](https://platform.openai.com)
+2. Paste it in the "openaiApiKey" control below
+3. Start chatting!
+
+**Without an OpenAI key**, the chatbot still works with fallback responses.
+        `,
+      },
+    },
   },
 };
 
