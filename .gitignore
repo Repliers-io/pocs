@@ -44,3 +44,8 @@ next-env.d.ts
 
 # storybook build artifacts
 storybook-static/
+
+# Embedded MCP Server
+src/components/chatbot/mcp-server/node_modules
+src/components/chatbot/mcp-server/.env
+src/components/chatbot/mcp-server/package-lock.json

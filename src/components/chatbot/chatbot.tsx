@@ -9,20 +9,24 @@ import {
 } from "./utils/constants";
 
 /**
- * Real Estate Chatbot Component
+ * Real Estate Chatbot Component (Step 4: MCP Integration)
  *
  * @description A conversational AI chatbot for real estate websites that combines:
- * - Repliers NLP API for natural language property searches
- * - OpenAI ChatGPT for intelligent conversation (optional)
+ * - OpenAI ChatGPT for natural, human-friendly conversation
+ * - Repliers MCP Server for property searches (with NLP fallback)
+ *
+ * Architecture (Step 4):
+ * 1. ChatGPT handles ALL conversation and extracts search parameters
+ * 2. When ready to search, ChatGPT returns structured parameters
+ * 3. MCP Service executes search using Repliers MCP Server tools
+ * 4. Results are shown to user AND sent back to ChatGPT for discussion
  *
  * Features:
  * - Floating action button with smooth animations
  * - Modal chat interface (responsive: full-screen mobile, panel desktop)
- * - Natural language property search powered by Repliers NLP
- * - Intelligent conversation with ChatGPT (when API key provided)
- * - Context-aware multi-turn conversations using nlpId
+ * - Natural conversation powered by ChatGPT with function calling
+ * - Property search via Repliers MCP Server (or NLP fallback)
  * - Beautiful property cards with images and details
- * - Visual search support (e.g., "modern white kitchen")
  * - Customizable branding (logo, colors, messages)
  * - Accessible and keyboard-navigable
  *
@@ -31,18 +35,22 @@ import {
  *
  * @example
  * ```tsx
- * // With ChatGPT
+ * // With MCP Server (recommended)
  * <Chatbot
  *   repliersApiKey="your_repliers_api_key"
  *   openaiApiKey="your_openai_api_key"
+ *   mcpConfig={{
+ *     enabled: true,
+ *     nodePath: "/usr/local/bin/node",
+ *     serverPath: "/path/to/mcp-server/mcpServer.js"
+ *   }}
  *   brokerageName="Acme Realty"
- *   brokerageLogo="/logo.png"
- *   position="bottom-right"
  * />
  *
- * // Without ChatGPT (fallback to simple responses)
+ * // Without MCP (falls back to NLP API)
  * <Chatbot
  *   repliersApiKey="your_repliers_api_key"
+ *   openaiApiKey="your_openai_api_key"
  *   brokerageName="Acme Realty"
  * />
  * ```
@@ -50,6 +58,7 @@ import {
 export function Chatbot({
   repliersApiKey,
   openaiApiKey,
+  mcpConfig,
   brokerageName = DEFAULT_BROKERAGE_NAME,
   brokerageLogo,
   primaryColor, // TODO: Apply primaryColor to theme when implementing custom theming
@@ -69,6 +78,7 @@ export function Chatbot({
 
   // Suppress unused variable warnings - these will be used in future implementations
   void primaryColor;
+  void mcpConfig; // Passed through to ChatWidget
 
   return (
     <>
@@ -82,6 +92,7 @@ export function Chatbot({
         placeholder={placeholder}
         repliersApiKey={repliersApiKey}
         openaiApiKey={openaiApiKey}
+        mcpConfig={mcpConfig}
       />
     </>
   );

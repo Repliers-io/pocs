@@ -14,8 +14,32 @@ import type { PropertyListing } from "../types";
  */
 
 interface ChatMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+  name?: string;
+}
+
+interface ToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface SearchParameters {
+  query?: string;
+  city?: string;
+  province?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  propertyType?: string;
+  status?: "Active" | "Sold" | "Leased";
 }
 
 interface ChatCompletionResponse {
@@ -24,9 +48,16 @@ interface ChatCompletionResponse {
     message: {
       role: string;
       content: string;
+      tool_calls?: ToolCall[];
     };
     finish_reason: string;
   }>;
+}
+
+export interface ChatResponse {
+  message: string;
+  searchParams?: SearchParameters;
+  needsSearch: boolean;
 }
 
 export class OpenAIService {
@@ -50,13 +81,13 @@ export class OpenAIService {
 Your role:
 - Help users find their ideal property through natural conversation
 - Ask clarifying questions about their needs (bedrooms, budget, location, features)
-- When users describe what they're looking for, the system will automatically search and show properties
+- When you have enough information, use the search_properties tool to find listings
 - Discuss property details, neighborhoods, and answer real estate questions
 - Be warm, professional, and focused on helping them find a home
 
 Important:
-- You DON'T need to execute searches yourself - the system handles that
-- When property results are shown, acknowledge them and offer to help refine the search
+- Use the search_properties tool when you understand what the user wants
+- Build up search parameters from conversation (city, bedrooms, price, etc.)
 - Keep responses concise (2-3 sentences max) - this is a chat interface
 - Guide the conversation toward understanding their property needs
 
@@ -65,12 +96,11 @@ User: "Hi"
 You: "Hello! I'm here to help you find your perfect property. What are you looking for?"
 
 User: "3 bedroom condo"
-You: "Great! I'll search for 3 bedroom condos. Any specific location or budget in mind?"
-[System shows property results automatically]
+You: "Great! Where would you like to search?"
 
-User: "Under $800k in Toronto"
-You: "Perfect! Here are condos in Toronto with 3 bedrooms under $800k. Would you like to refine by neighborhood or features?"
-[System shows refined results]`;
+User: "Toronto under $800k"
+You: [Call search_properties with city: "Toronto", bedrooms: 3, maxPrice: 800000, propertyType: "Condo"]
+     "Perfect! Let me find 3 bedroom condos in Toronto under $800k for you."`;
   }
 
   /**
@@ -114,8 +144,9 @@ The user can see these property cards in the chat. Acknowledge the results and o
 
   /**
    * Send a message to ChatGPT and get a response
+   * Returns both the message and optionally search parameters if ChatGPT wants to search
    */
-  async chat(userMessage: string): Promise<string> {
+  async chat(userMessage: string): Promise<ChatResponse> {
     console.group("🤖 OpenAI ChatGPT API Call");
     console.log("User message:", userMessage);
 
@@ -136,10 +167,60 @@ The user can see these property cards in the chat. Acknowledge the results and o
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini", // Fast, affordable, great for chat
+          model: "gpt-4o-mini",
           messages: this.conversationHistory,
           temperature: 0.7,
-          max_tokens: 150, // Keep responses concise for chat
+          max_tokens: 150,
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "search_properties",
+                description:
+                  "Search for real estate listings based on user criteria. Use this when the user provides enough information to search (location, price, bedrooms, etc.)",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    city: {
+                      type: "string",
+                      description: "City name (e.g., 'Toronto', 'Vancouver')",
+                    },
+                    province: {
+                      type: "string",
+                      description: "Province/state code (e.g., 'ON', 'BC', 'CA')",
+                    },
+                    minPrice: {
+                      type: "number",
+                      description: "Minimum price in dollars",
+                    },
+                    maxPrice: {
+                      type: "number",
+                      description: "Maximum price in dollars",
+                    },
+                    bedrooms: {
+                      type: "number",
+                      description: "Number of bedrooms",
+                    },
+                    bathrooms: {
+                      type: "number",
+                      description: "Number of bathrooms",
+                    },
+                    propertyType: {
+                      type: "string",
+                      description:
+                        "Property type (e.g., 'Condo', 'House', 'Townhouse', 'Apartment')",
+                    },
+                    status: {
+                      type: "string",
+                      enum: ["Active", "Sold", "Leased"],
+                      description: "Listing status",
+                    },
+                  },
+                  required: [],
+                },
+              },
+            },
+          ],
         }),
       });
 
@@ -152,9 +233,42 @@ The user can see these property cards in the chat. Acknowledge the results and o
       }
 
       const data: ChatCompletionResponse = await response.json();
-      const assistantMessage = data.choices[0].message.content;
+      const choice = data.choices[0];
+      const assistantMessage = choice.message.content || "";
+      const toolCalls = choice.message.tool_calls;
 
-      // Add assistant response to history
+      // Check if ChatGPT wants to call the search tool
+      if (toolCalls && toolCalls.length > 0) {
+        const searchToolCall = toolCalls.find(
+          (tc) => tc.function.name === "search_properties"
+        );
+
+        if (searchToolCall) {
+          console.log("🔧 ChatGPT requested tool call: search_properties");
+          const searchParams: SearchParameters = JSON.parse(
+            searchToolCall.function.arguments
+          );
+          console.log("Search parameters:", searchParams);
+
+          // Add assistant message with tool call to history
+          this.conversationHistory.push({
+            role: "assistant",
+            content: assistantMessage,
+            tool_calls: toolCalls,
+          });
+
+          console.log("✅ ChatGPT response with search request");
+          console.groupEnd();
+
+          return {
+            message: assistantMessage || "Let me search for properties...",
+            searchParams,
+            needsSearch: true,
+          };
+        }
+      }
+
+      // Regular response without tool call
       this.conversationHistory.push({
         role: "assistant",
         content: assistantMessage,
@@ -163,12 +277,44 @@ The user can see these property cards in the chat. Acknowledge the results and o
       console.log("✅ ChatGPT response:", assistantMessage);
       console.groupEnd();
 
-      return assistantMessage;
+      return {
+        message: assistantMessage,
+        needsSearch: false,
+      };
     } catch (error) {
       console.error("❌ ChatGPT error:", error);
       console.groupEnd();
       throw error;
     }
+  }
+
+  /**
+   * Add search results to conversation as tool response
+   * This lets ChatGPT know the search was executed and what was found
+   */
+  addSearchResults(
+    toolCallId: string,
+    listings: PropertyListing[]
+  ): void {
+    const result = {
+      found: listings.length,
+      sample: listings.slice(0, 3).map((l) => ({
+        mlsNumber: l.mlsNumber,
+        price: l.listPrice,
+        bedrooms: l.bedrooms,
+        bathrooms: l.bathrooms,
+        address: `${l.address.city}, ${l.address.province || ""}`,
+      })),
+    };
+
+    this.conversationHistory.push({
+      role: "tool",
+      content: JSON.stringify(result),
+      tool_call_id: toolCallId,
+      name: "search_properties",
+    });
+
+    console.log("📊 Added search results to ChatGPT context:", result);
   }
 
   /**

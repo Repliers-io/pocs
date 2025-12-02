@@ -5,8 +5,10 @@
 export interface ChatbotProps {
   /** Repliers API key (required for property search) */
   repliersApiKey: string;
-  /** OpenAI API key (optional - for enhanced conversation, coming soon) */
+  /** OpenAI API key (optional - for enhanced conversation) */
   openaiApiKey?: string;
+  /** MCP server configuration (optional - for MCP integration) */
+  mcpConfig?: MCPConfig;
   /** Name of the brokerage to display in header */
   brokerageName?: string;
   /** URL to brokerage logo image */
@@ -36,6 +38,7 @@ export interface ChatWidgetProps {
   placeholder: string;
   repliersApiKey: string;
   openaiApiKey?: string;
+  mcpConfig?: MCPConfig;
 }
 
 // ============================================================================
@@ -187,12 +190,41 @@ export interface PropertyResultsProps {
 }
 
 // ============================================================================
-// Placeholder for future MCP integration
+// MCP Integration Types
 // ============================================================================
 
+/**
+ * MCP Server Configuration
+ * Provides connection details for Repliers MCP Server
+ */
+export interface MCPConfig {
+  /** Absolute path to node executable (e.g., "/usr/local/bin/node") */
+  nodePath: string;
+  /** Absolute path to Repliers MCP server script (e.g., "/path/to/mcpServer.js") */
+  serverPath: string;
+  /** Enable MCP integration (default: false) */
+  enabled?: boolean;
+}
+
+/**
+ * MCP Tool definition from server
+ */
+export interface MCPTool {
+  name: string;
+  description?: string;
+  inputSchema: {
+    type: string;
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+/**
+ * MCP Tool Call (for logging/debugging)
+ */
 export interface MCPToolCall {
   toolName: string;
   parameters: Record<string, unknown>;
   result?: unknown;
-  // TODO: Expand this when implementing MCP integration in Step 4
+  timestamp: Date;
 }

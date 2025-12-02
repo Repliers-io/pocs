@@ -1,23 +1,26 @@
 # Repliers Real Estate Chatbot PoC
 
-A modern, AI-powered real estate chatbot widget built with **Repliers NLP API**. Features natural language property search, context-aware conversations, and beautiful property displays.
+A modern, AI-powered real estate chatbot widget combining **OpenAI ChatGPT** for natural conversation with **Repliers MCP Server** for property searches. Features intelligent dialogue, function calling, and beautiful property displays.
 
 ## 🎯 Overview
 
-This chatbot component provides a production-ready chat widget that understands natural language queries and returns real property listings from Repliers API. Built with React, TypeScript, and Tailwind CSS.
+This chatbot component provides a production-ready chat widget that combines ChatGPT's conversational AI with Repliers' real estate data through the Model Context Protocol (MCP). Built with React, TypeScript, and Tailwind CSS.
 
-**Current Status**: ✅ **Phase 1 & 2 Complete** - NLP Integration Ready
-**Next Phase**: Step 3 - ChatGPT Integration for Enhanced Conversations
+**Current Status**: ✅ **Step 4 Complete** - Full MCP + ChatGPT Integration
+**Architecture**: ChatGPT orchestration → Function calling → MCP Server → Property search
 
 ---
 
 ## ✨ Features
 
-### Current Implementation (Phase 2)
+### Current Implementation (Step 4 - MCP Integration)
 
-- 🗣️ **Natural Language Search** - Users ask in plain English: "3 bedroom condo in Toronto"
-- 🧠 **Repliers NLP Integration** - Powered by Repliers NLP API for query understanding
-- 🔄 **Context-Aware Conversations** - Multi-turn refinement using nlpId
+- 🤖 **ChatGPT Orchestration** - Natural, human-friendly conversations with OpenAI GPT-4o-mini
+- 🔧 **Function Calling** - ChatGPT extracts search parameters from natural dialogue
+- 🌐 **MCP Server Integration** - Standardized communication with Repliers MCP Server
+- 🏠 **Property Search** - Execute searches via MCP tools (with NLP API fallback)
+- 🗣️ **Natural Language Understanding** - Ask in plain English: "I want a 3 bedroom condo in Toronto"
+- 🔄 **Context-Aware Conversations** - ChatGPT maintains full conversation history
 - 🎨 **Visual Search Support** - Search by aesthetics: "modern white kitchen"
 - 🏠 **Beautiful Property Cards** - Images (via CDN), specs, and details
 - 📊 **Property Results Display** - Responsive grid with show more/less
@@ -26,15 +29,14 @@ This chatbot component provides a production-ready chat widget that understands 
 - 📱 **Fully Responsive** - Full-screen on mobile, panel on desktop
 - 🎨 **White-Label Ready** - Customizable branding (logo, name, colors, messages)
 - ♿ **Accessible** - ARIA labels, keyboard navigation, semantic HTML
-- 🐛 **Error Handling** - Graceful error messages for API failures
-- 📚 **Comprehensive Storybook** - 8 stories demonstrating all features
+- 🐛 **Error Handling** - Graceful error messages with automatic fallback
+- 📚 **Comprehensive Storybook** - 10 stories demonstrating all features
 
-### Coming Soon (Step 3)
+### Future Enhancements
 
-- 🤖 **ChatGPT Integration** - Enhanced conversational AI
-- 💬 **Natural Responses** - GPT-4 powered chat responses
 - 🎨 **Custom Theming** - Apply primaryColor to UI
-- 📝 **Conversation Memory** - Persistent chat history
+- 🔍 **Additional MCP Tools** - find-similar-listings, get-address-history
+- 📊 **Analytics Integration** - Track search patterns and user behavior
 
 ---
 
@@ -152,37 +154,61 @@ interface ChatbotProps {
 
 ## 🧠 How It Works
 
-### Natural Language Processing Flow
+### Step 4: ChatGPT + MCP Architecture
 
 ```
-1. User types: "3 bedroom condo in Toronto under $800k"
+1. User: "I want a 3 bedroom condo in Toronto under $800k"
    ↓
-2. isPropertySearchQuery() detects it's a property search
+2. ChatGPT receives message + search_properties function definition
    ↓
-3. RepliersNLPService.processQuery() calls NLP API
+3. ChatGPT extracts parameters using function calling:
+   {
+     city: "Toronto",
+     bedrooms: 3,
+     maxPrice: 800000,
+     propertyType: "Condo"
+   }
    ↓
-4. NLP returns:
-   - url: "api.repliers.io/listings?city=Toronto&bedrooms=3&maxPrice=800000"
-   - summary: "Searching for 3 bed condo in Toronto under $800,000"
-   - nlpId: "abc123" (for context)
+4. Runtime receives search parameters from ChatGPT
    ↓
-5. RepliersNLPService.searchListings() fetches properties
+5. MCP Service calls Repliers MCP Server "search" tool
+   (Falls back to NLP API if MCP unavailable)
    ↓
 6. PropertyResults displays cards in chat
+   ↓
+7. Results sent back to ChatGPT for natural discussion
+   ↓
+8. ChatGPT: "I found 12 condos matching your criteria! Would you like to know more?"
 ```
 
-### Multi-Turn Conversations
+### Conversation Flow Examples
 
-The chatbot uses **nlpId** to maintain context:
-
+**Example 1: Natural Information Gathering**
 ```
-Turn 1: "I want a condo"           → nlpId: "abc123"
-Turn 2: "3 bedrooms"               → uses nlpId "abc123" (adds to context)
-Turn 3: "In Toronto"               → uses nlpId "abc123" (continues refining)
-Turn 4: "Under $800k"              → uses nlpId "abc123" (final refinement)
+User: "Hi!"
+ChatGPT: "Hello! I'm here to help you find your perfect property. What are you looking for?"
+
+User: "I want a condo"
+ChatGPT: "Great! Where would you like to search?"
+
+User: "Toronto under $800k"
+ChatGPT: [Calls search_properties tool]
+→ MCP Server searches
+→ Property cards displayed
+ChatGPT: "I found 12 condos in Toronto under $800k! Would you like to refine by bedrooms or neighborhood?"
+
+User: "Tell me about the first one"
+ChatGPT: "The first property is a 3 bed, 2 bath condo at..."
 ```
 
-Each message refines the search without losing previous context!
+**Example 2: Direct Search**
+```
+User: "3 bedroom houses in Vancouver under $1.2M"
+ChatGPT: [Extracts all parameters immediately]
+→ MCP Server searches
+→ Property cards displayed
+ChatGPT: "Here are 8 houses matching your search. Let me know if you'd like to adjust any criteria!"
+```
 
 ### Visual Search
 
@@ -574,44 +600,124 @@ All errors are logged to console with full context for debugging.
 
 ---
 
+## 🌐 MCP Server Setup (Optional)
+
+### ⚠️ Important: MCP is Optional!
+
+The chatbot **works perfectly without MCP** using direct Repliers NLP API. This section is for users who want to test the full MCP integration.
+
+### Embedded MCP Server
+
+An **embedded MCP server** is included in this repo at:
+```
+src/components/chatbot/mcp-server/
+```
+
+This is a full clone of the [Repliers MCP Server](https://github.com/Repliers-io/mcp-server) with dependencies already installed.
+
+### Quick Setup
+
+1. **Create `.env` file** in the MCP server directory:
+   ```bash
+   cd src/components/chatbot/mcp-server
+   echo "REPLIERS_API_KEY=your-api-key-here" > .env
+   ```
+
+2. **Find your Node.js path**:
+   ```bash
+   which node
+   # Example outputs:
+   # /usr/local/bin/node
+   # /opt/homebrew/bin/node
+   # /Users/you/.nvm/versions/node/v20.17.0/bin/node
+   ```
+
+3. **Test the server** (optional):
+   ```bash
+   cd src/components/chatbot/mcp-server
+   node mcpServer.js
+   # Should show: [DEBUG] MCP Server starting...
+   ```
+
+### Integration with Chatbot
+
+```tsx
+<Chatbot
+  repliersApiKey="your_repliers_api_key"
+  openaiApiKey="your_openai_api_key"
+  mcpConfig={{
+    enabled: true,
+    nodePath: "/Users/you/.nvm/versions/node/v20.17.0/bin/node",  // from: which node
+    serverPath: "/absolute/path/to/workspace/pocs/src/components/chatbot/mcp-server/mcpServer.js"
+  }}
+  brokerageName="Your Brokerage"
+/>
+```
+
+**Without MCP** (default, recommended for most use cases):
+```tsx
+<Chatbot
+  repliersApiKey="your_repliers_api_key"
+  openaiApiKey="your_openai_api_key"
+  brokerageName="Your Brokerage"
+/>
+```
+Uses direct NLP API - works great!
+
+### Available MCP Tools
+
+The Repliers MCP Server exposes these tools:
+- **search** - Property search with filters (city, price, bedrooms, etc.)
+- **get-a-listing** - Get detailed property by MLS number
+- **find-similar-listings** - Find comparable properties
+- **get-address-history** - Historical listing activity
+- **property-types-styles** - Supported property types by MLS board
+
+Currently integrated: **search** tool
+Coming soon: Additional tools for enhanced functionality
+
+### Fallback Behavior
+
+If MCP server is not configured or connection fails:
+1. Runtime automatically falls back to direct Repliers NLP API
+2. Console logs warning about MCP unavailability
+3. User experience remains seamless
+4. All features work without MCP (just without MCP benefits)
+
+---
+
 ## 📊 Architecture
 
-### Current (Phase 2 - NLP Integration)
+### Current (Step 4 - MCP Integration ✅)
 
 ```
+User Message
+    ↓
 React Component (Chatbot)
     ├── FloatingButton
     └── ChatWidget
         └── useChatRuntime
-            └── RepliersNLPService
-                ├─ NLP API (query understanding)
-                └─ Listings API (property search)
+            ├─ OpenAIService (ChatGPT)
+            │   ├─ Conversation handling
+            │   ├─ Function calling (search_properties tool)
+            │   └─ Parameter extraction
+            │
+            ├─ RepliersMCPService (MCP Client)
+            │   ├─ Connect to MCP Server via stdio
+            │   ├─ Call search tool with parameters
+            │   └─ Parse and normalize results
+            │
+            └─ RepliersNLPService (Fallback)
+                ├─ Direct NLP API calls
+                └─ Same normalization logic
 ```
 
-### Future (Step 3 - ChatGPT Integration)
-
-```
-React Component (Chatbot)
-    ├── FloatingButton
-    └── ChatWidget
-        └── useChatRuntime
-            ├─ RepliersNLPService (property search)
-            └─ OpenAI ChatGPT (conversation)
-```
-
-### Future (Step 4 - MCP Server)
-
-```
-React Component (Chatbot)
-    ├── FloatingButton
-    └── ChatWidget
-        └── useChatRuntime
-            └── MCP Client
-                └── Repliers MCP Server
-                    ├─ NLP Tool
-                    ├─ Listings Tool
-                    └─ ChatGPT Integration
-```
+**Flow:**
+1. ChatGPT processes user messages
+2. When search needed, ChatGPT calls search_properties function
+3. Runtime executes search via MCP (or NLP fallback)
+4. Results displayed + sent back to ChatGPT
+5. ChatGPT discusses results naturally
 
 ---
 
@@ -642,19 +748,22 @@ React Component (Chatbot)
 - [x] Square footage string parsing
 - [x] UI polish (20% size reduction, label removal)
 
-### 🚧 Step 3: ChatGPT Integration (Next)
-- [ ] OpenAI API integration
-- [ ] Natural conversation responses
-- [ ] Combine NLP + GPT intelligently
-- [ ] Custom theming (primaryColor)
-- [ ] Conversation memory
+### ✅ Step 3: ChatGPT Integration (Complete)
+- [x] OpenAI API integration
+- [x] Natural conversation responses with gpt-4o-mini
+- [x] Function calling for parameter extraction
+- [x] Intelligent routing between conversation and search
+- [x] Conversation memory and context management
+- [x] Property context injection for discussion
 
-### 📋 Step 4: MCP Server (Future)
-- [ ] Connect to Repliers MCP Server
-- [ ] Replace direct API calls with MCP tools
-- [ ] Standardized tool interface
-- [ ] Better error handling
-- [ ] Tool call logging
+### ✅ Step 4: MCP Server Integration (Complete)
+- [x] Connect to Repliers MCP Server via stdio transport
+- [x] MCP Client with @modelcontextprotocol/sdk
+- [x] ChatGPT function calling → MCP tool execution
+- [x] Automatic fallback to NLP API
+- [x] Property data normalization
+- [x] Comprehensive error handling and logging
+- [x] Storybook story with setup instructions
 
 ### 🎨 Step 5: Enhanced Features (Future)
 - [ ] Save favorite properties
@@ -712,6 +821,6 @@ Built by the Repliers Innovation Team
 
 ---
 
-**Status**: ✅ Phase 2 Complete - NLP Integration Live & Debugged
-**Last Updated**: November 27, 2025
-**Version**: 2.1.0 (NLP Integration + Field Normalization)
+**Status**: ✅ Step 4 Complete - Full MCP + ChatGPT Integration 🚀
+**Last Updated**: November 28, 2025
+**Version**: 3.0.0 (MCP Server Integration + ChatGPT Orchestration)

@@ -1,12 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { RepliersNLPService } from "../services/repliersAPI";
-import { OpenAIService } from "../services/openaiService";
-import {
-  isPropertySearchQuery,
-  getErrorMessage,
-} from "../utils/errorHandling";
+import { RepliersMCPService } from "../services/mcpService";
+import { OpenAIService, type ChatResponse } from "../services/openaiService";
+import { getErrorMessage } from "../utils/errorHandling";
 import { DEFAULT_WELCOME_MESSAGE } from "../utils/constants";
-import type { ChatMessage, PropertyListing } from "../types";
+import type { ChatMessage, PropertyListing, MCPConfig } from "../types";
 
 export interface ChatRuntime {
   messages: ChatMessage[];
@@ -16,28 +14,36 @@ export interface ChatRuntime {
 }
 
 /**
- * Chat Runtime Hook with ChatGPT + Repliers NLP Integration
+ * Chat Runtime Hook with ChatGPT + MCP Integration (Step 4)
  *
- * Manages chat state and intelligently routes between:
- * - ChatGPT for conversational AI and general questions
- * - Repliers NLP for property searches
+ * NEW ARCHITECTURE:
+ * 1. ChatGPT handles ALL conversation and extracts search parameters using function calling
+ * 2. When ChatGPT identifies a property search, it returns structured search parameters
+ * 3. MCP Service executes the search using Repliers MCP Server
+ * 4. Results are shown to user AND sent back to ChatGPT for discussion
  *
- * Features:
- * - Natural conversation with ChatGPT
- * - Automatic property search detection
- * - Property results integrated into conversation
- * - Maintains context across both services
- * - Handles errors gracefully with user-friendly messages
+ * Flow:
+ * User: "I want a 3 bedroom condo in Toronto under $800k"
+ *   → ChatGPT extracts: { city: "Toronto", bedrooms: 3, maxPrice: 800000, propertyType: "Condo" }
+ *   → MCP searches with these parameters
+ *   → Results displayed to user
+ *   → ChatGPT discusses: "I found 12 condos matching your criteria..."
  *
- * @param repliersApiKey - Repliers API key for NLP and listings APIs
- * @param openaiApiKey - OpenAI API key for ChatGPT (optional)
+ * User: "Tell me about the first one"
+ *   → ChatGPT responds naturally using context
+ *
+ * Fallback: If no MCP config, uses direct Repliers NLP API
+ *
+ * @param repliersApiKey - Repliers API key (for fallback NLP service)
+ * @param openaiApiKey - OpenAI API key (REQUIRED for Step 4)
+ * @param mcpConfig - MCP server configuration (node path, server path)
  * @param brokerageName - Brokerage name for ChatGPT system prompt
  * @param welcomeMessage - Initial welcome message from assistant
- * @returns ChatRuntime object with messages, loading state, and sendMessage function
  */
 export function useChatRuntime(
   repliersApiKey: string,
   openaiApiKey?: string,
+  mcpConfig?: MCPConfig,
   brokerageName: string = "Real Estate Assistant",
   welcomeMessage: string = DEFAULT_WELCOME_MESSAGE
 ): ChatRuntime {
@@ -47,8 +53,19 @@ export function useChatRuntime(
     [repliersApiKey]
   );
 
+  const mcpService = useMemo(() => {
+    if (mcpConfig?.enabled && mcpConfig.nodePath && mcpConfig.serverPath) {
+      return new RepliersMCPService(
+        mcpConfig.nodePath,
+        mcpConfig.serverPath,
+        repliersApiKey
+      );
+    }
+    return null;
+  }, [mcpConfig, repliersApiKey]);
+
   const chatGPT = useMemo(
-    () => openaiApiKey ? new OpenAIService(openaiApiKey, brokerageName) : null,
+    () => (openaiApiKey ? new OpenAIService(openaiApiKey, brokerageName) : null),
     [openaiApiKey, brokerageName]
   );
 
@@ -62,61 +79,108 @@ export function useChatRuntime(
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [mcpConnected, setMcpConnected] = useState(false);
+
+  // Connect to MCP server on mount
+  useEffect(() => {
+    if (mcpService && !mcpConnected) {
+      console.log("🔌 Attempting to connect to MCP server...");
+      mcpService
+        .connect()
+        .then(() => {
+          setMcpConnected(true);
+          console.log("✅ MCP server connected successfully");
+        })
+        .catch((error) => {
+          console.error("❌ Failed to connect to MCP server:", error);
+          console.log("⚠️ Will fall back to direct NLP API");
+        });
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (mcpService && mcpConnected) {
+        mcpService.disconnect();
+      }
+    };
+  }, [mcpService, mcpConnected]);
 
   /**
-   * Process property search query using NLP
+   * Execute property search using MCP or fallback to NLP
    */
-  const processPropertySearch = useCallback(
-    async (userMessage: string): Promise<PropertyListing[]> => {
-      // Step 1: Call NLP API to understand the query
-      console.log("🔍 Processing property search:", userMessage);
-      const nlpResponse = await nlpService.processQuery(userMessage);
+  const executeSearch = useCallback(
+    async (params: {
+      city?: string;
+      province?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      bedrooms?: number;
+      bathrooms?: number;
+      propertyType?: string;
+      status?: "Active" | "Sold" | "Leased";
+    }): Promise<PropertyListing[]> => {
+      console.group("🔍 Executing Property Search");
+      console.log("Search parameters:", params);
+      console.log("MCP connected:", mcpConnected);
+      console.log("MCP service available:", !!mcpService);
 
-      // Step 2: Show NLP summary as loading message
-      const searchingMessage: ChatMessage = {
-        id: `searching-${Date.now()}`,
-        role: "assistant",
-        content: `${nlpResponse.summary || "Searching for properties"}...`,
-        timestamp: new Date(),
-        isLoading: true,
-      };
-      setMessages((prev) => [...prev, searchingMessage]);
+      try {
+        // Try MCP first if available
+        if (mcpService && mcpConnected && mcpService.isReady()) {
+          console.log("Using MCP Service");
+          const listings = await mcpService.searchListings(params);
+          console.log(`✅ MCP search completed: ${listings.length} listings`);
+          console.groupEnd();
+          return listings;
+        }
 
-      // Step 3: Fetch property listings
-      const listings = await nlpService.searchListings(
-        nlpResponse.request.url,
-        nlpResponse.request.body
-      );
+        // Fallback to NLP API
+        console.log("Falling back to NLP API");
+        const queryParts: string[] = [];
+        if (params.bedrooms) queryParts.push(`${params.bedrooms} bedroom`);
+        if (params.bathrooms) queryParts.push(`${params.bathrooms} bathroom`);
+        if (params.propertyType) queryParts.push(params.propertyType);
+        if (params.city) queryParts.push(`in ${params.city}`);
+        if (params.maxPrice)
+          queryParts.push(`under $${params.maxPrice.toLocaleString()}`);
+        if (params.minPrice)
+          queryParts.push(`over $${params.minPrice.toLocaleString()}`);
 
-      // Step 4: Remove loading message
-      setMessages((prev) => prev.filter((msg) => msg.id !== searchingMessage.id));
+        const query = queryParts.join(" ") || "properties";
+        console.log("NLP query:", query);
 
-      return listings;
+        const nlpResponse = await nlpService.processQuery(query);
+        const listings = await nlpService.searchListings(
+          nlpResponse.request.url,
+          nlpResponse.request.body
+        );
+
+        console.log(`✅ NLP search completed: ${listings.length} listings`);
+        console.groupEnd();
+        return listings;
+      } catch (error) {
+        console.error("❌ Search failed:", error);
+        console.groupEnd();
+        throw error;
+      }
     },
-    [nlpService]
+    [mcpService, mcpConnected, nlpService]
   );
 
   /**
-   * Handle messages with ChatGPT
+   * Handle message with ChatGPT orchestration
    */
   const handleChatGPTMessage = useCallback(
-    async (userMessage: string, listings?: PropertyListing[]): Promise<string> => {
+    async (userMessage: string): Promise<ChatResponse> => {
       if (!chatGPT) {
         // Fallback if no OpenAI key
-        if (listings && listings.length > 0) {
-          return `I found ${listings.length} ${
-            listings.length === 1 ? "property" : "properties"
-          } that match your search!`;
-        }
-        return "I specialize in helping you find properties! Try asking me something like '3 bedroom condo in Toronto' or 'house under $800k with a backyard'.";
+        return {
+          message:
+            "I specialize in helping you find properties! Try asking me something like '3 bedroom condo in Toronto' or 'house under $800k with a backyard'.",
+          needsSearch: false,
+        };
       }
 
-      // Add property context to ChatGPT if we just searched
-      if (listings) {
-        chatGPT.addPropertyContext(listings, userMessage);
-      }
-
-      // Get ChatGPT response
       return await chatGPT.chat(userMessage);
     },
     [chatGPT]
@@ -140,35 +204,64 @@ export function useChatRuntime(
       setIsLoading(true);
 
       try {
-        // Detect if this is a property search query
-        const isPropertyQuery = isPropertySearchQuery(content);
+        // Step 1: Send to ChatGPT
+        const chatResponse = await handleChatGPTMessage(content);
 
-        if (isPropertyQuery) {
-          // PROPERTY SEARCH FLOW
-          // 1. Search for properties using Repliers NLP
-          const listings = await processPropertySearch(content);
+        // Step 2: Check if ChatGPT wants to search
+        if (chatResponse.needsSearch && chatResponse.searchParams) {
+          console.log("🔧 ChatGPT requested search with params:", chatResponse.searchParams);
 
-          // 2. Get ChatGPT response about the results (or fallback message)
-          const response = await handleChatGPTMessage(content, listings);
+          // Show ChatGPT's message first
+          if (chatResponse.message) {
+            const gptMessage: ChatMessage = {
+              id: `gpt-${Date.now()}`,
+              role: "assistant",
+              content: chatResponse.message,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, gptMessage]);
+          }
 
-          // 3. Add message with property results
+          // Show loading message
+          const searchingMessage: ChatMessage = {
+            id: `searching-${Date.now()}`,
+            role: "assistant",
+            content: "Searching for properties...",
+            timestamp: new Date(),
+            isLoading: true,
+          };
+          setMessages((prev) => [...prev, searchingMessage]);
+
+          // Execute search
+          const listings = await executeSearch(chatResponse.searchParams);
+
+          // Remove loading message
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== searchingMessage.id)
+          );
+
+          // Add results message
           const resultMessage: ChatMessage = {
             id: `result-${Date.now()}`,
             role: "assistant",
-            content: response,
+            content: `I found ${listings.length} ${
+              listings.length === 1 ? "property" : "properties"
+            } matching your criteria!`,
             propertyResults: listings.length > 0 ? listings : undefined,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, resultMessage]);
-        } else {
-          // CONVERSATION FLOW (non-property query)
-          // Use ChatGPT for conversation, or fallback to guidance
-          const response = await handleChatGPTMessage(content);
 
+          // Send results back to ChatGPT for context
+          if (chatGPT && listings.length > 0) {
+            chatGPT.addPropertyContext(listings, content);
+          }
+        } else {
+          // Regular conversation response
           const responseMessage: ChatMessage = {
             id: `response-${Date.now()}`,
             role: "assistant",
-            content: response,
+            content: chatResponse.message,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, responseMessage]);
@@ -197,11 +290,11 @@ export function useChatRuntime(
         setIsLoading(false);
       }
     },
-    [isLoading, processPropertySearch, handleChatGPTMessage, chatGPT]
+    [isLoading, handleChatGPTMessage, executeSearch, chatGPT]
   );
 
   /**
-   * Reset conversation and NLP context
+   * Reset conversation and all contexts
    */
   const resetConversation = useCallback(() => {
     nlpService.resetContext();
