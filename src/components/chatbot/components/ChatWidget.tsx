@@ -14,10 +14,12 @@ export function ChatWidget({
   placeholder,
   repliersApiKey,
   openaiApiKey,
+  mcpConfig,
 }: ChatWidgetProps) {
   const { messages, isLoading, sendMessage } = useChatRuntime(
     repliersApiKey,
     openaiApiKey,
+    mcpConfig,
     brokerageName,
     welcomeMessage
   );

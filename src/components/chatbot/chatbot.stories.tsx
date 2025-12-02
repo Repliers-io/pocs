@@ -463,3 +463,108 @@ with user-friendly messages.
     },
   },
 };
+
+/**
+ * **With ChatGPT + MCP Architecture (Step 4 Complete!)** 🚀
+ *
+ * This story demonstrates the complete Step 4 implementation with ChatGPT orchestration.
+ *
+ * ## 🎯 What You're Seeing:
+ * - **ChatGPT** handles ALL conversation with natural dialogue
+ * - **Function Calling** extracts search parameters from conversation
+ * - **Automatic Search** executes when ChatGPT identifies property criteria
+ * - **Smart Fallback** uses Repliers NLP API (MCP server optional)
+ *
+ * ## 🚀 Try It Now (No MCP Setup Required!):
+ * 1. **Add your OpenAI API key** in the controls below
+ * 2. **Start chatting** - The system uses NLP API fallback (works great!)
+ * 3. **Try these conversations**:
+ *    - "Hi!" → Natural greeting
+ *    - "I want a 3 bedroom condo" → ChatGPT asks for location
+ *    - "Toronto under $800k" → Executes search automatically
+ *    - "Tell me about the first one" → Discusses results
+ *
+ * ## 🌐 Optional: Enable MCP Server
+ *
+ * An **embedded MCP server** is included in this repo at:
+ * `src/components/chatbot/mcp-server/`
+ *
+ * To use it (advanced, optional):
+ *
+ * 1. **Set up the embedded MCP server**:
+ *    ```bash
+ *    cd src/components/chatbot/mcp-server
+ *    echo "REPLIERS_API_KEY=your-key" > .env
+ *    ```
+ *
+ * 2. **Get paths**:
+ *    ```bash
+ *    which node
+ *    # Example: /Users/you/.nvm/versions/node/v20.17.0/bin/node
+ *
+ *    pwd
+ *    # Get full path, then add /mcpServer.js
+ *    ```
+ *
+ * 3. **Update controls below**:
+ *    - MCP Config → Enabled: `true`
+ *    - MCP Config → Node Path: (from step 2)
+ *    - MCP Config → Server Path: (from step 2)
+ *
+ * ## 💡 Why MCP is Optional:
+ * - **Works perfectly without MCP** - Uses direct NLP API
+ * - **MCP is for standardization** - Not required for functionality
+ * - **Great demo either way** - Shows ChatGPT orchestration
+ *
+ * ## 🎬 Example Conversation:
+ * ```
+ * You: "Hi!"
+ * ChatGPT: "Hello! I'm here to help you find your perfect property. What are you looking for?"
+ *
+ * You: "I want a 3 bedroom condo"
+ * ChatGPT: "Great! Where would you like to search?"
+ *
+ * You: "Toronto under $800k"
+ * ChatGPT: [Calls search_properties function]
+ * System: [Executes search via MCP or NLP fallback]
+ * System: [Shows property cards]
+ * ChatGPT: "I found 12 condos matching your criteria!"
+ * ```
+ *
+ * Check browser console for detailed logs! 📊
+ */
+export const WithMCPServer: Story = {
+  args: {
+    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
+    openaiApiKey: undefined, // ⬅️ Paste your OpenAI API key here!
+    // MCP is OPTIONAL - system works great with NLP fallback
+    mcpConfig: undefined,
+    brokerageName: "Smart Real Estate AI",
+    welcomeMessage:
+      "Hi! I'm your AI assistant powered by ChatGPT. What kind of property are you looking for?",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+## Step 4: MCP Server Integration 🎉
+
+This is the **complete implementation** combining:
+- **ChatGPT** for natural, human-friendly conversation
+- **Function Calling** to extract search parameters from dialogue
+- **Repliers MCP Server** for property searches
+- **Automatic Fallback** to NLP API if MCP unavailable
+
+### Architecture Benefits:
+- ✅ **Better Conversations**: ChatGPT handles all dialogue naturally
+- ✅ **Structured Extraction**: Function calling extracts clean search params
+- ✅ **Standardized Tools**: MCP protocol for server communication
+- ✅ **Reliable Fallback**: Direct API access if MCP server down
+- ✅ **Scalable**: Easy to add more MCP tools (find-similar, get-listing, etc.)
+
+### Setup Instructions Above ⬆️
+        `,
+      },
+    },
+  },
+};
