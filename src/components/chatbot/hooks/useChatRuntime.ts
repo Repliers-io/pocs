@@ -117,7 +117,8 @@ export function useChatRuntime(
       bedrooms?: number;
       bathrooms?: number;
       propertyType?: string;
-      status?: "Active" | "Sold" | "Leased";
+      type?: "sale" | "lease"; // For sale or for lease
+      class?: "condo" | "residential" | "commercial"; // Broad property classification
     }): Promise<PropertyListing[]> => {
       console.group("🔍 Executing Property Search");
       console.log("Search parameters:", params);
@@ -134,28 +135,12 @@ export function useChatRuntime(
           return listings;
         }
 
-        // Fallback to NLP API
-        console.log("Falling back to NLP API");
-        const queryParts: string[] = [];
-        if (params.bedrooms) queryParts.push(`${params.bedrooms} bedroom`);
-        if (params.bathrooms) queryParts.push(`${params.bathrooms} bathroom`);
-        if (params.propertyType) queryParts.push(params.propertyType);
-        if (params.city) queryParts.push(`in ${params.city}`);
-        if (params.maxPrice)
-          queryParts.push(`under $${params.maxPrice.toLocaleString()}`);
-        if (params.minPrice)
-          queryParts.push(`over $${params.minPrice.toLocaleString()}`);
+        // Fallback to direct structured API search
+        // Use direct params instead of NLP to avoid conversation context issues
+        console.log("Falling back to direct structured search");
+        const listings = await nlpService.searchWithParams(params);
 
-        const query = queryParts.join(" ") || "properties";
-        console.log("NLP query:", query);
-
-        const nlpResponse = await nlpService.processQuery(query);
-        const listings = await nlpService.searchListings(
-          nlpResponse.request.url,
-          nlpResponse.request.body
-        );
-
-        console.log(`✅ NLP search completed: ${listings.length} listings`);
+        console.log(`✅ Direct search completed: ${listings.length} listings`);
         console.groupEnd();
         return listings;
       } catch (error) {
@@ -240,6 +225,13 @@ export function useChatRuntime(
             prev.filter((msg) => msg.id !== searchingMessage.id)
           );
 
+          // Send results back to ChatGPT as tool response
+          // IMPORTANT: This must happen BEFORE displaying results to user
+          // OpenAI requires tool response after tool_call
+          if (chatGPT && chatResponse.toolCallId) {
+            chatGPT.addSearchResults(chatResponse.toolCallId, listings);
+          }
+
           // Add results message
           const resultMessage: ChatMessage = {
             id: `result-${Date.now()}`,
@@ -251,11 +243,6 @@ export function useChatRuntime(
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, resultMessage]);
-
-          // Send results back to ChatGPT for context
-          if (chatGPT && listings.length > 0) {
-            chatGPT.addPropertyContext(listings, content);
-          }
         } else {
           // Regular conversation response
           const responseMessage: ChatMessage = {

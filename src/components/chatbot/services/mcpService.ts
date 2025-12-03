@@ -32,6 +32,7 @@ export interface SearchParameters {
   bedrooms?: number;
   bathrooms?: number;
   propertyType?: string;
+  class?: "condo" | "residential" | "commercial";
   status?: "Active" | "Sold" | "Leased";
   minDate?: string;
   maxDate?: string;

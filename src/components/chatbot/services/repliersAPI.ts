@@ -210,6 +210,51 @@ export class RepliersNLPService {
   }
 
   /**
+   * Search with structured parameters (bypasses NLP conversational context)
+   * Use this when you have structured search criteria and don't need NLP interpretation
+   *
+   * @param params - Structured search parameters
+   * @returns Array of property listings
+   */
+  async searchWithParams(params: {
+    city?: string;
+    province?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    propertyType?: string;
+    type?: "sale" | "lease"; // For sale or for lease
+    class?: "condo" | "residential" | "commercial"; // Broad property classification
+  }): Promise<PropertyListing[]> {
+    console.group("🔍 Direct Structured Search (no NLP)");
+    console.log("Parameters:", params);
+
+    // Build URL with query parameters
+    const queryParams = new URLSearchParams();
+
+    if (params.city) queryParams.append("city", params.city);
+    if (params.province) queryParams.append("province", params.province);
+    if (params.minPrice) queryParams.append("minPrice", params.minPrice.toString());
+    if (params.maxPrice) queryParams.append("maxPrice", params.maxPrice.toString());
+    if (params.bedrooms) queryParams.append("minBeds", params.bedrooms.toString());
+    if (params.bathrooms) queryParams.append("minBaths", params.bathrooms.toString());
+    if (params.propertyType) queryParams.append("propertyType", params.propertyType);
+    if (params.class) queryParams.append("class", params.class);
+
+    // Add type parameter (sale/lease) and default to active listings
+    if (params.type) queryParams.append("type", params.type);
+    queryParams.append("status", "A"); // A = Active listings (not sold/leased yet)
+
+    const url = `${this.baseUrl}/listings?${queryParams.toString()}`;
+    console.log("Built URL:", url);
+    console.groupEnd();
+
+    // Use the existing searchListings method
+    return this.searchListings(url);
+  }
+
+  /**
    * Reset conversation context
    * Call this when starting a new search or conversation
    */
