@@ -39,7 +39,8 @@ export interface SearchParameters {
   bedrooms?: number;
   bathrooms?: number;
   propertyType?: string;
-  status?: "Active" | "Sold" | "Leased";
+  type?: "sale" | "lease"; // For sale or for lease
+  class?: "condo" | "residential" | "commercial"; // Broad property classification
 }
 
 interface ChatCompletionResponse {
@@ -58,6 +59,7 @@ export interface ChatResponse {
   message: string;
   searchParams?: SearchParameters;
   needsSearch: boolean;
+  toolCallId?: string; // ID of the tool call, needed for tool response
 }
 
 export class OpenAIService {
@@ -81,11 +83,18 @@ export class OpenAIService {
 Your role:
 - Help users find their ideal property through natural conversation
 - Ask clarifying questions about their needs (bedrooms, budget, location, features)
+- **IMPORTANT**: Early on, determine if they want to BUY (type: "sale") or RENT (type: "lease")
 - When you have enough information, use the search_properties tool to find listings
 - Discuss property details, neighborhoods, and answer real estate questions
 - Be warm, professional, and focused on helping them find a home
 
 Important:
+- ALWAYS set type to "sale" for buying or "lease" for renting (never leave it unset)
+- Use the "class" parameter for broad categorization:
+  - "condo" for condominiums/apartments
+  - "residential" for houses/townhouses/single-family homes
+  - "commercial" for commercial properties
+- Use "propertyType" for specific types like "House", "Townhouse", "Apartment"
 - Use the search_properties tool when you understand what the user wants
 - Build up search parameters from conversation (city, bedrooms, price, etc.)
 - Keep responses concise (2-3 sentences max) - this is a chat interface
@@ -93,14 +102,14 @@ Important:
 
 Example conversation:
 User: "Hi"
-You: "Hello! I'm here to help you find your perfect property. What are you looking for?"
+You: "Hello! I'm here to help you find your perfect property. Are you looking to buy or rent?"
 
-User: "3 bedroom condo"
+User: "I want to buy a 3 bedroom condo"
 You: "Great! Where would you like to search?"
 
 User: "Toronto under $800k"
-You: [Call search_properties with city: "Toronto", bedrooms: 3, maxPrice: 800000, propertyType: "Condo"]
-     "Perfect! Let me find 3 bedroom condos in Toronto under $800k for you."`;
+You: [Call search_properties with city: "Toronto", bedrooms: 3, maxPrice: 800000, class: "condo", type: "sale"]
+     "Perfect! Let me find 3 bedroom condos for sale in Toronto under $800k for you."`;
   }
 
   /**
@@ -210,10 +219,15 @@ The user can see these property cards in the chat. Acknowledge the results and o
                       description:
                         "Property type (e.g., 'Condo', 'House', 'Townhouse', 'Apartment')",
                     },
-                    status: {
+                    type: {
                       type: "string",
-                      enum: ["Active", "Sold", "Leased"],
-                      description: "Listing status",
+                      enum: ["sale", "lease"],
+                      description: "REQUIRED: Use 'sale' for buying, 'lease' for renting. Never leave unset.",
+                    },
+                    class: {
+                      type: "string",
+                      enum: ["condo", "residential", "commercial"],
+                      description: "Broad property classification: 'condo' for condominiums, 'residential' for houses/townhouses, 'commercial' for commercial properties",
                     },
                   },
                   required: [],
@@ -264,6 +278,7 @@ The user can see these property cards in the chat. Acknowledge the results and o
             message: assistantMessage || "Let me search for properties...",
             searchParams,
             needsSearch: true,
+            toolCallId: searchToolCall.id, // Return tool call ID for response
           };
         }
       }
