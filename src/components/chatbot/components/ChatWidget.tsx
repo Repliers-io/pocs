@@ -25,11 +25,19 @@ export function ChatWidget({
   );
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Keep input focused after loading completes
+  useEffect(() => {
+    if (!isLoading && isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading, isOpen]);
 
   const handleSend = () => {
     if (!inputValue.trim() || isLoading) return;
@@ -164,6 +172,7 @@ export function ChatWidget({
         <div className="border-t border-gray-200 p-4 bg-white">
           <div className="flex items-center gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}

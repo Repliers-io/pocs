@@ -197,11 +197,30 @@ export interface PropertyResultsProps {
  * MCP Server Configuration
  * Provides connection details for Repliers MCP Server
  */
-export interface MCPConfig {
+export type MCPConfig = MCPStdioConfig | MCPHttpConfig;
+
+/**
+ * Stdio-based MCP configuration (spawns server as child process)
+ */
+export interface MCPStdioConfig {
+  /** Connection mode */
+  mode: "stdio";
   /** Absolute path to node executable (e.g., "/usr/local/bin/node") */
   nodePath: string;
   /** Absolute path to Repliers MCP server script (e.g., "/path/to/mcpServer.js") */
   serverPath: string;
+  /** Enable MCP integration (default: false) */
+  enabled?: boolean;
+}
+
+/**
+ * HTTP/SSE-based MCP configuration (connects to running server)
+ */
+export interface MCPHttpConfig {
+  /** Connection mode */
+  mode: "http";
+  /** URL to MCP server SSE endpoint (e.g., "http://localhost:3001/sse") */
+  serverUrl: string;
   /** Enable MCP integration (default: false) */
   enabled?: boolean;
 }

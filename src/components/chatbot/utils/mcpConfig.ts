@@ -23,6 +23,7 @@ export function getEmbeddedMCPConfig(repliersApiKey: string): MCPConfig {
   );
 
   return {
+    mode: "stdio",
     enabled: true,
     nodePath,
     serverPath,
@@ -42,6 +43,7 @@ export function isMCPSupported(): boolean {
  * This shows the structure but won't work without updating paths
  */
 export const SAMPLE_MCP_CONFIG: MCPConfig = {
+  mode: "stdio",
   enabled: false,
   nodePath: "/usr/local/bin/node",
   serverPath: "/path/to/mcp-server/mcpServer.js",

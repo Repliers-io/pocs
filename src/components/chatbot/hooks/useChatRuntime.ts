@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { RepliersNLPService } from "../services/repliersAPI";
-import { RepliersMCPService } from "../services/mcpService";
+// import { RepliersMCPService } from "../services/mcpService"; // Removed for client-side compatibility
+import { RepliersMCPServiceHttp } from "../services/mcpService.http";
 import { OpenAIService, type ChatResponse } from "../services/openaiService";
 import { getErrorMessage } from "../utils/errorHandling";
 import { DEFAULT_WELCOME_MESSAGE } from "../utils/constants";
@@ -54,13 +55,19 @@ export function useChatRuntime(
   );
 
   const mcpService = useMemo(() => {
-    if (mcpConfig?.enabled && mcpConfig.nodePath && mcpConfig.serverPath) {
-      return new RepliersMCPService(
-        mcpConfig.nodePath,
-        mcpConfig.serverPath,
-        repliersApiKey
-      );
+    if (!mcpConfig?.enabled) return null;
+
+    // HTTP/SSE mode
+    if (mcpConfig.mode === "http") {
+      return new RepliersMCPServiceHttp(mcpConfig.serverUrl);
     }
+
+    // Stdio mode (legacy) - Not supported in browser environment
+    if (mcpConfig.mode === "stdio") {
+      console.warn("MCP stdio mode is not supported in browser environment. Please use 'http' mode.");
+      return null;
+    }
+
     return null;
   }, [mcpConfig, repliersApiKey]);
 
@@ -135,12 +142,45 @@ export function useChatRuntime(
           return listings;
         }
 
-        // Fallback to direct structured API search
-        // Use direct params instead of NLP to avoid conversation context issues
-        console.log("Falling back to direct structured search");
-        const listings = await nlpService.searchWithParams(params);
+        // Fallback to NLP API - convert structured params to natural language query
+        console.log("Falling back to NLP API");
 
-        console.log(`✅ Direct search completed: ${listings.length} listings`);
+        // Build natural language query from structured parameters
+        const queryParts: string[] = [];
+        if (params.bedrooms) queryParts.push(`${params.bedrooms} bedroom`);
+        if (params.bathrooms) queryParts.push(`${params.bathrooms} bathroom`);
+        if (params.propertyType) queryParts.push(params.propertyType);
+        if (params.class) queryParts.push(params.class);
+        if (params.type) queryParts.push(`for ${params.type}`);
+
+        let query = queryParts.join(" ");
+
+        if (params.city) {
+          query += ` in ${params.city}`;
+          if (params.province) query += `, ${params.province}`;
+        } else if (params.province) {
+          query += ` in ${params.province}`;
+        }
+
+        if (params.minPrice || params.maxPrice) {
+          if (params.minPrice && params.maxPrice) {
+            query += ` between $${params.minPrice.toLocaleString()} and $${params.maxPrice.toLocaleString()}`;
+          } else if (params.minPrice) {
+            query += ` over $${params.minPrice.toLocaleString()}`;
+          } else if (params.maxPrice) {
+            query += ` under $${params.maxPrice.toLocaleString()}`;
+          }
+        }
+
+        console.log("Generated NLP query:", query);
+
+        const nlpResponse = await nlpService.processQuery(query);
+        const listings = await nlpService.searchListings(
+          nlpResponse.request.url,
+          nlpResponse.request.body
+        );
+
+        console.log(`✅ NLP search completed: ${listings.length} listings`);
         console.groupEnd();
         return listings;
       } catch (error) {

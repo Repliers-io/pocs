@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ApiKeysProvider } from "@/lib/api-keys-context";
+import { ChatbotIntegration } from "@/components/chatbot";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,7 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ApiKeysProvider>{children}</ApiKeysProvider>
+        <ApiKeysProvider>
+          {children}
+          <ChatbotIntegration />
+        </ApiKeysProvider>
       </body>
     </html>
   );
