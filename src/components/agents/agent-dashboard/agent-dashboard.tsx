@@ -115,6 +115,8 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
 
   // Filter and sort state
   const [filterQuery, setFilterQuery] = useState("");
+  const [exactAgentName, setExactAgentName] = useState("");
+  const [exactAgentId, setExactAgentId] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "count">("count");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -172,10 +174,20 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     try {
       console.log("Fetching members from /members endpoint...");
 
-      // Build URL with optional keywords parameter
+      // Build URL with tab-aware parameters
       let url = `https://api.repliers.io/members`;
       if (keywords && keywords.trim()) {
-        url += `?keywords=${encodeURIComponent(keywords.trim())}`;
+        const searchTerm = keywords.trim();
+
+        if (activeTab === "agents") {
+          // On Agents tab, search by keyword (flexible matching)
+          console.log(`Agents tab: using keyword parameter: ${searchTerm}`);
+          url += `?keyword=${encodeURIComponent(searchTerm)}`;
+        } else if (activeTab === "brokerages") {
+          // On Brokerages tab, search by brokerage name
+          console.log(`Brokerages tab: using brokerage parameter: ${searchTerm}`);
+          url += `?brokerage=${encodeURIComponent(searchTerm)}`;
+        }
       }
 
       const response = await fetch(url, {
@@ -270,8 +282,85 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     loadAgentList(filterQuery.trim());
   };
 
+  // Handle exact search by agent name or ID
+  const handleExactSearch = async () => {
+    if (!apiKey) {
+      setError("API key is required");
+      return;
+    }
+
+    if (!exactAgentName.trim() && !exactAgentId.trim()) {
+      setError("Please enter either an agent name or agent ID");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log("Fetching members with exact match...");
+
+      let url = `https://api.repliers.io/members?`;
+      const params = [];
+
+      if (exactAgentName.trim()) {
+        params.push(`agentName=${encodeURIComponent(exactAgentName.trim())}`);
+      }
+      if (exactAgentId.trim()) {
+        params.push(`agentId=${encodeURIComponent(exactAgentId.trim())}`);
+      }
+
+      url += params.join("&");
+
+      const response = await fetch(url, {
+        headers: {
+          "REPLIERS-API-KEY": apiKey,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Invalid API key");
+        } else if (response.status === 403) {
+          throw new Error("API key doesn't have permission for members endpoint");
+        } else if (response.status === 429) {
+          throw new Error("Too many requests. Please wait a moment");
+        } else {
+          throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+        }
+      }
+
+      const data = await response.json();
+      console.log(`Fetched ${data.members?.length || 0} members with exact match`);
+
+      // Transform members into agent list
+      const agentList: AgentAggregate[] = (data.members || [])
+        .map((member: any) => ({
+          agentId: member.agentId || member.id,
+          agentName: member.name || "Unknown",
+          agentDetails: member as AgentDetails,
+        }))
+        .filter((agent: AgentAggregate) => agent.agentId && agent.agentName.trim() !== "");
+
+      // Sort by name by default
+      agentList.sort((a, b) => a.agentName.localeCompare(b.agentName));
+
+      console.log(`Displaying ${agentList.length} agents from exact search`, agentList.slice(0, 5));
+
+      setAgents(agentList);
+      setFilteredAgents(agentList);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load members";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Load all agents from a selected brokerage
-  const loadBrokerageAgents = async (brokerageName: string, officeId?: string) => {
+  const loadBrokerageAgents = async (brokerageName: string) => {
     if (!apiKey) return;
 
     setIsLoadingBrokerageAgents(true);
@@ -281,9 +370,8 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
     try {
       console.log(`Fetching agents for brokerage: ${brokerageName}`);
 
-      // Use officeId if available, otherwise use brokerage name
-      const searchKeyword = officeId || brokerageName;
-      const url = `https://api.repliers.io/members?keywords=${encodeURIComponent(searchKeyword)}`;
+      // Use brokerage parameter for precise filtering
+      const url = `https://api.repliers.io/members?brokerage=${encodeURIComponent(brokerageName)}`;
 
       const response = await fetch(url, {
         headers: {
@@ -307,9 +395,8 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
       const data = await response.json();
       console.log(`Fetched ${data.members?.length || 0} agents for brokerage`);
 
-      // Filter agents that actually belong to this brokerage
+      // Transform members into agent list (no need to filter since brokerage parameter is precise)
       const brokerageMembers: AgentAggregate[] = (data.members || [])
-        .filter((member: any) => member.brokerage?.name === brokerageName)
         .map((member: any) => ({
           agentId: member.agentId || member.id,
           agentName: member.name || "Unknown",
@@ -608,8 +695,7 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
   // Load brokerage agents when brokerage is selected
   useEffect(() => {
     if (selectedBrokerage) {
-      const brokerageData = brokerages.find((b) => b.brokerageName === selectedBrokerage);
-      loadBrokerageAgents(selectedBrokerage, brokerageData?.officeId);
+      loadBrokerageAgents(selectedBrokerage);
     } else {
       // Clear brokerage agents when deselected
       setBrokerageAgents([]);
@@ -674,21 +760,23 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
             </button>
           </div>
 
-          {/* Search Header */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {activeTab === "agents" ? "Agents" : "Brokerages"}
-              </h2>
-              {!isLoading && (activeTab === "agents" ? agents.length > 0 : brokerages.length > 0) && (
-                <span className="text-sm text-gray-600 font-medium">
-                  {activeTab === "agents" ? filteredAgents.length : filteredBrokerages.length}
-                </span>
-              )}
-            </div>
+          {/* List - Scrollable (includes search and results) */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Search Section */}
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {activeTab === "agents" ? "Agents" : "Brokerages"}
+                </h2>
+                {!isLoading && (activeTab === "agents" ? agents.length > 0 : brokerages.length > 0) && (
+                  <span className="text-sm text-gray-600 font-medium">
+                    {activeTab === "agents" ? filteredAgents.length : filteredBrokerages.length}
+                  </span>
+                )}
+              </div>
 
-            {/* Search Input with Button */}
-            <div className="space-y-2">
+              {/* Search Input with Button */}
+              <div className="space-y-2">
               <div className="relative flex items-center bg-gray-50 rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
                 <Search className="text-gray-400 w-4 h-4 ml-3" />
                 <input
@@ -722,11 +810,53 @@ export function AgentDashboard({ apiKey, className = "" }: AgentDashboardProps) 
               >
                 {isLoading ? "Searching..." : "Search"}
               </button>
-            </div>
-          </div>
 
-          {/* List - Scrollable */}
-          <div className="flex-1 overflow-y-auto">
+              {/* Exact Search Section - Agents Tab Only */}
+              {activeTab === "agents" && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                    <strong>Exact Match Search:</strong> Enter the exact agent name or ID from the database to find a precise match.
+                  </div>
+
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={exactAgentName}
+                      onChange={(e) => setExactAgentName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleExactSearch();
+                        }
+                      }}
+                      placeholder="Agent Name (exact match)"
+                      className="w-full bg-gray-50 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm text-gray-700 placeholder-gray-400 px-3 py-2 transition-all"
+                    />
+                    <input
+                      type="text"
+                      value={exactAgentId}
+                      onChange={(e) => setExactAgentId(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleExactSearch();
+                        }
+                      }}
+                      placeholder="Agent ID (exact match)"
+                      className="w-full bg-gray-50 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm text-gray-700 placeholder-gray-400 px-3 py-2 transition-all"
+                    />
+                    <button
+                      onClick={handleExactSearch}
+                      disabled={isLoading || (!exactAgentName.trim() && !exactAgentId.trim())}
+                      className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                    >
+                      {isLoading ? "Searching..." : "Search Exact"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              </div>
+            </div>
+
+            {/* Results Section */}
             {/* Loading State */}
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-12 px-4">

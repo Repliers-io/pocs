@@ -28,8 +28,11 @@ This component was built as a proof-of-concept for TrustedOnly to help them:
 - **Two-Tab Interface**: Switch between Agents and Brokerages views
 - **Agent Directory**: Browse agents with search functionality (loads first 100 by default)
 - **Brokerage Directory**: View all brokerages with agent counts and addresses
-- **Keyword Search**: Search for agents or brokerages with 3+ character minimum
+- **Flexible Agent Search**: Main search uses keyword parameter for fuzzy matching
+- **Exact Match Search**: Separate inputs for precise agent name and agent ID matching
+- **Brokerage Search**: Uses brokerage parameter for precise filtering
 - **Search Button**: Explicit search control with Enter key support (no auto-debounce)
+- **Scrollable Search**: Search fields scroll with results for maximum viewing space
 - **Dynamic Brokerage Loading**: Click a brokerage to load ALL its agents via fresh API call
 - **Agent Selection**: Select an agent to view their detailed dashboard
 - **Agent Profile Card**: Complete contact info, brokerage details, and position
@@ -48,12 +51,16 @@ This component was built as a proof-of-concept for TrustedOnly to help them:
 
 1. **Agents Tab**:
    - On mount, loads first 100 agents from the MLS
-   - Use search to find specific agents (3+ characters)
+   - **Main Search**: Use keyword search for flexible agent matching (searches across names)
+   - **Exact Match Search**: Use the dedicated fields below for precise searches:
+     - Agent Name field requires exact database name
+     - Agent ID field requires exact database ID
    - Click "Search" button or press Enter to execute search
    - Click an agent to view their detailed performance dashboard
 2. **Brokerages Tab**:
    - View all brokerages extracted from member data
    - See agent count and address for each brokerage
+   - Search for specific brokerages using precise brokerage filtering
    - Click a brokerage to dynamically load ALL agents from that brokerage
    - Then click any agent to view their dashboard
 3. **Test Different Keys**: Use the Controls panel to test with different API keys
@@ -69,17 +76,22 @@ The component requires a valid Repliers API key. You can:
 
 **API Approach:**
 
-The component uses the \`/members\` endpoint for efficient agent and brokerage discovery:
+The component uses the \`/members\` endpoint with different parameters for different search types:
 
 1. **Initial Load (Agents Tab)**: Fetches first 100 members using \`GET /members\`
-2. **Search**: Uses keyword parameter \`GET /members?keywords={query}\` for targeted searches
-3. **Brokerage Loading**: When a brokerage is selected, makes a fresh API call with brokerage name/officeId to fetch ALL agents from that brokerage
+2. **Search Parameters**:
+   - Main search (Agents tab): Uses \`keyword\` parameter for flexible matching
+   - Exact search (Agents tab): Uses \`agentName\` and/or \`agentId\` parameters for precise matching
+   - Brokerages tab: Uses \`brokerage\` parameter for brokerage-specific filtering
+3. **Brokerage Loading**: When a brokerage is selected, uses \`brokerage\` parameter to fetch ALL agents from that brokerage
 4. **Agent Identification**: Uses \`agentId\` (not name) as the primary identifier for all subsequent API calls
 
 **API Endpoints Used:**
 - \`GET /members\` - Load first 100 agents on mount (Agents tab)
-- \`GET /members?keywords={query}\` - Search for agents or brokerages
-- \`GET /members?keywords={brokerageNameOrOfficeId}\` - Load all agents for a specific brokerage
+- \`GET /members?keyword={search}\` - Main agent search with flexible matching (Agents tab)
+- \`GET /members?agentName={name}\` - Exact agent name search (Agents tab exact search section)
+- \`GET /members?agentId={id}\` - Exact agent ID search (Agents tab exact search section)
+- \`GET /members?brokerage={name}\` - Search by brokerage (Brokerages tab and brokerage agent loading)
 - \`GET /listings?agentId={id}&status=A&limit=1\` - Get active listings count for selected agent
 - \`GET /listings?agentId={id}&status=U&limit=1\` - Get sold listings count for selected agent
 - \`GET /listings?agentId={id}&status=U&listings=false&statistics=...\` - Get sold listing statistics
@@ -87,9 +99,13 @@ The component uses the \`/members\` endpoint for efficient agent and brokerage d
 - \`GET /listings?agentId={id}&status=A&status=U&limit=100&fields=address.city\` - Get location data
 
 **Key Implementation Details:**
+- **Dual search modes**: Main search uses \`keyword\` for flexible matching, separate exact search section uses \`agentName\`/\`agentId\` for precise matching
+- **Tab-aware searching**: Uses \`keyword\` on Agents tab main search, \`brokerage\` on Brokerages tab
+- **Exact match section**: Dedicated UI section on Agents tab with warning message about exact matching requirements
+- **Scrollable UI**: Search fields and results in same scrollable container for maximum viewing space
 - **agentId filtering**: All listing API calls use \`agentId\` parameter for precise filtering
 - **Brokerage extraction**: Brokerages are built from member data (brokerage.name, officeId, address)
-- **Dynamic loading**: Selecting a brokerage triggers a fresh API call to get complete agent list
+- **Dynamic loading**: Selecting a brokerage triggers a fresh API call with \`brokerage\` parameter
 - **Search UX**: Explicit search button (no debounce) with Enter key support for better user control
 
 **Props:**
@@ -142,7 +158,9 @@ type Story = StoryObj<typeof AgentDashboard>;
  * - Two-tab interface (Agents and Brokerages)
  * - Agent directory (loads first 100 members on mount)
  * - Brokerage directory (extracted from member data with counts and addresses)
- * - Keyword search with explicit search button
+ * - Smart search with intelligent parameter selection (agentId, agentName, brokerage)
+ * - Agent ID auto-detection for exact matching
+ * - Tab-aware search (agentName on Agents tab, brokerage on Brokerages tab)
  * - Dynamic brokerage agent loading (click brokerage to load ALL its agents)
  * - Agent selection with detailed view
  * - Complete agent profile (contact info, brokerage, position)
@@ -154,11 +172,15 @@ type Story = StoryObj<typeof AgentDashboard>;
  * **Try these interactions:**
  * 1. **Agents Tab**:
  *    - Watch the first 100 agents load automatically
- *    - Use search to find specific agents (3+ characters)
+ *    - Use main search for flexible keyword matching (searches across agent names)
+ *    - Use the exact search section below for precise matching:
+ *      - Enter exact agent name from database
+ *      - Enter exact agent ID from database
  *    - Click "Search" or press Enter to execute
  *    - Click an agent card to view their dashboard
  * 2. **Brokerages Tab**:
  *    - View all brokerages with agent counts
+ *    - Search by brokerage name (uses brokerage parameter)
  *    - Click a brokerage to dynamically load ALL its agents
  *    - Click any agent from the brokerage to view their dashboard
  * 3. **Agent Dashboard**:
@@ -192,10 +214,15 @@ export const FullPOC: Story = {
 **What to test:**
 1. **Agents Tab**:
    - Automatically loads first 100 agents on mount
-   - Search for specific agents (3+ characters, click Search or press Enter)
+   - **Main Search**: Use keyword parameter for flexible, fuzzy matching across agent names
+   - **Exact Search**: Use dedicated section below for precise matching:
+     - Enter exact agent name (must match database exactly)
+     - Enter exact agent ID (must match database exactly)
+   - Click Search or press Enter to execute
    - Click any agent card to view their complete profile
 2. **Brokerages Tab**:
    - View all brokerages extracted from member data
+   - Search by brokerage name (precise brokerage parameter filtering)
    - See agent count and address for each brokerage
    - Click a brokerage to dynamically load ALL its agents
    - Click any agent from the brokerage list to view their dashboard
@@ -220,10 +247,12 @@ The system intelligently categorizes agents by analyzing their metrics:
 - Geographic concentration (>60% in one city) gets 📍 City Specialist tag
 
 **API Implementation:**
-The component uses the /members endpoint for efficient discovery:
+The component uses the /members endpoint with dual search modes:
 - Initial load: \`GET /members\` (first 100 members)
-- Search: \`GET /members?keywords={query}\` for targeted discovery
-- Brokerage agents: Fresh API call with brokerage name/officeId to get ALL agents
+- Main search (Agents tab): Uses \`keyword\` parameter for flexible, fuzzy matching
+- Exact search (Agents tab): Uses \`agentName\` and/or \`agentId\` parameters for precise matching
+- Brokerage search: Uses \`brokerage\` parameter on Brokerages tab
+- Brokerage agents: Uses \`brokerage\` parameter to get ALL agents from a specific brokerage
 - Agent filtering: Uses \`agentId\` parameter (not name) for precise listing queries
 - Parallel calls: Simultaneously fetches active count, sold count, and statistics on agent selection
 
