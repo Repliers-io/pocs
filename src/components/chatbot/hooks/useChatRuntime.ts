@@ -126,6 +126,7 @@ export function useChatRuntime(
       propertyType?: string;
       type?: "sale" | "lease"; // For sale or for lease
       class?: "condo" | "residential" | "commercial"; // Broad property classification
+      keywords?: string[]; // Lifestyle/feature keywords
     }): Promise<PropertyListing[]> => {
       console.group("🔍 Executing Property Search");
       console.log("Search parameters:", params);
@@ -153,6 +154,11 @@ export function useChatRuntime(
         if (params.class) queryParts.push(params.class);
         if (params.type) queryParts.push(`for ${params.type}`);
 
+        // Add keywords to query for better NLP context
+        if (params.keywords && params.keywords.length > 0) {
+          queryParts.push(...params.keywords);
+        }
+
         let query = queryParts.join(" ");
 
         if (params.city) {
@@ -173,11 +179,16 @@ export function useChatRuntime(
         }
 
         console.log("Generated NLP query:", query);
+        console.log("Keywords for NLP:", params.keywords || "none");
 
-        const nlpResponse = await nlpService.processQuery(query);
+        // Pass keywords to NLP endpoint
+        const nlpResponse = await nlpService.processQuery(query, params.keywords);
+
+        // Pass keywords to listings search (NLP may not return them in body)
         const listings = await nlpService.searchListings(
           nlpResponse.request.url,
-          nlpResponse.request.body
+          nlpResponse.request.body,
+          params.keywords // Add keywords to request body
         );
 
         console.log(`✅ NLP search completed: ${listings.length} listings`);
