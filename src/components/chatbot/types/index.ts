@@ -64,6 +64,7 @@ export interface NLPResponse {
     url: string;
     body?: {
       imageSearchItems?: ImageSearchItem[];
+      keywords?: string[];
     };
   };
   nlpId: string;

@@ -41,6 +41,7 @@ export interface SearchParameters {
   propertyType?: string;
   type?: "sale" | "lease"; // For sale or for lease
   class?: "condo" | "residential" | "commercial"; // Broad property classification
+  keywords?: string[]; // Lifestyle/feature keywords (e.g., "horse", "wine cellar", "pool")
 }
 
 interface ChatCompletionResponse {
@@ -95,12 +96,17 @@ Important:
   - "residential" for houses/townhouses/single-family homes
   - "commercial" for commercial properties
 - Use "propertyType" for specific types like "House", "Townhouse", "Apartment"
+- **KEYWORDS**: Extract lifestyle/feature keywords that aren't captured by standard filters:
+  - Amenities: "pool", "wine cellar", "home theater", "gym", "sauna"
+  - Lifestyle: "horse farm", "equestrian", "waterfront", "golf course"
+  - Features: "fireplace", "hardwood floors", "granite counters", "stainless steel"
+  - Outdoor: "deck", "patio", "garden", "yard", "balcony"
 - Use the search_properties tool when you understand what the user wants
 - Build up search parameters from conversation (city, bedrooms, price, etc.)
 - Keep responses concise (2-3 sentences max) - this is a chat interface
 - Guide the conversation toward understanding their property needs
 
-Example conversation:
+Example conversations:
 User: "Hi"
 You: "Hello! I'm here to help you find your perfect property. Are you looking to buy or rent?"
 
@@ -109,7 +115,15 @@ You: "Great! Where would you like to search?"
 
 User: "Toronto under $800k"
 You: [Call search_properties with city: "Toronto", bedrooms: 3, maxPrice: 800000, class: "condo", type: "sale"]
-     "Perfect! Let me find 3 bedroom condos for sale in Toronto under $800k for you."`;
+     "Perfect! Let me find 3 bedroom condos for sale in Toronto under $800k for you."
+
+User: "I'm looking for a horse farm in Orlando"
+You: [Call search_properties with city: "Orlando", type: "sale", keywords: ["horse", "farm", "equestrian", "stable", "barn"]]
+     "Great! Let me search for horse farms and equestrian properties for sale in Orlando."
+
+User: "House with pool and wine cellar"
+You: [Call search_properties with type: "sale", class: "residential", keywords: ["pool", "wine cellar"]]
+     "I'll find houses with pools and wine cellars for you! What's your preferred location?"`;
   }
 
   /**
@@ -228,6 +242,11 @@ The user can see these property cards in the chat. Acknowledge the results and o
                       type: "string",
                       enum: ["condo", "residential", "commercial"],
                       description: "Broad property classification: 'condo' for condominiums, 'residential' for houses/townhouses, 'commercial' for commercial properties",
+                    },
+                    keywords: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Lifestyle/feature keywords for unique property characteristics not covered by standard filters. Examples: ['pool', 'wine cellar'], ['horse', 'farm', 'equestrian'], ['waterfront', 'dock'], ['home theater'], ['fireplace', 'hardwood floors']. Extract ALL relevant amenities, features, and lifestyle terms from user's query.",
                     },
                   },
                   required: [],
