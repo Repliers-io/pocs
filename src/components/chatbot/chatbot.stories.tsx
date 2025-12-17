@@ -7,7 +7,7 @@ const SAMPLE_REPLIERS_API_KEY = "pxI19UMy9zfw9vz5lRxoGpjJWXrMnm";
 const meta: Meta<typeof Chatbot> = {
   title: "pocs/Chatbot/Real Estate Chatbot",
   component: Chatbot,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
     docs: {
@@ -248,74 +248,6 @@ Customize every aspect of the chatbot to match your brand:
   position="bottom-right"
 />
 \`\`\`
-        `,
-      },
-    },
-  },
-};
-
-/**
- * **Unique Keyword Searches**
- *
- * This story showcases the power of keyword-based searches for finding properties
- * with unique features that traditional filters can't capture.
- *
- * **Perfect for finding:**
- * - Lifestyle properties (horse farms, waterfront estates, golf course homes)
- * - Luxury amenities (wine cellars, home theaters, pools, saunas)
- * - Specific features (fireplaces, hardwood floors, granite counters)
- * - Outdoor spaces (decks, patios, gardens, balconies)
- *
- * **Example queries to try:**
- * - "I'm looking for a horse farm in Orlando"
- * - "House with pool and wine cellar in Miami"
- * - "Property with home theater and game room"
- * - "Waterfront property with private dock"
- * - "Home with sauna and gym"
- * - "House with granite counters and stainless steel appliances"
- *
- * **How it works:**
- * ChatGPT extracts lifestyle keywords from your query and passes them to the
- * Repliers NLP endpoint, which matches them against property descriptions and
- * image tags to find exactly what you're looking for.
- *
- * **Watch the console** to see keyword extraction in action!
- */
-export const UniqueKeywordSearches: Story = {
-  args: {
-    repliersApiKey: SAMPLE_REPLIERS_API_KEY,
-    openaiApiKey: undefined, // ⬅️ Add your OpenAI API key for best results!
-    brokerageName: "Luxury Properties",
-    welcomeMessage:
-      "Hi! I specialize in finding unique properties with special features. Tell me what makes your dream home special!",
-    placeholder: "e.g., horse farm, home theater, wine cellar...",
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: `
-This story demonstrates keyword-based searches that go beyond traditional filters:
-
-**What Makes Keywords Special:**
-- Match text in property descriptions
-- Find features in image tags (pools, kitchens, outdoor spaces)
-- Discover lifestyle properties (equestrian, waterfront, golf)
-- Locate luxury amenities (wine cellars, theaters, gyms)
-
-**Example Flow:**
-1. User: "I'm looking for a horse farm in Orlando"
-2. ChatGPT extracts: \`{ city: "Orlando", keywords: ["horse", "farm", "equestrian", "stable", "barn"] }\`
-3. NLP endpoint searches descriptions and images for these terms
-4. User gets properties with equestrian facilities!
-
-**Try These Unique Searches:**
-- "Horse farm" → Equestrian properties with stables/barns
-- "Wine cellar" → Homes with wine storage facilities
-- "Home theater" → Properties with dedicated entertainment rooms
-- "Waterfront dock" → Properties with water access
-- "Pool sauna" → Luxury homes with spa amenities
-
-**Note:** Add your OpenAI API key above for intelligent keyword extraction!
         `,
       },
     },

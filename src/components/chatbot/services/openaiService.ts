@@ -31,17 +31,7 @@ interface ToolCall {
 }
 
 export interface SearchParameters {
-  query?: string;
-  city?: string;
-  province?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  propertyType?: string;
-  type?: "sale" | "lease"; // For sale or for lease
-  class?: "condo" | "residential" | "commercial"; // Broad property classification
-  keywords?: string[]; // Lifestyle/feature keywords (e.g., "horse", "wine cellar", "pool")
+  query: string; // Natural language search query that will be sent directly to NLP endpoint
 }
 
 interface ChatCompletionResponse {
@@ -83,47 +73,58 @@ export class OpenAIService {
 
 Your role:
 - Help users find their ideal property through natural conversation
-- Ask clarifying questions about their needs (bedrooms, budget, location, features)
-- **IMPORTANT**: Early on, determine if they want to BUY (type: "sale") or RENT (type: "lease")
-- When you have enough information, use the search_properties tool to find listings
-- Discuss property details, neighborhoods, and answer real estate questions
+- Ask clarifying questions about their needs (bedrooms, budget, location, features, amenities)
+- **IMPORTANT**: Early on, determine if they want to BUY or RENT
+- Gather as much relevant information as you can without being pushy (2-3 questions max)
+- When you have enough information, use the search_properties tool with a natural language query
+- After showing results, help users refine their search or discuss specific properties
+- When users want to refine (add filters, change criteria), trigger a NEW search with updated query
 - Be warm, professional, and focused on helping them find a home
 
-Important:
-- ALWAYS set type to "sale" for buying or "lease" for renting (never leave it unset)
-- Use the "class" parameter for broad categorization:
-  - "condo" for condominiums/apartments
-  - "residential" for houses/townhouses/single-family homes
-  - "commercial" for commercial properties
-- Use "propertyType" for specific types like "House", "Townhouse", "Apartment"
-- **KEYWORDS**: Extract lifestyle/feature keywords that aren't captured by standard filters:
-  - Amenities: "pool", "wine cellar", "home theater", "gym", "sauna"
-  - Lifestyle: "horse farm", "equestrian", "waterfront", "golf course"
-  - Features: "fireplace", "hardwood floors", "granite counters", "stainless steel"
-  - Outdoor: "deck", "patio", "garden", "yard", "balcony"
-- Use the search_properties tool when you understand what the user wants
-- Build up search parameters from conversation (city, bedrooms, price, etc.)
-- Keep responses concise (2-3 sentences max) - this is a chat interface
-- Guide the conversation toward understanding their property needs
+Search Strategy:
+- DON'T extract structured parameters - let the AI search engine handle that
+- DO create a natural, conversational search query with all the details
+- Include: buy/rent, location, bedrooms, bathrooms, price, property type, features, amenities
+- Example good query: "I'm looking to buy a horse farm outside Toronto with a barn or stable"
+- Example good query: "3 bedroom condo for sale in Toronto under $800k"
+- Example good query: "House to rent with a pool and wine cellar in Orlando"
+
+Refinement Strategy:
+- When user wants to refine (e.g., "under $800k", "with a pool", "in different area"), IMMEDIATELY trigger a new search
+- Combine the original search criteria with the new refinement
+- Example: Previous search was "3 bedroom condo in Toronto", user says "under $800k" → Search: "3 bedroom condo for sale in Toronto under $800k"
+- Don't just discuss - actually search again with the refined criteria
+
+Conversation Flow:
+1. Greet and ask: buy or rent?
+2. Ask about location and basic needs (bedrooms, price range)
+3. Ask if there are any special features or amenities they want
+4. When you have enough info (usually 2-3 exchanges), search with a natural language query
+5. After results, if user refines criteria → immediately search again with updated query
+6. Keep responses concise (2-3 sentences max) - this is a chat interface
 
 Example conversations:
 User: "Hi"
 You: "Hello! I'm here to help you find your perfect property. Are you looking to buy or rent?"
 
 User: "I want to buy a 3 bedroom condo"
-You: "Great! Where would you like to search?"
+You: "Great! Where would you like to search, and do you have a budget in mind?"
 
-User: "Toronto under $800k"
-You: [Call search_properties with city: "Toronto", bedrooms: 3, maxPrice: 800000, class: "condo", type: "sale"]
-     "Perfect! Let me find 3 bedroom condos for sale in Toronto under $800k for you."
+User: "Toronto"
+You: [Call search_properties with query: "3 bedroom condo for sale in Toronto"]
+     "Perfect! Let me find 3 bedroom condos for sale in Toronto."
 
-User: "I'm looking for a horse farm in Orlando"
-You: [Call search_properties with city: "Orlando", type: "sale", keywords: ["horse", "farm", "equestrian", "stable", "barn"]]
-     "Great! Let me search for horse farms and equestrian properties for sale in Orlando."
+[After results are shown]
+User: "Under $800k"
+You: [Call search_properties with query: "3 bedroom condo for sale in Toronto under $800k"]
+     "Let me refine that search to condos under $800k."
 
-User: "House with pool and wine cellar"
-You: [Call search_properties with type: "sale", class: "residential", keywords: ["pool", "wine cellar"]]
-     "I'll find houses with pools and wine cellars for you! What's your preferred location?"`;
+User: "I'm looking for a horse farm"
+You: "Wonderful! Are you looking to buy or rent, and where would you like to search?"
+
+User: "Buy, outside Toronto. Need a barn or stable"
+You: [Call search_properties with query: "horse farm for sale outside Toronto with barn or stable"]
+     "Great! Let me search for horse farms for sale outside Toronto with barns or stables."`;
   }
 
   /**
@@ -200,56 +201,16 @@ The user can see these property cards in the chat. Acknowledge the results and o
               function: {
                 name: "search_properties",
                 description:
-                  "Search for real estate listings based on user criteria. Use this when the user provides enough information to search (location, price, bedrooms, etc.)",
+                  "Search for real estate listings using natural language. Use this when you have gathered enough information from the user (buy/rent, location, and any preferences). Create a complete, natural language query that includes ALL the details the user has provided.",
                 parameters: {
                   type: "object",
                   properties: {
-                    city: {
+                    query: {
                       type: "string",
-                      description: "City name (e.g., 'Toronto', 'Vancouver')",
-                    },
-                    province: {
-                      type: "string",
-                      description: "Province/state code (e.g., 'ON', 'BC', 'CA')",
-                    },
-                    minPrice: {
-                      type: "number",
-                      description: "Minimum price in dollars",
-                    },
-                    maxPrice: {
-                      type: "number",
-                      description: "Maximum price in dollars",
-                    },
-                    bedrooms: {
-                      type: "number",
-                      description: "Number of bedrooms",
-                    },
-                    bathrooms: {
-                      type: "number",
-                      description: "Number of bathrooms",
-                    },
-                    propertyType: {
-                      type: "string",
-                      description:
-                        "Property type (e.g., 'Condo', 'House', 'Townhouse', 'Apartment')",
-                    },
-                    type: {
-                      type: "string",
-                      enum: ["sale", "lease"],
-                      description: "REQUIRED: Use 'sale' for buying, 'lease' for renting. Never leave unset.",
-                    },
-                    class: {
-                      type: "string",
-                      enum: ["condo", "residential", "commercial"],
-                      description: "Broad property classification: 'condo' for condominiums, 'residential' for houses/townhouses, 'commercial' for commercial properties",
-                    },
-                    keywords: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "Lifestyle/feature keywords for unique property characteristics not covered by standard filters. Examples: ['pool', 'wine cellar'], ['horse', 'farm', 'equestrian'], ['waterfront', 'dock'], ['home theater'], ['fireplace', 'hardwood floors']. Extract ALL relevant amenities, features, and lifestyle terms from user's query.",
+                      description: "A complete natural language search query that includes all user requirements. Examples: '3 bedroom condo for sale in Toronto under $800k', 'horse farm for sale outside Toronto with barn or stable', 'house to rent with pool and wine cellar in Orlando'. Always include buy/rent, location, and all features/amenities mentioned.",
                     },
                   },
-                  required: [],
+                  required: ["query"],
                 },
               },
             },

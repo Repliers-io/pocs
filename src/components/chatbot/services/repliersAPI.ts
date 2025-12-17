@@ -82,22 +82,19 @@ export class RepliersNLPService {
   /**
    * Process a natural language query using Repliers NLP endpoint
    *
-   * @param prompt - User's natural language query (e.g., "3 bedroom condo in Toronto")
-   * @param keywords - Optional array of lifestyle/feature keywords (e.g., ["pool", "wine cellar"])
+   * @param prompt - User's natural language query (e.g., "3 bedroom condo for sale in Toronto under $800k")
    * @returns NLP response with search URL, optional body params, and human-readable summary
    * @throws Error if NLP API returns error or query is irrelevant (406 status)
    */
-  async processQuery(prompt: string, keywords?: string[]): Promise<NLPResponse> {
+  async processQuery(prompt: string): Promise<NLPResponse> {
     console.group("🧠 Repliers NLP API Call");
     console.log("Prompt:", prompt);
-    console.log("Keywords:", keywords || "none");
     console.log("Current nlpId:", this.currentNlpId || "none (new conversation)");
 
     try {
       const requestBody = {
         prompt,
         ...(this.currentNlpId && { nlpId: this.currentNlpId }),
-        ...(keywords && keywords.length > 0 && { keywords }),
       };
 
       console.log("Request body:", JSON.stringify(requestBody, null, 2));
@@ -128,22 +125,20 @@ export class RepliersNLPService {
       this.currentNlpId = data.nlpId;
 
       console.log("✅ NLP Response:");
+      console.log("Full response:", JSON.stringify(data, null, 2));
       console.log("  - nlpId:", data.nlpId);
       console.log("  - summary:", data.summary);
       console.log("  - url:", data.request.url);
       if (data.request.body) {
-        console.log("  - body:", data.request.body);
+        console.log("  - body:", JSON.stringify(data.request.body, null, 2));
         if (data.request.body.imageSearchItems) {
           console.log(
             "  - imageSearchItems:",
             data.request.body.imageSearchItems
           );
         }
-        if (data.request.body.keywords) {
-          console.log("  - keywords in body:", data.request.body.keywords);
-        }
       } else {
-        console.log("  - body: none (keywords not returned by NLP)");
+        console.log("  - body: none");
       }
       console.groupEnd();
 
@@ -159,39 +154,26 @@ export class RepliersNLPService {
    * Execute property search using URL from NLP response
    *
    * @param url - Full URL from NLP response (includes search parameters)
-   * @param body - Optional body with imageSearchItems for visual search
-   * @param keywords - Optional keywords to add to request body (if not already in body)
+   * @param body - Optional body with imageSearchItems or other params from NLP
    * @returns Array of property listings
    * @throws Error if Listings API returns error
    */
   async searchListings(
     url: string,
-    body?: NLPResponse["request"]["body"],
-    keywords?: string[]
+    body?: NLPResponse["request"]["body"]
   ): Promise<PropertyListing[]> {
     console.group("🏠 Repliers Listings API Call");
     console.log("URL:", url);
-    console.log("Initial body:", body ? JSON.stringify(body, null, 2) : "none");
-    console.log("Keywords to add:", keywords || "none");
-
-    // Construct request body with keywords if provided
-    let requestBody = body;
-    if (keywords && keywords.length > 0) {
-      requestBody = {
-        ...(body || {}),
-        keywords: body?.keywords || keywords, // Use NLP keywords if present, otherwise use provided keywords
-      };
-      console.log("Final body with keywords:", JSON.stringify(requestBody, null, 2));
-    }
+    console.log("Body:", body ? JSON.stringify(body, null, 2) : "none");
 
     try {
       const response = await fetch(url, {
-        method: requestBody ? "POST" : "GET",
+        method: body ? "POST" : "GET",
         headers: {
           "Content-Type": "application/json",
           "repliers-api-key": this.apiKey,
         },
-        ...(requestBody && { body: JSON.stringify(requestBody) }),
+        ...(body && { body: JSON.stringify(body) }),
       });
 
       console.log("Response status:", response.status);
