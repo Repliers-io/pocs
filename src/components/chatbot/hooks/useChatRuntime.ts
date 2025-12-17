@@ -116,79 +116,24 @@ export function useChatRuntime(
    * Execute property search using MCP or fallback to NLP
    */
   const executeSearch = useCallback(
-    async (params: {
-      city?: string;
-      province?: string;
-      minPrice?: number;
-      maxPrice?: number;
-      bedrooms?: number;
-      bathrooms?: number;
-      propertyType?: string;
-      type?: "sale" | "lease"; // For sale or for lease
-      class?: "condo" | "residential" | "commercial"; // Broad property classification
-      keywords?: string[]; // Lifestyle/feature keywords
-    }): Promise<PropertyListing[]> => {
+    async (query: string): Promise<PropertyListing[]> => {
       console.group("🔍 Executing Property Search");
-      console.log("Search parameters:", params);
+      console.log("Natural language query:", query);
       console.log("MCP connected:", mcpConnected);
       console.log("MCP service available:", !!mcpService);
 
       try {
-        // Try MCP first if available
-        if (mcpService && mcpConnected && mcpService.isReady()) {
-          console.log("Using MCP Service");
-          const listings = await mcpService.searchListings(params);
-          console.log(`✅ MCP search completed: ${listings.length} listings`);
-          console.groupEnd();
-          return listings;
-        }
+        // TODO: Add MCP support with natural language query when available
+        // For now, always use NLP API as it's designed for natural language
+        console.log("Using NLP API");
 
-        // Fallback to NLP API - convert structured params to natural language query
-        console.log("Falling back to NLP API");
+        // Send query directly to NLP endpoint - let it do all the intelligence
+        const nlpResponse = await nlpService.processQuery(query);
 
-        // Build natural language query from structured parameters
-        const queryParts: string[] = [];
-        if (params.bedrooms) queryParts.push(`${params.bedrooms} bedroom`);
-        if (params.bathrooms) queryParts.push(`${params.bathrooms} bathroom`);
-        if (params.propertyType) queryParts.push(params.propertyType);
-        if (params.class) queryParts.push(params.class);
-        if (params.type) queryParts.push(`for ${params.type}`);
-
-        // Add keywords to query for better NLP context
-        if (params.keywords && params.keywords.length > 0) {
-          queryParts.push(...params.keywords);
-        }
-
-        let query = queryParts.join(" ");
-
-        if (params.city) {
-          query += ` in ${params.city}`;
-          if (params.province) query += `, ${params.province}`;
-        } else if (params.province) {
-          query += ` in ${params.province}`;
-        }
-
-        if (params.minPrice || params.maxPrice) {
-          if (params.minPrice && params.maxPrice) {
-            query += ` between $${params.minPrice.toLocaleString()} and $${params.maxPrice.toLocaleString()}`;
-          } else if (params.minPrice) {
-            query += ` over $${params.minPrice.toLocaleString()}`;
-          } else if (params.maxPrice) {
-            query += ` under $${params.maxPrice.toLocaleString()}`;
-          }
-        }
-
-        console.log("Generated NLP query:", query);
-        console.log("Keywords for NLP:", params.keywords || "none");
-
-        // Pass keywords to NLP endpoint
-        const nlpResponse = await nlpService.processQuery(query, params.keywords);
-
-        // Pass keywords to listings search (NLP may not return them in body)
+        // Execute the search with URL and body from NLP
         const listings = await nlpService.searchListings(
           nlpResponse.request.url,
-          nlpResponse.request.body,
-          params.keywords // Add keywords to request body
+          nlpResponse.request.body
         );
 
         console.log(`✅ NLP search completed: ${listings.length} listings`);
@@ -245,7 +190,7 @@ export function useChatRuntime(
 
         // Step 2: Check if ChatGPT wants to search
         if (chatResponse.needsSearch && chatResponse.searchParams) {
-          console.log("🔧 ChatGPT requested search with params:", chatResponse.searchParams);
+          console.log("🔧 ChatGPT requested search with query:", chatResponse.searchParams.query);
 
           // Show ChatGPT's message first
           if (chatResponse.message) {
@@ -268,8 +213,8 @@ export function useChatRuntime(
           };
           setMessages((prev) => [...prev, searchingMessage]);
 
-          // Execute search
-          const listings = await executeSearch(chatResponse.searchParams);
+          // Execute search with natural language query
+          const listings = await executeSearch(chatResponse.searchParams.query);
 
           // Remove loading message
           setMessages((prev) =>
@@ -281,6 +226,8 @@ export function useChatRuntime(
           // OpenAI requires tool response after tool_call
           if (chatGPT && chatResponse.toolCallId) {
             chatGPT.addSearchResults(chatResponse.toolCallId, listings);
+            // Also add property context so ChatGPT can discuss the results
+            chatGPT.addPropertyContext(listings, chatResponse.searchParams.query);
           }
 
           // Add results message
