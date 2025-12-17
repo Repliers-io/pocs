@@ -44,3 +44,9 @@ next-env.d.ts
 
 # storybook build artifacts
 storybook-static/
+
+# Claude Code session files
+.claude/CLAUDE.md
+.claude/WORK_LOG.md
+.claude/SESSION_HANDOFF.md
+.claude/README.md
