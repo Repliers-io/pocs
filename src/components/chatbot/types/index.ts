@@ -23,23 +23,6 @@ export interface ChatbotProps {
   placeholder?: string;
 }
 
-export interface FloatingButtonProps {
-  isOpen: boolean;
-  onClick: () => void;
-  position?: "bottom-right" | "bottom-left";
-}
-
-export interface ChatWidgetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  brokerageName: string;
-  brokerageLogo?: string;
-  welcomeMessage: string;
-  placeholder: string;
-  repliersApiKey: string;
-  openaiApiKey?: string;
-  mcpConfig?: MCPConfig;
-}
 
 // ============================================================================
 // Repliers NLP API Types

@@ -2,7 +2,7 @@ export const DEFAULT_WELCOME_MESSAGE =
   "Hi! I'm your AI real estate assistant. Tell me what you're looking for and I'll help you find the perfect home.";
 
 export const DEFAULT_PLACEHOLDER =
-  "e.g., 3 bedroom house in Toronto under $800k...";
+  "Ask me about properties...";
 
 export const DEFAULT_BROKERAGE_NAME = "Real Estate Assistant";
 
