@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { ChatbotProps } from "./types";
-import { FloatingButton } from "./components/FloatingButton";
-import { ChatWidget } from "./components/ChatWidget";
+import { FloatingChatButton } from "./components/FloatingChatButton";
+import { ChatPanel } from "./components/ChatPanel";
+import { PropertyPanel } from "./components/PropertyPanel";
+import { usePanelState } from "./hooks/usePanelState";
+import { useChatRuntime } from "./hooks/useChatRuntime";
 import {
   DEFAULT_BROKERAGE_NAME,
   DEFAULT_WELCOME_MESSAGE,
@@ -11,45 +14,28 @@ import {
 } from "./utils/constants";
 
 /**
- * Real Estate Chatbot Component (Step 4: MCP Integration)
+ * Real Estate Chatbot Component - Dual Panel UI
  *
- * @description A conversational AI chatbot for real estate websites that combines:
- * - OpenAI ChatGPT for natural, human-friendly conversation
- * - Repliers MCP Server for property searches (with NLP fallback)
+ * A conversational AI chatbot with modern Claude/ChatGPT-style interface.
  *
- * Architecture (Step 4):
- * 1. ChatGPT handles ALL conversation and extracts search parameters
- * 2. When ready to search, ChatGPT returns structured parameters
- * 3. MCP Service executes search using Repliers MCP Server tools
- * 4. Results are shown to user AND sent back to ChatGPT for discussion
+ * Architecture:
+ * - FloatingChatButton: Circular button in bottom right
+ * - ChatPanel: Slides in from right (~400px wide)
+ * - PropertyPanel: Slides in from left (fills remaining space)
+ * - Dual-panel system for chat + property details/listings
  *
  * Features:
- * - Floating action button with smooth animations
- * - Modal chat interface (responsive: full-screen mobile, panel desktop)
- * - Natural conversation powered by ChatGPT with function calling
- * - Property search via Repliers MCP Server (or NLP fallback)
- * - Beautiful property cards with images and details
- * - Customizable branding (logo, colors, messages)
- * - Accessible and keyboard-navigable
+ * - Claude-style chat UI with smooth animations
+ * - Property details panel for selected properties
+ * - All listings grid view
+ * - Responsive: full screen mobile, side-by-side desktop
+ * - Independent panel close/open states
  *
  * @param props - The component props
  * @returns JSX.Element
  *
  * @example
  * ```tsx
- * // With MCP Server (recommended)
- * <Chatbot
- *   repliersApiKey="your_repliers_api_key"
- *   openaiApiKey="your_openai_api_key"
- *   mcpConfig={{
- *     enabled: true,
- *     nodePath: "/usr/local/bin/node",
- *     serverPath: "/path/to/mcp-server/mcpServer.js"
- *   }}
- *   brokerageName="Acme Realty"
- * />
- *
- * // Without MCP (falls back to NLP API)
  * <Chatbot
  *   repliersApiKey="your_repliers_api_key"
  *   openaiApiKey="your_openai_api_key"
@@ -63,38 +49,56 @@ export function Chatbot({
   mcpConfig,
   brokerageName = DEFAULT_BROKERAGE_NAME,
   brokerageLogo,
-  primaryColor, // TODO: Apply primaryColor to theme when implementing custom theming
+  primaryColor,
   position = "bottom-right",
   welcomeMessage = DEFAULT_WELCOME_MESSAGE,
   placeholder = DEFAULT_PLACEHOLDER,
 }: ChatbotProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  // Panel state management
+  const [panelState, panelActions] = usePanelState();
 
-  const toggleChat = () => {
-    setIsOpen((prev) => !prev);
-  };
+  // Chat runtime (messages, loading, send message)
+  const { messages, isLoading, sendMessage } = useChatRuntime(
+    repliersApiKey,
+    openaiApiKey,
+    mcpConfig,
+    brokerageName,
+    welcomeMessage
+  );
 
-  const closeChat = () => {
-    setIsOpen(false);
-  };
-
-  // Suppress unused variable warnings - these will be used in future implementations
+  // Suppress unused variable warnings
   void primaryColor;
-  void mcpConfig; // Passed through to ChatWidget
+  void brokerageLogo;
 
   return (
     <>
-      <FloatingButton isOpen={isOpen} onClick={toggleChat} position={position} />
-      <ChatWidget
-        isOpen={isOpen}
-        onClose={closeChat}
-        brokerageName={brokerageName}
-        brokerageLogo={brokerageLogo}
-        welcomeMessage={welcomeMessage}
+      {/* Floating Chat Button */}
+      <FloatingChatButton
+        isOpen={panelState.chatOpen}
+        onClick={panelActions.toggleChat}
+        position={position}
+      />
+
+      {/* Chat Panel - Right side */}
+      <ChatPanel
+        isOpen={panelState.chatOpen}
+        onClose={panelActions.closeChat}
+        messages={messages}
+        isLoading={isLoading}
+        onSendMessage={sendMessage}
         placeholder={placeholder}
-        repliersApiKey={repliersApiKey}
-        openaiApiKey={openaiApiKey}
-        mcpConfig={mcpConfig}
+        onPropertyClick={panelActions.openPropertyDetail}
+        onShowAllListings={panelActions.openPropertyGrid}
+      />
+
+      {/* Property Panel - Left side */}
+      <PropertyPanel
+        isOpen={panelState.propertyPanelOpen}
+        onClose={panelActions.closePropertyPanel}
+        mode={panelState.propertyPanelMode}
+        selectedProperty={panelState.selectedProperty}
+        allListings={panelState.allListings}
+        onPropertyClick={panelActions.openPropertyDetail}
       />
     </>
   );

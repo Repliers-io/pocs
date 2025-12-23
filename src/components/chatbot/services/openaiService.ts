@@ -84,15 +84,18 @@ Your role:
 Search Strategy:
 - DON'T extract structured parameters - let the AI search engine handle that
 - DO create a natural, conversational search query with all the details
-- Include: buy/rent, location, bedrooms, bathrooms, price, property type, features, amenities
-- Example good query: "I'm looking to buy a horse farm outside Toronto with a barn or stable"
+- **CRITICAL**: ALWAYS include "for sale" OR "for rent"/"for lease" in EVERY query - NEVER omit this
+- Include: buy/rent intent, location, bedrooms, bathrooms, price, property type, features, amenities
+- Example good query: "horse farm for sale outside Toronto with a barn or stable"
 - Example good query: "3 bedroom condo for sale in Toronto under $800k"
-- Example good query: "House to rent with a pool and wine cellar in Orlando"
+- Example good query: "house for rent with a pool and wine cellar in Orlando"
+- Example BAD query: "3 bedroom condo in Toronto" (missing "for sale" or "for rent")
 
 Refinement Strategy:
 - When user wants to refine (e.g., "under $800k", "with a pool", "in different area"), IMMEDIATELY trigger a new search
 - Combine the original search criteria with the new refinement
-- Example: Previous search was "3 bedroom condo in Toronto", user says "under $800k" → Search: "3 bedroom condo for sale in Toronto under $800k"
+- **CRITICAL**: Always maintain "for sale" or "for rent" in refined queries
+- Example: Previous search was "3 bedroom condo for sale in Toronto", user says "under $800k" → Search: "3 bedroom condo for sale in Toronto under $800k"
 - Don't just discuss - actually search again with the refined criteria
 
 Conversation Flow:
