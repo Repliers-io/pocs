@@ -7,8 +7,6 @@ export interface ChatbotProps {
   repliersApiKey: string;
   /** OpenAI API key (optional - for enhanced conversation) */
   openaiApiKey?: string;
-  /** MCP server configuration (optional - for MCP integration) */
-  mcpConfig?: MCPConfig;
   /** Name of the brokerage to display in header */
   brokerageName?: string;
   /** URL to brokerage logo image */
@@ -21,6 +19,8 @@ export interface ChatbotProps {
   welcomeMessage?: string;
   /** Placeholder text for input field */
   placeholder?: string;
+  /** Width of the chat panel (e.g., "500px", "50%") - defaults to "500px" */
+  width?: string;
 }
 
 
@@ -171,63 +171,4 @@ export interface PropertyCardProps {
 export interface PropertyResultsProps {
   listings: PropertyListing[];
   onViewDetails?: (listing: PropertyListing) => void;
-}
-
-// ============================================================================
-// MCP Integration Types
-// ============================================================================
-
-/**
- * MCP Server Configuration
- * Provides connection details for Repliers MCP Server
- */
-export type MCPConfig = MCPStdioConfig | MCPHttpConfig;
-
-/**
- * Stdio-based MCP configuration (spawns server as child process)
- */
-export interface MCPStdioConfig {
-  /** Connection mode */
-  mode: "stdio";
-  /** Absolute path to node executable (e.g., "/usr/local/bin/node") */
-  nodePath: string;
-  /** Absolute path to Repliers MCP server script (e.g., "/path/to/mcpServer.js") */
-  serverPath: string;
-  /** Enable MCP integration (default: false) */
-  enabled?: boolean;
-}
-
-/**
- * HTTP/SSE-based MCP configuration (connects to running server)
- */
-export interface MCPHttpConfig {
-  /** Connection mode */
-  mode: "http";
-  /** URL to MCP server SSE endpoint (e.g., "http://localhost:3001/sse") */
-  serverUrl: string;
-  /** Enable MCP integration (default: false) */
-  enabled?: boolean;
-}
-
-/**
- * MCP Tool definition from server
- */
-export interface MCPTool {
-  name: string;
-  description?: string;
-  inputSchema: {
-    type: string;
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
-}
-
-/**
- * MCP Tool Call (for logging/debugging)
- */
-export interface MCPToolCall {
-  toolName: string;
-  parameters: Record<string, unknown>;
-  result?: unknown;
-  timestamp: Date;
 }

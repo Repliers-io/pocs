@@ -1,11 +1,9 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { RepliersNLPService } from "../services/repliersAPI";
-// import { RepliersMCPService } from "../services/mcpService"; // Removed for client-side compatibility
-import { RepliersMCPServiceHttp } from "../services/mcpService.http";
 import { OpenAIService, type ChatResponse } from "../services/openaiService";
 import { getErrorMessage } from "../utils/errorHandling";
 import { DEFAULT_WELCOME_MESSAGE } from "../utils/constants";
-import type { ChatMessage, PropertyListing, MCPConfig } from "../types";
+import type { ChatMessage, PropertyListing } from "../types";
 
 export interface ChatRuntime {
   messages: ChatMessage[];
@@ -15,36 +13,32 @@ export interface ChatRuntime {
 }
 
 /**
- * Chat Runtime Hook with ChatGPT + MCP Integration (Step 4)
+ * Chat Runtime Hook with ChatGPT + Repliers NLP Integration
  *
- * NEW ARCHITECTURE:
+ * ARCHITECTURE:
  * 1. ChatGPT handles ALL conversation and extracts search parameters using function calling
- * 2. When ChatGPT identifies a property search, it returns structured search parameters
- * 3. MCP Service executes the search using Repliers MCP Server
+ * 2. When ChatGPT identifies a property search, it returns a natural language query
+ * 3. Repliers NLP API parses the query and executes the search
  * 4. Results are shown to user AND sent back to ChatGPT for discussion
  *
  * Flow:
  * User: "I want a 3 bedroom condo in Toronto under $800k"
- *   → ChatGPT extracts: { city: "Toronto", bedrooms: 3, maxPrice: 800000, propertyType: "Condo" }
- *   → MCP searches with these parameters
+ *   → ChatGPT creates query: "3 bedroom condo for sale in Toronto under $800k"
+ *   → NLP API parses and searches
  *   → Results displayed to user
  *   → ChatGPT discusses: "I found 12 condos matching your criteria..."
  *
  * User: "Tell me about the first one"
  *   → ChatGPT responds naturally using context
  *
- * Fallback: If no MCP config, uses direct Repliers NLP API
- *
- * @param repliersApiKey - Repliers API key (for fallback NLP service)
- * @param openaiApiKey - OpenAI API key (REQUIRED for Step 4)
- * @param mcpConfig - MCP server configuration (node path, server path)
+ * @param repliersApiKey - Repliers API key (for NLP service)
+ * @param openaiApiKey - OpenAI API key (optional - for enhanced conversation)
  * @param brokerageName - Brokerage name for ChatGPT system prompt
  * @param welcomeMessage - Initial welcome message from assistant
  */
 export function useChatRuntime(
   repliersApiKey: string,
   openaiApiKey?: string,
-  mcpConfig?: MCPConfig,
   brokerageName: string = "Real Estate Assistant",
   welcomeMessage: string = DEFAULT_WELCOME_MESSAGE
 ): ChatRuntime {
@@ -53,23 +47,6 @@ export function useChatRuntime(
     () => new RepliersNLPService(repliersApiKey),
     [repliersApiKey]
   );
-
-  const mcpService = useMemo(() => {
-    if (!mcpConfig?.enabled) return null;
-
-    // HTTP/SSE mode
-    if (mcpConfig.mode === "http") {
-      return new RepliersMCPServiceHttp(mcpConfig.serverUrl);
-    }
-
-    // Stdio mode (legacy) - Not supported in browser environment
-    if (mcpConfig.mode === "stdio") {
-      console.warn("MCP stdio mode is not supported in browser environment. Please use 'http' mode.");
-      return null;
-    }
-
-    return null;
-  }, [mcpConfig, repliersApiKey]);
 
   const chatGPT = useMemo(
     () => (openaiApiKey ? new OpenAIService(openaiApiKey, brokerageName) : null),
@@ -86,47 +63,16 @@ export function useChatRuntime(
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mcpConnected, setMcpConnected] = useState(false);
-
-  // Connect to MCP server on mount
-  useEffect(() => {
-    if (mcpService && !mcpConnected) {
-      console.log("🔌 Attempting to connect to MCP server...");
-      mcpService
-        .connect()
-        .then(() => {
-          setMcpConnected(true);
-          console.log("✅ MCP server connected successfully");
-        })
-        .catch((error) => {
-          console.error("❌ Failed to connect to MCP server:", error);
-          console.log("⚠️ Will fall back to direct NLP API");
-        });
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (mcpService && mcpConnected) {
-        mcpService.disconnect();
-      }
-    };
-  }, [mcpService, mcpConnected]);
 
   /**
-   * Execute property search using MCP or fallback to NLP
+   * Execute property search using Repliers NLP API
    */
   const executeSearch = useCallback(
     async (query: string): Promise<PropertyListing[]> => {
       console.group("🔍 Executing Property Search");
       console.log("Natural language query:", query);
-      console.log("MCP connected:", mcpConnected);
-      console.log("MCP service available:", !!mcpService);
 
       try {
-        // TODO: Add MCP support with natural language query when available
-        // For now, always use NLP API as it's designed for natural language
-        console.log("Using NLP API");
-
         // Send query directly to NLP endpoint - let it do all the intelligence
         const nlpResponse = await nlpService.processQuery(query);
 
@@ -145,7 +91,7 @@ export function useChatRuntime(
         throw error;
       }
     },
-    [mcpService, mcpConnected, nlpService]
+    [nlpService]
   );
 
   /**

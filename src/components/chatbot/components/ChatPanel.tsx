@@ -15,6 +15,7 @@ export interface ChatPanelProps {
   placeholder?: string;
   onPropertyClick?: (property: PropertyListing) => void;
   onShowAllListings?: (listings: PropertyListing[]) => void;
+  width?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export function ChatPanel({
   placeholder = "Ask me anything about properties...",
   onPropertyClick,
   onShowAllListings,
+  width = "500px",
 }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -144,18 +146,10 @@ export function ChatPanel({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className={`
-              fixed right-0 top-0 h-full z-50
-              bg-white
-              shadow-2xl
-              flex flex-col
-
-              /* Mobile: Full width */
-              w-full
-
-              /* Desktop: Fixed width */
-              md:w-[400px]
-            `}
+            className="fixed right-0 top-0 h-full z-50 bg-white shadow-2xl flex flex-col w-full"
+            style={{
+              width: `min(100vw, ${width})`,
+            }}
           >
             {/* Header - Minimal like Claude */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">

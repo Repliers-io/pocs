@@ -42,6 +42,7 @@ Present a properly formatted commit message to the user:
 - Clear, descriptive summary line
 - Detailed body explaining what and why
 - Reference any issues/tickets if applicable
+- **DO NOT use quotes** - write commit messages in plain text without quotation marks
 
 **IMPORTANT**: Do NOT commit automatically - present the commit message and let the user commit manually.
 
