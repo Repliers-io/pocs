@@ -191,9 +191,6 @@ This is a complete, working demonstration of the chatbot with all features:
 1. Try a search query like "3 bedroom condo in Toronto"
 2. (Optional) Add your OpenAI API key for ChatGPT conversation
 3. Watch the console to see API calls in action
-
-**Advanced:** The chatbot also supports MCP server integration for standardized
-tool communication. See the repo documentation for setup details.
         `,
       },
     },

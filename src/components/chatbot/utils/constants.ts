@@ -15,6 +15,6 @@ export const BUTTON_LABELS = {
 } as const;
 
 export const MOCK_RESPONSE_MESSAGE =
-  "Thanks for your message! I'm still learning. The MCP integration is coming soon!";
+  "Thanks for your message! I'm still learning. Please try asking about properties!";
 
 export const MOCK_RESPONSE_DELAY = 1000; // milliseconds

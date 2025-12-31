@@ -20,7 +20,7 @@ import {
  *
  * Architecture:
  * - FloatingChatButton: Circular button in bottom right
- * - ChatPanel: Slides in from right (~400px wide)
+ * - ChatPanel: Slides in from right (configurable width, default 500px)
  * - PropertyPanel: Slides in from left (fills remaining space)
  * - Dual-panel system for chat + property details/listings
  *
@@ -30,6 +30,7 @@ import {
  * - All listings grid view
  * - Responsive: full screen mobile, side-by-side desktop
  * - Independent panel close/open states
+ * - Configurable chat panel width
  *
  * @param props - The component props
  * @returns JSX.Element
@@ -40,19 +41,20 @@ import {
  *   repliersApiKey="your_repliers_api_key"
  *   openaiApiKey="your_openai_api_key"
  *   brokerageName="Acme Realty"
+ *   width="600px"
  * />
  * ```
  */
 export function Chatbot({
   repliersApiKey,
   openaiApiKey,
-  mcpConfig,
   brokerageName = DEFAULT_BROKERAGE_NAME,
   brokerageLogo,
   primaryColor,
   position = "bottom-right",
   welcomeMessage = DEFAULT_WELCOME_MESSAGE,
   placeholder = DEFAULT_PLACEHOLDER,
+  width = "500px",
 }: ChatbotProps) {
   // Panel state management
   const [panelState, panelActions] = usePanelState();
@@ -61,7 +63,6 @@ export function Chatbot({
   const { messages, isLoading, sendMessage } = useChatRuntime(
     repliersApiKey,
     openaiApiKey,
-    mcpConfig,
     brokerageName,
     welcomeMessage
   );
@@ -89,6 +90,7 @@ export function Chatbot({
         placeholder={placeholder}
         onPropertyClick={panelActions.openPropertyDetail}
         onShowAllListings={panelActions.openPropertyGrid}
+        width={width}
       />
 
       {/* Property Panel - Left side */}
@@ -99,6 +101,7 @@ export function Chatbot({
         selectedProperty={panelState.selectedProperty}
         allListings={panelState.allListings}
         onPropertyClick={panelActions.openPropertyDetail}
+        chatPanelWidth={width}
       />
     </>
   );

@@ -15,6 +15,7 @@ export interface PropertyPanelProps {
   selectedProperty: PropertyListing | null;
   allListings: PropertyListing[];
   onPropertyClick?: (property: PropertyListing) => void;
+  chatPanelWidth?: string;
 }
 
 /**
@@ -38,6 +39,7 @@ export function PropertyPanel({
   selectedProperty,
   allListings,
   onPropertyClick,
+  chatPanelWidth = "500px",
 }: PropertyPanelProps) {
   return (
     <>
@@ -62,20 +64,12 @@ export function PropertyPanel({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className={`
-              fixed left-0 top-0 h-full z-40
-              bg-white
-              shadow-2xl
-              flex flex-col
-              overflow-hidden
-
-              /* Mobile: Full width, overlays chat */
-              w-full
-
-              /* Desktop: Fill space left of chat panel (400px) */
-              md:right-[400px]
-              md:w-auto
-            `}
+            className="fixed left-0 top-0 h-full z-40 bg-white shadow-2xl flex flex-col overflow-hidden w-full md:w-auto"
+            style={{
+              // On desktop (md and up), position right edge based on chat panel width
+              // On mobile, use full width (right: 0)
+              right: `max(0px, min(100vw, ${chatPanelWidth}))`,
+            }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">

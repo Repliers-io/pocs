@@ -8,10 +8,10 @@ import type {
 
 /**
  * Normalize raw API listing to our UI interface
- * Handles field mapping between API response and component expectations
+ * Passes through ALL raw data while adding convenient normalized fields
  */
 function normalizeListingData(raw: RawPropertyListing): PropertyListing {
-  // Parse sqft string to number
+  // Parse sqft string to number for convenient access
   // Examples: "5000 +", "1200-1400", "2500"
   let sqft: number | undefined;
   if (raw.details?.sqft) {
@@ -25,28 +25,29 @@ function normalizeListingData(raw: RawPropertyListing): PropertyListing {
     }
   }
 
-  // Normalize address structure
-  const address: PropertyAddress = {
-    streetNumber: raw.address.streetNumber || "",
-    streetName: raw.address.streetName || "",
-    streetSuffix: raw.address.streetSuffix,
-    city: raw.address.city || "",
-    province: raw.address.province,
-    postalCode: raw.address.postalCode,
-  };
+  // Format images with area prefix per Repliers Image Guide
+  // https://help.repliers.com/en/article/listing-images-implementation-guide-198p8u8/
+  let images = raw.images;
+  if (images && images.length > 0 && raw.address?.area) {
+    const area = raw.address.area.toLowerCase();
+    images = images.map(img => {
+      // If already has path, return as-is; otherwise add area prefix
+      if (img.includes('/')) return img;
+      return `${area}/${img}`;
+    });
+  }
 
+  // Return ALL raw data plus convenient normalized fields at top level
   return {
-    mlsNumber: raw.mlsNumber,
-    listPrice: raw.listPrice,
+    ...raw, // Pass through EVERYTHING from the API
+    images, // Use formatted images with area prefix
+    // Add convenient top-level fields for easy access
     bedrooms: raw.details?.numBedrooms || 0,
     bathrooms: raw.details?.numBathrooms || 0,
     sqft,
-    address,
-    images: raw.images,
     propertyType: raw.details?.propertyType,
     status: raw.standardStatus, // Use "Active" instead of "A"
     description: raw.details?.description,
-    listDate: raw.listDate,
     daysOnMarket: raw.simpleDaysOnMarket || raw.daysOnMarket,
   };
 }
@@ -162,12 +163,15 @@ export class RepliersNLPService {
     url: string,
     body?: NLPResponse["request"]["body"]
   ): Promise<PropertyListing[]> {
+    // Add select=* to get ALL fields from API
+    const fullUrl = url.includes('?') ? `${url}&select=*` : `${url}?select=*`;
+
     console.group("🏠 Repliers Listings API Call");
-    console.log("URL:", url);
+    console.log("URL:", fullUrl);
     console.log("Body:", body ? JSON.stringify(body, null, 2) : "none");
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(fullUrl, {
         method: body ? "POST" : "GET",
         headers: {
           "Content-Type": "application/json",
