@@ -115,27 +115,6 @@ import { Chatbot } from '@/components/chatbot';
         defaultValue: { summary: "bottom-right" },
       },
     },
-    welcomeMessage: {
-      control: "text",
-      description: "Custom welcome message from the assistant",
-      table: {
-        type: { summary: "string" },
-        defaultValue: {
-          summary:
-            "Hi! I'm your AI real estate assistant. Tell me what you're looking for and I'll help you find the perfect home.",
-        },
-      },
-    },
-    placeholder: {
-      control: "text",
-      description: "Placeholder text for the message input",
-      table: {
-        type: { summary: "string" },
-        defaultValue: {
-          summary: "e.g., 3 bedroom house in Toronto under $800k...",
-        },
-      },
-    },
   },
 };
 
@@ -171,9 +150,6 @@ export const WorkingDemo: Story = {
     repliersApiKey: SAMPLE_REPLIERS_API_KEY,
     openaiApiKey: undefined, // ⬅️ Paste your OpenAI API key here to enable ChatGPT!
     brokerageName: "Smart Homes Realty",
-    welcomeMessage:
-      "Hi! I'm your AI real estate assistant. Tell me what you're looking for!",
-    placeholder: "e.g., 3 bedroom house in Toronto under $800k...",
   },
   parameters: {
     docs: {
@@ -214,9 +190,6 @@ export const CustomBranding: Story = {
     brokerageName: "Luxury Homes Toronto",
     brokerageLogo:
       "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=100&h=100&fit=crop",
-    welcomeMessage:
-      "Welcome to Luxury Homes Toronto! Let me help you find your dream property in the heart of the city.",
-    placeholder: "Describe your dream home...",
     primaryColor: "#1e40af",
     position: "bottom-right",
   },

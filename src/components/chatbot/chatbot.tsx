@@ -10,7 +10,6 @@ import { useChatRuntime } from "./hooks/useChatRuntime";
 import {
   DEFAULT_BROKERAGE_NAME,
   DEFAULT_WELCOME_MESSAGE,
-  DEFAULT_PLACEHOLDER,
 } from "./utils/constants";
 
 /**
@@ -52,12 +51,19 @@ export function Chatbot({
   brokerageLogo,
   primaryColor,
   position = "bottom-right",
-  welcomeMessage = DEFAULT_WELCOME_MESSAGE,
-  placeholder = DEFAULT_PLACEHOLDER,
   width = "500px",
 }: ChatbotProps) {
   // Panel state management
   const [panelState, panelActions] = usePanelState();
+
+  // Set welcome message and placeholder based on mode
+  const welcomeMessage = openaiApiKey
+    ? DEFAULT_WELCOME_MESSAGE
+    : "Please provide your search criteria. Include location and details like:\n\n• '3 bedroom condo in Toronto'\n• 'House under $800k in Orlando'\n• '2 bedroom apartment in downtown Miami'\n• 'Waterfront property with dock in Tampa'";
+
+  const placeholder = openaiApiKey
+    ? "Ask me about properties..."
+    : "e.g., 3 bedroom condo in Toronto";
 
   // Chat runtime (messages, loading, send message)
   const { messages, isLoading, sendMessage } = useChatRuntime(
@@ -91,6 +97,7 @@ export function Chatbot({
         onPropertyClick={panelActions.openPropertyDetail}
         onShowAllListings={panelActions.openPropertyGrid}
         width={width}
+        mode={openaiApiKey ? 'copilot' : 'nlp'}
       />
 
       {/* Property Panel - Left side */}

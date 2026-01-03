@@ -15,10 +15,6 @@ export interface ChatbotProps {
   primaryColor?: string;
   /** Position of the floating button */
   position?: "bottom-right" | "bottom-left";
-  /** Custom welcome message from the assistant */
-  welcomeMessage?: string;
-  /** Placeholder text for input field */
-  placeholder?: string;
   /** Width of the chat panel (e.g., "500px", "50%") - defaults to "500px" */
   width?: string;
 }

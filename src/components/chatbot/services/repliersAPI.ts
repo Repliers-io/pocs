@@ -1,7 +1,6 @@
 import type {
   NLPResponse,
   PropertyListing,
-  PropertyAddress,
   RawPropertyListing,
   ListingsResponse,
 } from "../types";
@@ -25,23 +24,17 @@ function normalizeListingData(raw: RawPropertyListing): PropertyListing {
     }
   }
 
-  // Format images with area prefix per Repliers Image Guide
+  // Images are passed through as-is from API
+  // Per Repliers CDN docs, use filename directly without area prefix
   // https://help.repliers.com/en/article/listing-images-implementation-guide-198p8u8/
-  let images = raw.images;
-  if (images && images.length > 0 && raw.address?.area) {
-    const area = raw.address.area.toLowerCase();
-    images = images.map(img => {
-      // If already has path, return as-is; otherwise add area prefix
-      if (img.includes('/')) return img;
-      return `${area}/${img}`;
-    });
-  }
+  const formattedImages = raw.images;
 
   // Return ALL raw data plus convenient normalized fields at top level
+  // IMPORTANT: Put formatted fields AFTER spread to override raw values
   return {
     ...raw, // Pass through EVERYTHING from the API
-    images, // Use formatted images with area prefix
-    // Add convenient top-level fields for easy access
+    // Override with our formatted/normalized values
+    images: formattedImages, // Images array from API (filenames only)
     bedrooms: raw.details?.numBedrooms || 0,
     bathrooms: raw.details?.numBathrooms || 0,
     sqft,
@@ -193,19 +186,13 @@ export class RepliersNLPService {
 
       console.log(`✅ Found ${rawListings.length} properties`);
       if (rawListings.length > 0) {
-        console.log("First listing (raw API response):", rawListings[0]);
-
-        // Normalize the data
         const normalized = normalizeListingData(rawListings[0]);
-        console.log("First listing (normalized for UI):", {
+        console.log("First listing:", {
           mlsNumber: normalized.mlsNumber,
           price: normalized.listPrice,
           bedrooms: normalized.bedrooms,
-          bathrooms: normalized.bathrooms,
-          sqft: normalized.sqft,
-          propertyType: normalized.propertyType,
-          status: normalized.status,
           address: `${normalized.address.streetNumber} ${normalized.address.streetName}, ${normalized.address.city}`,
+          imageCount: normalized.images?.length || 0,
         });
       }
       console.groupEnd();

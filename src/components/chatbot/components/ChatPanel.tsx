@@ -16,6 +16,7 @@ export interface ChatPanelProps {
   onPropertyClick?: (property: PropertyListing) => void;
   onShowAllListings?: (listings: PropertyListing[]) => void;
   width?: string;
+  mode?: 'copilot' | 'nlp'; // Indicates if using OpenAI (copilot) or direct NLP
 }
 
 /**
@@ -43,6 +44,7 @@ export function ChatPanel({
   onPropertyClick,
   onShowAllListings,
   width = "500px",
+  mode = "nlp",
 }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -153,7 +155,12 @@ export function ChatPanel({
           >
             {/* Header - Minimal like Claude */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
+                <span className="text-xs text-gray-400 font-normal">
+                  {mode === 'copilot' ? '(Copilot)' : '(Repliers NLP)'}
+                </span>
+              </div>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
