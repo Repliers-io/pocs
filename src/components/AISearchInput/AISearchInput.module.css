@@ -1,0 +1,9 @@
+/* Custom styles for AISearchInput component */
+/* Most styles are handled via Material-UI's sx prop for better theming integration */
+
+.container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
