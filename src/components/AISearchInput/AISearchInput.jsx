@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowForward, Bed, Bathtub, Straighten, AttachMoney } from '@mui/icons-material';
+import { INSPIRATION_CHIPS, SEARCH_EXAMPLES } from './constants';
 
 /**
  * AISearchInput - An expanded search interface with multiline input and entity chips
@@ -22,24 +23,6 @@ const AISearchInput = ({
 }) => {
   const [query, setQuery] = useState(initialValue);
   const [isActive, setIsActive] = useState(false);
-
-  // Inspiration suggestions
-  const inspirationChips = [
-    'blue kitchen',
-    'pink everything',
-    'sunken living room',
-    'gothic mansion',
-    'midcentury design',
-    'huge mansions',
-    'mountain views',
-    'wine cellar'
-  ];
-
-  const searchExamples = [
-    'Victorian townhouse with a freestanding bath and fireplace',
-    '4 bed house with a treehouse, 1 hour commute from London',
-    'Hackney warehouse conversion with exposed brick & high ceilings'
-  ];
 
   // Debounce the query change callback
   useEffect(() => {
@@ -142,7 +125,7 @@ const AISearchInput = ({
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Be inspired...</h3>
               <div className="flex flex-wrap gap-2">
-                {inspirationChips.map((chip, index) => (
+                {INSPIRATION_CHIPS.map((chip, index) => (
                   <button
                     key={index}
                     onClick={() => handleChipClick(chip)}
@@ -159,7 +142,7 @@ const AISearchInput = ({
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Or try searching for...</h3>
               <div className="space-y-2">
-                {searchExamples.map((example, index) => (
+                {SEARCH_EXAMPLES.map((example, index) => (
                   <button
                     key={index}
                     onClick={() => handleChipClick(example)}
