@@ -3,6 +3,7 @@ import { ArrowForward } from '@mui/icons-material';
 import { INSPIRATION_CHIPS, SEARCH_EXAMPLES, ENTITY_CONFIG } from './constants';
 import { useOpenAIParser } from '../../hooks/useOpenAIParser';
 import { useRepliersNLP } from '../../hooks/useRepliersNLP';
+import ResultsPanel from './ResultsPanel';
 
 /**
  * AISearchInput - An expanded search interface with multiline input and inspiration chips
@@ -30,6 +31,9 @@ const AISearchInput = ({
   const [query, setQuery] = useState(initialValue);
   const [isActive, setIsActive] = useState(false);
   const [keyErrors, setKeyErrors] = useState({ openai: null, repliers: null });
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [cursorLine, setCursorLine] = useState(1);
 
   // Initialize hooks
   const { parseQuery, entities: parsedEntities, loading: parsing, error: parsingError } = useOpenAIParser(openaiApiKey);
@@ -93,7 +97,14 @@ const AISearchInput = ({
   }, [query, onQueryChange, parseQuery]);
 
   const handleInputChange = useCallback((event) => {
-    setQuery(event.target.value);
+    const value = event.target.value;
+    const target = event.target;
+    setQuery(value);
+
+    // Calculate cursor line position
+    const textBeforeCursor = value.substring(0, target.selectionStart);
+    const lineNumber = (textBeforeCursor.match(/\n/g) || []).length + 1;
+    setCursorLine(lineNumber);
   }, []);
 
   const handleFocus = useCallback(() => {
@@ -106,6 +117,22 @@ const AISearchInput = ({
       setIsActive(false);
     }
   }, [query]);
+
+  const handleKeyUp = useCallback((event) => {
+    // Update cursor line on arrow keys and clicks
+    const target = event.target;
+    const textBeforeCursor = target.value.substring(0, target.selectionStart);
+    const lineNumber = (textBeforeCursor.match(/\n/g) || []).length + 1;
+    setCursorLine(lineNumber);
+  }, []);
+
+  const handleClick = useCallback((event) => {
+    // Update cursor line on clicks
+    const target = event.target;
+    const textBeforeCursor = target.value.substring(0, target.selectionStart);
+    const lineNumber = (textBeforeCursor.match(/\n/g) || []).length + 1;
+    setCursorLine(lineNumber);
+  }, []);
 
   /**
    * Convert parsed entities to chip format for rendering
@@ -141,17 +168,25 @@ const AISearchInput = ({
     if (!query || !query.trim()) return;
 
     // Execute search with natural language query
-    const searchResults = await executeSearch(query);
+    const searchResultsData = await executeSearch(query);
 
-    // Call parent callback with results
-    if (onSearchComplete && searchResults) {
-      onSearchComplete({
+    // Store results and open panel
+    if (searchResultsData) {
+      const resultsData = {
         query,
         entities: parsedEntities,
-        results: searchResults.listings,
-        summary: searchResults.summary,
-        conversationId: searchResults.nlpId
-      });
+        results: searchResultsData.listings,
+        summary: searchResultsData.summary,
+        conversationId: searchResultsData.nlpId
+      };
+
+      setSearchResults(resultsData);
+      setIsPanelOpen(true);
+
+      // Call parent callback with results
+      if (onSearchComplete) {
+        onSearchComplete(resultsData);
+      }
     }
 
     // Keep backward compatibility with onSearch callback
@@ -165,21 +200,71 @@ const AISearchInput = ({
     setIsActive(true);
   }, []);
 
+  const handlePropertyClick = useCallback((property) => {
+    console.log('Property clicked:', property);
+    // Can be extended by parent component
+  }, []);
+
+  const handleRefineSearch = useCallback(() => {
+    setIsPanelOpen(false);
+    // Focus could be added here if needed
+  }, []);
+
+  // Calculate line height for error positioning (text-lg = 1.125rem, leading-relaxed = 1.625)
+  const lineHeight = 1.125 * 1.625; // rem units
+  const paddingTop = 0.75; // py-3 = 0.75rem
+
   return (
-    <div
-      className="relative bg-white rounded-[32px] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.08)] flex flex-col transition-all duration-300"
-      style={{ width }}
-    >
-      {/* Multiline Text Input - Fixed height */}
-      <textarea
-        className="w-full h-[175px] resize-none text-lg leading-relaxed text-gray-900 bg-gray-50 rounded-xl px-4 py-3
-                   placeholder:text-gray-500 focus:outline-none border-0"
-        value={query}
-        onChange={handleInputChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-      />
+    <>
+      <div
+        className="relative bg-white rounded-[32px] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.08)] flex flex-col transition-all duration-300"
+        style={{ width }}
+      >
+      {/* Textarea Container with Overlay */}
+      <div className="relative">
+        {/* Multiline Text Input - Fixed height */}
+        <textarea
+          className="w-full h-[175px] resize-none text-lg leading-relaxed text-gray-900 bg-gray-50 rounded-xl px-4 py-3
+                     placeholder:text-gray-500 focus:outline-none border-0 relative z-10"
+          style={{ background: 'transparent' }}
+          value={query}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyUp={handleKeyUp}
+          onClick={handleClick}
+          placeholder={placeholder}
+        />
+
+        {/* Background layer for textarea */}
+        <div className="absolute inset-0 bg-gray-50 rounded-xl pointer-events-none z-0" />
+
+        {/* Inline Error Messages Overlay */}
+        {!searching && (keyErrors.openai || keyErrors.repliers) && (
+          <div
+            className="absolute left-0 right-0 px-4 pointer-events-none z-20"
+            style={{
+              top: `${paddingTop + (cursorLine * lineHeight)}rem`,
+              transition: 'top 0.15s ease-out'
+            }}
+          >
+            <div className="space-y-0.5">
+              {keyErrors.openai && (
+                <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50/95 backdrop-blur-sm px-2 py-1 rounded border border-red-200 shadow-sm">
+                  <span className="font-medium">⚠️</span>
+                  <span>{keyErrors.openai}</span>
+                </div>
+              )}
+              {keyErrors.repliers && (
+                <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50/95 backdrop-blur-sm px-2 py-1 rounded border border-red-200 shadow-sm">
+                  <span className="font-medium">⚠️</span>
+                  <span>{keyErrors.repliers}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Searching State Message */}
       {searching && (
@@ -188,24 +273,6 @@ const AISearchInput = ({
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
             <span className="font-medium">Searching properties...</span>
           </div>
-        </div>
-      )}
-
-      {/* API Key Error Messages */}
-      {!searching && (keyErrors.openai || keyErrors.repliers) && (
-        <div className="mt-2 space-y-1">
-          {keyErrors.openai && (
-            <div className="flex items-center gap-2 text-sm text-red-600">
-              <span className="font-medium">⚠️</span>
-              <span>{keyErrors.openai}</span>
-            </div>
-          )}
-          {keyErrors.repliers && (
-            <div className="flex items-center gap-2 text-sm text-red-600">
-              <span className="font-medium">⚠️</span>
-              <span>{keyErrors.repliers}</span>
-            </div>
-          )}
         </div>
       )}
 
@@ -305,6 +372,16 @@ const AISearchInput = ({
         )}
       </button>
     </div>
+
+      {/* Results Panel */}
+      <ResultsPanel
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        results={searchResults}
+        onPropertyClick={handlePropertyClick}
+        onRefineSearch={handleRefineSearch}
+      />
+    </>
   );
 };
 
