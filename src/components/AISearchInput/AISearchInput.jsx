@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowForward } from '@mui/icons-material';
-import { INSPIRATION_CHIPS, SEARCH_EXAMPLES, ENTITY_CONFIG } from './constants';
+import { INSPIRATION_CHIPS, SEARCH_EXAMPLES } from './constants';
 import { useOpenAIParser } from '../../hooks/useOpenAIParser';
 import { useRepliersNLP } from '../../hooks/useRepliersNLP';
 import ResultsPanel from './ResultsPanel';
@@ -135,34 +135,76 @@ const AISearchInput = ({
   }, []);
 
   /**
-   * Convert parsed entities to chip format for rendering
-   * Returns array of { type, label, icon, priority, value }
+   * Generate AI-assisted suggestions based on parsed entities
+   * Returns natural language suggestions for "Be inspired" and search examples
    */
-  const getEntityChips = useCallback(() => {
+  const getAISuggestions = useCallback(() => {
     if (!parsedEntities || Object.keys(parsedEntities).length === 0) {
-      return [];
+      return {
+        inspirations: INSPIRATION_CHIPS,
+        examples: SEARCH_EXAMPLES,
+        hasAIAssist: false
+      };
     }
 
-    const chips = [];
+    // Generate inspiration chips based on style preferences and amenities
+    const inspirations = [];
 
-    Object.entries(parsedEntities).forEach(([type, value]) => {
-      const config = ENTITY_CONFIG[type];
-      if (config && value !== null && value !== undefined) {
-        chips.push({
-          type,
-          label: config.getLabel(value),
-          icon: config.icon,
-          priority: config.priority,
-          value
-        });
-      }
-    });
+    if (parsedEntities.style_preferences?.length > 0) {
+      inspirations.push(...parsedEntities.style_preferences.slice(0, 3));
+    }
 
-    // Sort by priority (lower numbers first)
-    return chips.sort((a, b) => a.priority - b.priority);
+    if (parsedEntities.amenities?.length > 0) {
+      inspirations.push(...parsedEntities.amenities.slice(0, 3));
+    }
+
+    // Fill remaining with original inspiration chips
+    while (inspirations.length < 8) {
+      const remaining = INSPIRATION_CHIPS.filter(chip => !inspirations.includes(chip));
+      if (remaining.length === 0) break;
+      inspirations.push(remaining[Math.floor(Math.random() * remaining.length)]);
+    }
+
+    // Generate search examples based on extracted entities
+    const examples = [];
+
+    // Build example queries from entities
+    const parts = [];
+
+    if (parsedEntities.bedrooms) {
+      parts.push(`${parsedEntities.bedrooms} bed`);
+    }
+
+    if (parsedEntities.property_type) {
+      parts.push(parsedEntities.property_type.toLowerCase());
+    } else {
+      parts.push('house');
+    }
+
+    if (parsedEntities.amenities?.length > 0) {
+      parts.push(`with ${parsedEntities.amenities.slice(0, 2).join(' & ')}`);
+    }
+
+    if (parsedEntities.location) {
+      parts.push(`in ${parsedEntities.location}`);
+    }
+
+    if (parts.length >= 2) {
+      examples.push(parts.join(' '));
+    }
+
+    // Fill remaining with original examples
+    const remaining = SEARCH_EXAMPLES.filter(ex => !examples.includes(ex));
+    examples.push(...remaining.slice(0, 3 - examples.length));
+
+    return {
+      inspirations: inspirations.slice(0, 8),
+      examples: examples.slice(0, 3),
+      hasAIAssist: true
+    };
   }, [parsedEntities]);
 
-  const entityChips = getEntityChips();
+  const { inspirations, examples, hasAIAssist } = getAISuggestions();
 
   const handleSearch = useCallback(async () => {
     if (!query || !query.trim()) return;
@@ -250,13 +292,13 @@ const AISearchInput = ({
           >
             <div className="space-y-0.5">
               {keyErrors.openai && (
-                <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50/95 backdrop-blur-sm px-2 py-1 rounded border border-red-200 shadow-sm">
+                <div className="flex items-center gap-1.5 text-xs text-red-600 opacity-75">
                   <span className="font-medium">⚠️</span>
                   <span>{keyErrors.openai}</span>
                 </div>
               )}
               {keyErrors.repliers && (
-                <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50/95 backdrop-blur-sm px-2 py-1 rounded border border-red-200 shadow-sm">
+                <div className="flex items-center gap-1.5 text-xs text-red-600 opacity-75">
                   <span className="font-medium">⚠️</span>
                   <span>{keyErrors.repliers}</span>
                 </div>
@@ -289,33 +331,19 @@ const AISearchInput = ({
           isActive ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
         }`}
       >
-        {/* Entity Chips Section - Show when entities are parsed */}
-        {entityChips.length > 0 && (
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">AI Search ✨</h3>
-            <div className="flex flex-wrap gap-2">
-              {entityChips.map((chip, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#5b5ce2] rounded-full
-                             text-[#5b5ce2] text-sm font-medium transition-colors cursor-default"
-                >
-                  <span>{chip.icon}</span>
-                  <span>{chip.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Inspiration Section - Only show when no entities and no query */}
-        {isActive && entityChips.length === 0 && !query && (
+        {/* Inspiration Section - Show when active */}
+        {isActive && (
           <div className="pt-4 border-t border-gray-200 space-y-4">
             {/* Be inspired section */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Be inspired...</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                Be inspired...
+                {hasAIAssist && (
+                  <span className="text-xs opacity-50">✨</span>
+                )}
+              </h3>
               <div className="flex flex-wrap gap-2">
-                {INSPIRATION_CHIPS.map((chip, index) => (
+                {inspirations.map((chip, index) => (
                   <button
                     key={index}
                     onClick={() => handleChipClick(chip)}
@@ -330,9 +358,14 @@ const AISearchInput = ({
 
             {/* Search examples section */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Or try searching for...</h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                Or try searching for...
+                {hasAIAssist && (
+                  <span className="text-xs opacity-50">✨</span>
+                )}
+              </h3>
               <div className="space-y-2">
-                {SEARCH_EXAMPLES.map((example, index) => (
+                {examples.map((example, index) => (
                   <button
                     key={index}
                     onClick={() => handleChipClick(example)}
