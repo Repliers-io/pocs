@@ -3,7 +3,6 @@ import { ArrowForward } from '@mui/icons-material';
 import { INSPIRATION_CHIPS, SEARCH_EXAMPLES } from './constants';
 import { useOpenAIParser } from '../../hooks/useOpenAIParser';
 import { useRepliersNLP } from '../../hooks/useRepliersNLP';
-import ResultsPanel from './ResultsPanel';
 
 /**
  * AISearchInput - An expanded search interface with multiline input and inspiration chips
@@ -31,8 +30,6 @@ const AISearchInput = ({
   const [query, setQuery] = useState(initialValue);
   const [isActive, setIsActive] = useState(false);
   const [keyErrors, setKeyErrors] = useState({ openai: null, repliers: null });
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState(null);
   const [cursorLine, setCursorLine] = useState(1);
 
   // Initialize hooks
@@ -212,8 +209,8 @@ const AISearchInput = ({
     // Execute search with natural language query
     const searchResultsData = await executeSearch(query);
 
-    // Store results and open panel
-    if (searchResultsData) {
+    // Call parent callback with results
+    if (searchResultsData && onSearchComplete) {
       const resultsData = {
         query,
         entities: parsedEntities,
@@ -222,13 +219,7 @@ const AISearchInput = ({
         conversationId: searchResultsData.nlpId
       };
 
-      setSearchResults(resultsData);
-      setIsPanelOpen(true);
-
-      // Call parent callback with results
-      if (onSearchComplete) {
-        onSearchComplete(resultsData);
-      }
+      onSearchComplete(resultsData);
     }
 
     // Keep backward compatibility with onSearch callback
@@ -242,26 +233,15 @@ const AISearchInput = ({
     setIsActive(true);
   }, []);
 
-  const handlePropertyClick = useCallback((property) => {
-    console.log('Property clicked:', property);
-    // Can be extended by parent component
-  }, []);
-
-  const handleRefineSearch = useCallback(() => {
-    setIsPanelOpen(false);
-    // Focus could be added here if needed
-  }, []);
-
   // Calculate line height for error positioning (text-lg = 1.125rem, leading-relaxed = 1.625)
   const lineHeight = 1.125 * 1.625; // rem units
   const paddingTop = 0.75; // py-3 = 0.75rem
 
   return (
-    <>
-      <div
-        className="relative bg-white rounded-[32px] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.08)] flex flex-col transition-all duration-300"
-        style={{ width }}
-      >
+    <div
+      className="relative bg-white rounded-[32px] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.08)] flex flex-col transition-all duration-300"
+      style={{ width }}
+    >
       {/* Textarea Container with Overlay */}
       <div className="relative">
         {/* Multiline Text Input - Fixed height */}
@@ -405,16 +385,6 @@ const AISearchInput = ({
         )}
       </button>
     </div>
-
-      {/* Results Panel */}
-      <ResultsPanel
-        isOpen={isPanelOpen}
-        onClose={() => setIsPanelOpen(false)}
-        results={searchResults}
-        onPropertyClick={handlePropertyClick}
-        onRefineSearch={handleRefineSearch}
-      />
-    </>
   );
 };
 
