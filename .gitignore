@@ -45,5 +45,8 @@ next-env.d.ts
 # storybook build artifacts
 storybook-static/
 
-# Claude Code - exclude all session files and commands
-.claude/
+# Claude Code - exclude session-specific files but keep config
+.claude/SESSION_HANDOFF.md
+.claude/WORK_LOG.md
+.claude/README.md
+.claude/settings.local.json
