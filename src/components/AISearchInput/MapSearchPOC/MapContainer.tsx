@@ -213,7 +213,12 @@ export function MapContainer({ filters, onMapLoad, onResultsUpdate, mapboxToken,
       const precision = getClusterPrecision(zoom);
 
       // Use custom polygon if drawn, otherwise use map bounds
-      const mapPolygon = customPolygonRef.current || boundsToPolygon(map.getBounds());
+      const bounds = map.getBounds();
+      if (!customPolygonRef.current && !bounds) {
+        console.warn('Cannot fetch clusters: no custom polygon and map bounds not available');
+        return;
+      }
+      const mapPolygon = customPolygonRef.current || boundsToPolygon(bounds!);
 
       // Build API URL
       const url = new URL('https://api.repliers.io/listings');

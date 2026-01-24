@@ -69,6 +69,9 @@ export function MapSearchPOC({
           openaiApiKey={openaiApiKey}
           repliersApiKey={repliersApiKey}
           onSearchComplete={handleSearchComplete}
+          onQueryChange={() => {}} // Required but not used - using onSearchComplete instead
+          onSearch={() => {}} // Required but deprecated - using onSearchComplete instead
+          initialValue=""
           width="100%"
           placeholder="Search for properties... (e.g., '3 bedroom condo in Toronto under $800k')"
         />
