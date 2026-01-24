@@ -4,7 +4,12 @@
     "pr": ""
   },
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
       "Bash(test:*)",
       "Bash(git checkout:*)",
       "Bash(git add:*)",
@@ -12,6 +17,7 @@
       "Bash(git push:*)",
       "Bash(git rm:*)",
       "Bash(xcodebuild:*)"
-    ]
+    ],
+    "deny": []
   }
 }
