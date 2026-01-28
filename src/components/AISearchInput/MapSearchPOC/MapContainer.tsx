@@ -124,7 +124,7 @@ export function MapContainer({ filters, onMapLoad, onResultsUpdate, mapboxToken,
       ]
     });
 
-    map.addControl(draw, 'top-left');
+    map.addControl(draw, 'top-right');
     drawRef.current = draw;
 
     // Handle draw create event
