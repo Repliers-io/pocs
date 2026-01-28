@@ -1,4 +1,4 @@
-import type { StorybookConfig } from "@storybook/experimental-nextjs-vite";
+import type { StorybookConfig } from "@storybook/react-vite";
 import path from "path";
 
 const config: StorybookConfig = {
@@ -8,14 +8,16 @@ const config: StorybookConfig = {
     "@chromatic-com/storybook",
   ],
   framework: {
-    name: "@storybook/experimental-nextjs-vite",
+    name: "@storybook/react-vite",
     options: {},
   },
   viteFinal: async (config) => {
-    // Replace MCP service with browser-compatible mock
+    // Configure path aliases and service mocks
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
+      // Next.js @ alias for src directory
+      "@": path.resolve(__dirname, "../src"),
       // Use browser mock instead of real MCP service (which requires Node.js)
       [path.resolve(__dirname, "../src/components/chatbot/services/mcpService.ts")]: path.resolve(__dirname, "../src/components/chatbot/services/mcpService.browser.ts"),
     };
