@@ -17,6 +17,12 @@ const SENSITIVE_PATTERNS = [
   /PRIVATE/i,
 ];
 
+// Whitelist for framework-internal environment variables (safe to expose)
+const WHITELISTED_PATTERNS = [
+  /^process\.env\.NEXT_PRIVATE_/i, // Next.js internal variables
+  /^process\.env\.NEXT_PUBLIC_/i,  // Next.js public variables (intended for client)
+];
+
 // Directories to check for bundled environment variables
 const BUILD_DIRS = ["storybook-static", ".next", "dist", "build"];
 
@@ -60,7 +66,12 @@ function checkFileForSensitiveVars(filePath) {
       }
     }
 
-    return findings;
+    // Filter out whitelisted patterns
+    const filteredFindings = findings.filter(finding => {
+      return !WHITELISTED_PATTERNS.some(pattern => pattern.test(finding));
+    });
+
+    return filteredFindings;
   } catch (error) {
     console.warn(`Warning: Could not read file ${filePath}`);
     return [];

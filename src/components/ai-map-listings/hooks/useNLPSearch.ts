@@ -1,6 +1,25 @@
 import { useState } from 'react';
 
-interface NLPResponse {
+export interface Location {
+  locationId: string;
+  name: string;
+  type: 'neighborhood' | 'city' | 'area' | 'state' | 'country';
+  map: {
+    latitude: string;
+    longitude: string;
+    point: string;
+    boundary?: number[][][];
+  };
+  address: {
+    state?: string;
+    country?: string;
+    city?: string;
+    area?: string;
+    neighborhood?: string;
+  };
+}
+
+export interface NLPResponse {
   request: {
     url: string;
     body: {
@@ -11,6 +30,7 @@ interface NLPResponse {
       }>;
     } | null;
     summary: string;
+    locations?: Location[];
   };
   nlpId: string;
 }
@@ -74,11 +94,14 @@ export function useNLPSearch(apiKey: string): UseNLPSearchReturn {
 
       const data: NLPResponse = await response.json();
 
-      console.log('✅ NLP Response:', {
+      console.log('✅ FULL NLP RESPONSE:', JSON.stringify(data, null, 2));
+      console.log('📊 NLP Response Breakdown:', {
         nlpId: data.nlpId,
         url: data.request.url,
         summary: data.request.summary,
         body: data.request.body,
+        imageSearchItems: data.request.body?.imageSearchItems,
+        locations: data.request.locations,
         fullResponse: data,
       });
 

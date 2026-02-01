@@ -23,5 +23,6 @@ export const Default: Story = {
     height: "100vh",
     width: "100vw",
     mapStyle: "mapbox://styles/mapbox/streets-v12",
+    centerCalculation: "city"
   },
 };
