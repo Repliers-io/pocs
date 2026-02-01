@@ -1,11 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import { SearchInput } from "./SearchInput";
+import { SearchFeedback } from "./SearchFeedback";
 import type { SearchPanelProps } from "./types";
 import { useNLPSearch } from "../../hooks/useNLPSearch";
-import { parseNLPUrl, extractNLPSummary } from "../../utils/nlp-parser";
-import { geocodeLocation } from "../../utils/location-geocoder";
+import { parseNLPUrl, extractNLPSummary, extractLocationFromNLP } from "../../utils/nlp-parser";
 import { BedroomBathroomFilter } from "../FilterSections/BedroomBathroomFilter";
 import { PropertyTypeFilter } from "../FilterSections/PropertyTypeFilter";
+import { ChevronDown, Sparkles } from "lucide-react";
+
+const SAMPLE_SEARCHES = [
+  "2 bedroom 2 bath condo in rosedale",
+  "3+ bed house in north york close to the highway",
+  "waterfront properties for rent in downtown toronto",
+];
 
 export function SearchPanel({
   filters,
@@ -15,10 +22,18 @@ export function SearchPanel({
   onMapUpdate,
 }: SearchPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [lastSearchResult, setLastSearchResult] = useState<{
+    prompt: string;
+    url: string;
+    summary: string;
+    filters: any;
+  } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const { processSearch, isProcessing, error, resetNlpId } = useNLPSearch(apiKey);
+  const { processSearch, isProcessing, error, resetNlpId } =
+    useNLPSearch(apiKey);
 
   // Reset NLP session when user starts typing a new search
   const handleSearchQueryChange = (value: string) => {
@@ -26,6 +41,10 @@ export function SearchPanel({
     // Reset NLP session to start fresh (prevents mixing old/new location data)
     if (value !== searchQuery) {
       resetNlpId();
+      // Clear previous search feedback when user starts typing
+      if (lastSearchResult && value !== lastSearchResult.summary) {
+        setLastSearchResult(null);
+      }
     }
   };
 
@@ -67,10 +86,16 @@ export function SearchPanel({
     setIsExpanded(true);
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (queryOverride?: string) => {
+    const query = queryOverride || searchQuery;
+    if (!query.trim()) return;
 
-    const nlpResponse = await processSearch(searchQuery);
+    // If using a sample search, update the input
+    if (queryOverride) {
+      setSearchQuery(queryOverride);
+    }
+
+    const nlpResponse = await processSearch(query);
 
     if (nlpResponse) {
       // Parse NLP URL into filters
@@ -86,7 +111,7 @@ export function SearchPanel({
 
       // If location data was returned, update the map view
       if (onMapUpdate) {
-        // Priority 1: Use map polygon if available
+        // Priority 1: Use map polygon from URL if available
         if (parsedFilters.map) {
           const polygon = parsedFilters.map[0];
           if (polygon && polygon.length > 0) {
@@ -108,12 +133,9 @@ export function SearchPanel({
             });
           }
         }
-        // Priority 2: Use Locations API to geocode neighborhood/city
-        else if (parsedFilters.neighborhood || parsedFilters.city) {
-          const locationData = await geocodeLocation(apiKey, {
-            neighborhood: parsedFilters.neighborhood,
-            city: parsedFilters.city,
-          });
+        // Priority 2: Use location data from NLP response (no extra API call needed!)
+        else {
+          const locationData = extractLocationFromNLP(nlpResponse);
 
           if (locationData) {
             onMapUpdate({
@@ -131,6 +153,14 @@ export function SearchPanel({
         setSearchQuery(summary);
       }
 
+      // Save search result for feedback display
+      setLastSearchResult({
+        prompt: query,
+        url: nlpResponse.request.url,
+        summary: summary,
+        filters: parsedFilters,
+      });
+
       // Call the optional onSearch callback
       await onSearch?.(searchQuery);
     }
@@ -146,13 +176,13 @@ export function SearchPanel({
         width: "600px",
         maxWidth: "calc(100vw - 32px)",
         background: "white",
-        borderRadius: isExpanded ? "24px" : "32px",
+        borderRadius: "16px",
         padding: "0",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
         zIndex: 1000,
         transition: "all 300ms ease-out",
         maxHeight: isExpanded ? "90vh" : "auto",
-        overflowY: isExpanded ? "auto" : "visible",
+        overflow: "visible",
       }}
     >
       {/* Search Input */}
@@ -182,7 +212,7 @@ export function SearchPanel({
         </div>
       )}
 
-      {/* Expandable Filter Sections */}
+      {/* Expandable Content */}
       <div
         style={{
           maxHeight: isExpanded ? "600px" : "0",
@@ -193,133 +223,246 @@ export function SearchPanel({
           padding: isExpanded ? "0 16px 16px 16px" : "0",
         }}
       >
-        {/* Section Divider */}
-        <div
-          style={{
-            height: "1px",
-            background: "linear-gradient(90deg, transparent, #e5e7eb 50%, transparent)",
-            margin: "16px 0",
-          }}
-        />
+        {/* Sample Searches Section - Only show before first search */}
+        {!showFilters && !lastSearchResult && (
+          <div>
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "#9ca3af",
+                marginBottom: "12px",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <Sparkles size={14} />
+              Try These Searches
+            </div>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
+              {SAMPLE_SEARCHES.map((sample, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSearch(sample)}
+                  disabled={isProcessing}
+                  style={{
+                    padding: "12px 16px",
+                    background:
+                      "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "12px",
+                    fontSize: "14px",
+                    color: "#374151",
+                    textAlign: "left",
+                    cursor: isProcessing ? "not-allowed" : "pointer",
+                    transition: "all 200ms ease",
+                    fontWeight: "500",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isProcessing) {
+                      e.currentTarget.style.background =
+                        "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)";
+                      e.currentTarget.style.borderColor = "#c7d2fe";
+                      e.currentTarget.style.transform = "translateX(4px)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background =
+                      "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)";
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.transform = "translateX(0)";
+                  }}
+                >
+                  {sample}
+                </button>
+              ))}
+            </div>
+            <div
+              style={{
+                height: "1px",
+                background:
+                  "linear-gradient(90deg, transparent, #e5e7eb 50%, transparent)",
+                margin: "16px 0",
+              }}
+            />
+          </div>
+        )}
 
-        {/* Section Header */}
-        <div
+        {/* Search Feedback - Show after search is performed */}
+        {!showFilters && lastSearchResult && (
+          <div>
+            <SearchFeedback
+              prompt={lastSearchResult.prompt}
+              url={lastSearchResult.url}
+              summary={lastSearchResult.summary}
+              filters={lastSearchResult.filters}
+            />
+            <div
+              style={{
+                height: "1px",
+                background:
+                  "linear-gradient(90deg, transparent, #e5e7eb 50%, transparent)",
+                margin: "16px 0",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Advanced Filters Toggle */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
           style={{
-            fontSize: "11px",
-            fontWeight: "700",
-            color: "#9ca3af",
-            marginBottom: "16px",
-            textTransform: "uppercase",
-            letterSpacing: "1px",
+            width: "100%",
+            padding: "12px 16px",
+            background: "transparent",
+            border: "1px solid #e5e7eb",
+            borderRadius: "10px",
+            fontSize: "14px",
+            fontWeight: "600",
+            color: "#6366f1",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            transition: "all 200ms ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#f9fafb";
+            e.currentTarget.style.borderColor = "#6366f1";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.borderColor = "#e5e7eb";
           }}
         >
-          Refine Your Search
-        </div>
-
-        {/* Listing Type */}
-        <div style={{ marginBottom: "16px" }}>
-          <select
-            value={filters.listingType || "sale"}
-            onChange={(e) =>
-              onFiltersChange({
-                ...filters,
-                listingType: e.target.value as "sale" | "lease",
-              })
-            }
+          <span>{showFilters ? "Hide" : "Show"} Advanced Filters</span>
+          <ChevronDown
+            size={18}
             style={{
-              width: "100%",
-              padding: "10px 12px",
-              background: "white",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "14px",
-              color: "#374151",
-              cursor: "pointer",
+              transform: showFilters ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 200ms ease",
             }}
-          >
-            <option value="sale">For Sale</option>
-            <option value="lease">For Lease</option>
-          </select>
-        </div>
-
-        {/* Property Type */}
-        <div style={{ marginBottom: "16px" }}>
-          <PropertyTypeFilter
-            filters={filters}
-            onFiltersChange={onFiltersChange}
-            apiKey={apiKey}
           />
-        </div>
+        </button>
 
-        {/* Price Range */}
-        <div style={{ marginBottom: "16px" }}>
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: "600",
-              color: "#6b7280",
-              marginBottom: "8px",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            Price Range
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              type="number"
-              placeholder="Min"
-              value={filters.minPrice || ""}
-              onChange={(e) =>
-                onFiltersChange({
-                  ...filters,
-                  minPrice: e.target.value ? parseInt(e.target.value) : undefined,
-                })
-              }
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
-            <input
-              type="number"
-              placeholder="Max"
-              value={filters.maxPrice || ""}
-              onChange={(e) =>
-                onFiltersChange({
-                  ...filters,
-                  maxPrice: e.target.value ? parseInt(e.target.value) : undefined,
-                })
-              }
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
-          </div>
-        </div>
+        {/* Filter Sections */}
+        {showFilters && (
+          <div style={{ marginTop: "16px" }}>
+            {/* Listing Type */}
+            <div style={{ marginBottom: "16px" }}>
+              <select
+                value={filters.listingType || "sale"}
+                onChange={(e) =>
+                  onFiltersChange({
+                    ...filters,
+                    listingType: e.target.value as "sale" | "lease",
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  background: "white",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  color: "#374151",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="sale">For Sale</option>
+                <option value="lease">For Lease</option>
+              </select>
+            </div>
 
-        {/* Bedrooms & Bathrooms */}
-        <div style={{ marginBottom: "16px" }}>
-          <BedroomBathroomFilter
-            bedrooms={filters.bedrooms || "all"}
-            bathrooms={filters.bathrooms || "all"}
-            onBedroomsChange={(value) =>
-              onFiltersChange({ ...filters, bedrooms: value as any })
-            }
-            onBathroomsChange={(value) =>
-              onFiltersChange({ ...filters, bathrooms: value as any })
-            }
-          />
-        </div>
+            {/* Property Type */}
+            <div style={{ marginBottom: "16px" }}>
+              <PropertyTypeFilter
+                filters={filters}
+                onFiltersChange={onFiltersChange}
+                apiKey={apiKey}
+              />
+            </div>
+
+            {/* Price Range */}
+            <div style={{ marginBottom: "16px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "8px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Price Range
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice || ""}
+                  onChange={(e) =>
+                    onFiltersChange({
+                      ...filters,
+                      minPrice: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  style={{
+                    flex: 1,
+                    padding: "10px 12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    outline: "none",
+                  }}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice || ""}
+                  onChange={(e) =>
+                    onFiltersChange({
+                      ...filters,
+                      maxPrice: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  style={{
+                    flex: 1,
+                    padding: "10px 12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Bedrooms & Bathrooms */}
+            <div style={{ marginBottom: "16px" }}>
+              <BedroomBathroomFilter
+                bedrooms={filters.bedrooms || "all"}
+                bathrooms={filters.bathrooms || "all"}
+                onBedroomsChange={(value) =>
+                  onFiltersChange({ ...filters, bedrooms: value as any })
+                }
+                onBathroomsChange={(value) =>
+                  onFiltersChange({ ...filters, bathrooms: value as any })
+                }
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

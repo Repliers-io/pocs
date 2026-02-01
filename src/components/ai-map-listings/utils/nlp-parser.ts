@@ -1,4 +1,5 @@
 import type { MapFilters } from '../types';
+import type { NLPResponse } from '../hooks/useNLPSearch';
 
 /**
  * Parse Repliers NLP API URL response into filter state
@@ -113,4 +114,64 @@ export function hasImageSearch(response: {
     response.request.body?.imageSearchItems &&
     response.request.body.imageSearchItems.length > 0
   );
+}
+
+/**
+ * Extract map/location data from NLP response
+ * Returns center coordinates, boundary polygon, and appropriate zoom level
+ */
+export function extractLocationFromNLP(
+  response: NLPResponse
+): {
+  center: [number, number];
+  bounds?: number[][][];
+  zoom: number;
+} | null {
+  const locations = response.request.locations;
+
+  if (!locations || locations.length === 0) {
+    console.log('No locations in NLP response');
+    return null;
+  }
+
+  // Use the first location (most relevant)
+  const location = locations[0];
+  const map = location.map;
+
+  if (!map) {
+    console.log('No map data in NLP location');
+    return null;
+  }
+
+  // Extract center coordinates
+  const center: [number, number] = [
+    parseFloat(map.longitude),
+    parseFloat(map.latitude),
+  ];
+
+  // Extract boundary if available
+  let bounds: number[][][] | undefined;
+  if (map.boundary && Array.isArray(map.boundary)) {
+    bounds = map.boundary;
+  }
+
+  // Determine appropriate zoom based on location type
+  const zoom =
+    location.type === 'neighborhood' ? 14 :
+    location.type === 'city' ? 11 :
+    location.type === 'area' ? 10 : 12;
+
+  console.log('📍 Extracted location from NLP response:', {
+    name: location.name,
+    type: location.type,
+    center,
+    zoom,
+    hasBounds: !!bounds,
+  });
+
+  return {
+    center,
+    bounds,
+    zoom,
+  };
 }
