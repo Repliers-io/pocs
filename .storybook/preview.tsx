@@ -11,6 +11,18 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    options: {
+      storySort: {
+        order: [
+          'Getting Started',
+          'Blog & Writing',
+          'Tutorials',
+          'PoCs',
+          '*', // Everything else
+        ],
+        method: 'alphabetical',
+      },
+    },
   },
   decorators: [
     (Story) => (

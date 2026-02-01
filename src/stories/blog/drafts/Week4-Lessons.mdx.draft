@@ -1,0 +1,393 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Blog & Writing/Lessons from 3 Months of NLP Experimentation" />
+
+# Lessons from 3 Months of NLP Experimentation
+
+**November 2024 - February 2026** · 12 min read
+
+---
+
+Three months. Three major approaches. Two complete rewrites. 2,016 lines of deleted code.
+
+And one working solution.
+
+Looking back at the git history, I can trace the entire journey:
+
+```bash
+Nov 24: feat(chatbot): add initial chatbot PoC shell component
+Dec 2:  feat(chatbot): Add MCP server integration (88 packages)
+Dec 23: refactor(chatbot): Complete UI redesign
+Jan 6:  feat(components): Add AISearchInput component
+Jan 8:  feat(ai-search): Add complete AI-powered property search
+Jan 14: feat: refactor AISearchInput for subtle AI-assisted suggestions
+Jan 23: poc update: AISearch + Map
+Jan 29: feat: add AI-powered map listings (8,626 insertions, 2,016 deletions)
+Feb 1:  feat: optimize NLP response usage and add search feedback UI
+```
+
+This is what I learned.
+
+---
+
+## Lesson 1: Technology Doesn't Dictate Interface
+
+The biggest mistake I made was letting the technology choose the interface.
+
+ChatGPT was hot, so I built a chatbot. OpenAI had entity extraction, so I built an AI search input. I was solving for "how do I use this cool tech?" instead of "what do users actually need?"
+
+The right question was: **How do people search for homes?**
+
+And the answer wasn't "by having a conversation" or "by typing natural language." It was "by exploring places visually."
+
+Once I asked the right question, the technology choice became obvious: a map as the primary interface, with NLP as an optional accelerator.
+
+> The interface should serve the user's mental model, not the technology's capabilities.
+
+---
+
+## Lesson 2: User Intent Mapping
+
+Different tasks have different interaction models. I had to learn this the hard way.
+
+### Conversational tasks (good for chat):
+- "Book a flight to NYC next Thursday"
+- "What's the weather in Toronto?"
+- "Explain how OAuth works"
+
+These are **linear and goal-oriented**. You know what you want, you just need help executing.
+
+### Exploratory tasks (bad for chat):
+- Finding a home
+- Shopping for clothes
+- Planning a vacation route
+
+These are **non-linear and discovery-oriented**. You don't know exactly what you want until you see it.
+
+Property search is exploratory. Trying to force it into a conversational flow was like trying to shop for clothes over the phone. Technically possible, but unnecessarily tedious.
+
+---
+
+## Lesson 3: The Sunk Cost Fallacy Is Real
+
+On December 2nd, I committed the MCP server integration. 88 packages. Full orchestration between ChatGPT, function calling, and the Repliers API. It was technically impressive.
+
+From the commit message:
+
+> "Key Design Decision: MCP is completely optional. The chatbot works perfectly without any MCP setup using the direct NLP API fallback, providing zero-setup Storybook demos while still showcasing the full MCP architecture for users who want it."
+
+I was proud of this architecture. So when the UX problems emerged, I kept trying to fix them within the chatbot paradigm.
+
+It took until January 6th - over a month - to even try a different approach.
+
+The code was good. The architecture was sound. But it was solving the wrong problem.
+
+> Good code doesn't become valuable just because you spent time on it.
+
+---
+
+## Lesson 4: Watch Users, Not Your Code
+
+I have a bad habit: I'd test my components by using them myself. And because I built them, I knew exactly how they worked.
+
+"See? Type '3 bedroom condo,' wait for the entity chips, click search. Easy!"
+
+But watching someone else use the chatbot revealed the friction immediately:
+
+- Confusion about what to type
+- Impatience with the back-and-forth
+- Frustration that typing was slower than clicking
+- Questions about where results actually were
+
+The chatbot worked perfectly from a technical perspective. But users didn't need what it provided.
+
+---
+
+## Lesson 5: Fighting Your Own UI Is a Code Smell
+
+The January 14th commit is my favorite example of this:
+
+```bash
+feat: refactor AISearchInput for subtle AI-assisted suggestions
+
+Benefits:
+- More elegant UX without jarring transitions
+- AI feels naturally integrated, not bolted on
+- Users may not even notice AI is helping (good design)
+```
+
+"Users may not even notice AI is helping."
+
+I was trying so hard to make the AI feel natural that I'd made it invisible. And if users don't notice the AI is helping... what's the point?
+
+This was me fighting the UI, trying to salvage a fundamentally flawed approach.
+
+> When you're optimizing for "users won't notice the feature exists," you're solving the wrong problem.
+
+---
+
+## Lesson 6: API Design Matters More Than You Think
+
+The Repliers NLP API returns this:
+
+```json
+{
+  "search_url": "https://api.repliers.io/listings?...",
+  "summary": "3 bedroom condos in Liberty Village under $800,000",
+  "locations": [
+    {
+      "name": "Liberty Village",
+      "center": [43.639, -79.403],
+      "zoom": 14,
+      "geometry": { "type": "Polygon", "coordinates": [...] }
+    }
+  ]
+}
+```
+
+Everything you need is in one response:
+- The search URL (ready to use)
+- A human-readable summary
+- Location data with coordinates, zoom, and boundaries
+
+I almost ignored this. I was planning to:
+1. Call NLP API to parse the query
+2. Call Locations API to geocode the location
+3. Call Listings API to get properties
+
+But the NLP response already had lat/long and boundaries. One API call instead of three.
+
+**The API design enabled the good UX.** If the NLP API had only returned a search URL, I'd have needed that geocoding step. The fact that it returns location data made the smooth map-centering possible.
+
+> Developer experience of your API directly affects the end-user experience of apps built on it.
+
+---
+
+## Lesson 7: Show Your Work (Especially with AI)
+
+The SearchFeedback component was an afterthought. I added it on February 1st, after the main implementation was done.
+
+```tsx
+<SearchFeedback
+  prompt="3br condo in Liberty Village under 800k"
+  summary="3 bedroom condos in Liberty Village under $800,000"
+  captured={[
+    { label: "Bedrooms", value: "3", icon: <Bed /> },
+    { label: "Property Type", value: "Condo", icon: <Home /> },
+    { label: "Location", value: "Liberty Village", icon: <MapPin /> }
+  ]}
+/>
+```
+
+This displays what the AI understood from the user's query. And it completely changed how people reacted to the feature.
+
+**Without SearchFeedback:**
+"Did it understand? What's it searching for? Why these results?"
+
+**With SearchFeedback:**
+"Oh, it got everything. Cool."
+
+Transparency builds trust. Users need to see what the AI is doing, especially when it's making decisions on their behalf.
+
+---
+
+## Lesson 8: Hybrid Beats Pure
+
+The final solution isn't "AI-powered search" or "traditional map search." It's both.
+
+Users can:
+- Type natural language if they have clear intent: "3br in Liberty Village"
+- Use traditional filters if they're exploring: click price slider, toggle property types
+- Pan the map visually to discover neighborhoods
+- Combine all three approaches freely
+
+No forced workflow. No "you must use the AI" or "you must click these filters." Users choose their own path.
+
+The best interfaces are:
+- **Progressive enhancement**: Core functionality works without fancy features
+- **Multiple entry points**: Different ways to accomplish the same goal
+- **User agency**: No forced interaction patterns
+
+---
+
+## Lesson 9: Prototyping Velocity
+
+Three months feels like a long time for this iteration. But it wasn't actually that slow:
+
+- Week 1: Chatbot shell
+- Week 2: Repliers NLP integration
+- Week 3: MCP server (over-engineered)
+- Week 4-5: Chatbot refinements
+- Week 6: New approach - AISearchInput
+- Week 7: Complete AI search integration
+- Week 8: Refactor for subtle UX
+- Week 9: Proof-of-concept hybrid
+- Week 10: Full rewrite with ai-map-listings
+- Week 11: Optimization and SearchFeedback
+
+Each phase informed the next. The chatbot taught me conversational UI was wrong. The AI search input taught me text-based was wrong. The hybrid taught me maps + NLP was right.
+
+**Storybook was crucial.** Being able to rapidly deploy and test components in isolation meant I could iterate faster.
+
+Git history became my design documentation. Every commit captures a decision, a pivot, or a learning.
+
+---
+
+## Lesson 10: Delete Code Without Guilt
+
+On January 29th:
+
+```
+ 46 files changed, 8,626 insertions(+), 2,016 deletions(-)
+```
+
+2,016 lines deleted. Nearly everything from the AI Search Input - gone.
+
+It hurt in the moment. All those hours. The elegant entity extraction. The progressive enhancement logic. The subtle suggestions refactor.
+
+But those 2,016 lines weren't wasted. They were **exploration**. They taught me:
+
+- What doesn't work (entity chips)
+- Why it doesn't work (no spatial context)
+- What users actually need (map + optional NLP)
+
+Failed code is successful learning.
+
+> The best code is sometimes deleted code.
+
+---
+
+## Lesson 11: Simplicity on the Other Side of Complexity
+
+The chatbot was complex:
+- ChatGPT orchestration
+- MCP Server integration
+- Function calling
+- OpenAI API
+- Repliers NLP API
+- 88 packages
+
+The AI Search Input was medium complexity:
+- OpenAI entity extraction
+- Repliers NLP
+- Entity chips
+- Progressive enhancement
+
+The hybrid map is simple:
+- Repliers NLP (one API)
+- Map interface (already existed)
+- SearchFeedback component
+- Filter parser
+
+But I couldn't have reached that simplicity without going through the complexity first. The failed experiments taught me what to remove.
+
+---
+
+## For Engineers Building Similar Products
+
+If you're integrating NLP into a product, ask these questions:
+
+### 1. What's the user's mental model?
+
+- Is this task conversational or exploratory?
+- Linear or non-linear?
+- Does the user know what they want, or are they discovering it?
+
+### 2. What's the primary interface?
+
+- What would this task be without AI?
+- Can AI enhance that, or are you replacing it?
+- Is AI adding value, or just tech for tech's sake?
+
+### 3. Are you showing your work?
+
+- Can users see what the AI understood?
+- Can they correct misinterpretations?
+- Are you building trust through transparency?
+
+### 4. Is the API helping or hurting?
+
+- Does your API return everything needed, or require multiple calls?
+- Is the response format easy to work with?
+- Are you reading the full response, or making assumptions?
+
+---
+
+## For Product Managers
+
+If someone on your team is building an AI feature:
+
+### 1. Question the interaction model
+
+Just because ChatGPT works as chat doesn't mean every product needs chat.
+
+### 2. Watch for "fighting the UI" signals
+
+If the team is spending lots of time making the AI "feel natural," the interaction model might be wrong.
+
+### 3. Expect pivots
+
+If this is the first iteration, they're likely solving for the wrong thing. Budget time for learning and rewrites.
+
+### 4. Value deleted code
+
+2,016 deleted lines represented weeks of work. But they enabled the right solution. That's progress, not waste.
+
+---
+
+## The Artifacts
+
+All three approaches are in the codebase:
+
+**[Chatbot Component](/?path=/story/pocs-chatbot-real-estate-chatbot--default)**
+- The conversational approach
+- MCP Server integration
+- ChatGPT orchestration
+- Beautiful, but tedious
+
+**[AI Map Listings Component](/?path=/story/pocs-ai-map-listings--default)**
+- The hybrid solution
+- NLP + map interface
+- SearchFeedback component
+- Actually works
+
+**[Map Listings Component](/?path=/story/pocs-map-listings--default)**
+- The proven foundation
+- Traditional map interface
+- What I built the hybrid on top of
+
+Try them all. See the evolution. Learn from the failures.
+
+---
+
+## What's Next
+
+These posts documented the journey. But there are deeper technical dives to explore:
+
+- How to build an MCP Server integration
+- OpenAI function calling patterns
+- Parsing natural language into structured queries
+- Building trust in AI features
+- Session management in NLP applications
+
+I'll explore these in future posts.
+
+---
+
+## The Core Insight
+
+After three months and three complete rewrites, here's what I learned:
+
+**Technology should serve the user's mental model, not the other way around.**
+
+ChatGPT is amazing. NLP is powerful. Entity extraction is elegant.
+
+But property search is spatial and exploratory. Maps are the right interface. NLP should enhance that, not replace it.
+
+The best interface isn't the newest technology. It's the one that matches how users naturally think about the problem.
+
+---
+
+**Planning document**: [.storybook/blog.md](https://github.com/Repliers-io/pocs/blob/main/.storybook/blog.md)
+
+**Previous**: [← Week 3: Finding the Hybrid](#)
