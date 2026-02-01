@@ -1,0 +1,210 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Blog & Writing/Why I Built a Real Estate Chatbot (And Why It Was Just OK)" />
+
+# Why I Built a Real Estate Chatbot (And Why It Was Just OK)
+
+**November 24 - December 23, 2025** · 8 min read
+
+---
+
+It was late November when I opened a new branch and typed: `git checkout -b feature/chatbot-poc-shell`. ChatGPT had just gone viral again, everyone was building conversational interfaces, and I thought: _why not bring this to property search?_
+
+Imagine typing "I want a 3 bedroom condo in Toronto under $800k" and having a natural conversation about your perfect home. No filters, no dropdowns, just... talking.
+
+Seemed perfect. Seemed obvious.
+
+---
+
+## The Seduction of Conversational UI
+
+The appeal was undeniable. In 2025, every user knows how to chat with an AI. The pattern is familiar, almost second nature. Why make users click through price sliders and bedroom checkboxes when they could just... ask?
+
+I started simple. A floating button. A chat widget. Message bubbles. The commit from November 24th shows my initial optimism:
+
+```bash
+feat(chatbot): add initial chatbot PoC shell component
+```
+
+Within two days, I had the Repliers NLP API integrated. Users could type natural language queries, and the API would parse them into structured property searches. It worked beautifully:
+
+**User**: "3 bedroom house in Leslieville"
+**System**: → Searches for 3br properties in Leslieville
+**Result**: 47 properties displayed
+
+Magic. Or so I thought.
+
+---
+
+## Going Deep: The MCP Integration
+
+But here's where I went off the deep end. I discovered the Model Context Protocol (MCP) - a standardized way for AI models to interact with external tools and services. On December 2nd, I committed what might be the most technically ambitious (and ultimately misguided) code of the project:
+
+```bash
+feat(chatbot): Add MCP server integration with embedded server
+and ChatGPT orchestration
+
+Dependencies Added:
+- @modelcontextprotocol/sdk v1.0.4
+- zod v3.24.1 (peer dependency)
+- 88 packages for embedded MCP server
+```
+
+**88 packages.** Embedded directly into the component. I even wrote in the commit message: _"Enable Storybook showcase without external dependencies."_
+
+The architecture was beautiful:
+
+```typescript
+/**
+ * Chat Runtime Hook with ChatGPT + Repliers NLP Integration
+ *
+ * ARCHITECTURE:
+ * 1. ChatGPT handles ALL conversation and extracts search parameters
+ * 2. When ChatGPT identifies a property search, it returns a query
+ * 3. Repliers NLP API parses the query and executes the search
+ * 4. Results are shown to user AND sent back to ChatGPT
+ *
+ * Flow:
+ * User: "I want a 3 bedroom condo in Toronto under $800k"
+ *   → ChatGPT creates query via function calling
+ *   → NLP API parses and searches
+ *   → Results displayed to user
+ *   → ChatGPT discusses: "I found 12 condos matching your criteria..."
+ */
+```
+
+ChatGPT would handle conversation. Function calling would extract search parameters. The MCP server would execute searches. Everything would flow naturally, like talking to a knowledgeable real estate agent.
+
+I spent weeks perfecting this. By December 23rd, I had a full UI redesign - modern, Claude/ChatGPT-style interface with smooth animations, typing indicators, the works.
+
+---
+
+## The Problem Emerges
+
+Here's what actually happened when users tried it:
+
+**User**: "I'm looking for something in Toronto"
+**Chatbot**: "What type of property are you interested in?"
+**User**: "A condo"
+**Chatbot**: "How many bedrooms?"
+**User**: "3"
+**Chatbot**: "What's your budget?"
+**User**: _sighs and types_ "Under 800k"
+**Chatbot**: "Let me search for you..."
+
+Compare this to a traditional interface where they could have:
+
+1. Typed "Toronto" in a search box
+2. Clicked "3 bedrooms"
+3. Set price slider to 800k
+4. Clicked "Search"
+
+Done in 10 seconds instead of this tedious back-and-forth.
+
+The chat interface was **making simple tasks harder**.
+
+---
+
+## The Technical Excellence Trap
+
+The code was pristine. The architecture was sound. From my commit message:
+
+> "Key Design Decision: MCP is completely optional. The chatbot works perfectly without any MCP setup using the direct NLP API fallback, providing zero-setup Storybook demos while still showcasing the full MCP architecture for users who want it."
+
+I was proud of this. Optional MCP. Graceful fallbacks. Production-ready error handling. Clean separation of concerns.
+
+But I was solving the wrong problem.
+
+The issue wasn't that the implementation was bad - it was that **conversational UI was the wrong tool for property search**.
+
+---
+
+## Why Chat Fails for Real Estate
+
+Here's what I learned after watching a few people actually try to use it:
+
+### 1. Property search is exploratory, not transactional
+
+Chat is amazing for:
+
+- "Book me a flight to NYC"
+- "What's the weather tomorrow?"
+- "Explain quantum physics"
+
+These are linear, goal-oriented tasks. But property search? That's:
+
+- "Let me see what's available..."
+- "Actually, can I look at this neighborhood instead?"
+- "Wait, show me houses too, not just condos"
+- "Hmm, what if I went up to 850k?"
+
+Users don't know exactly what they want. They want to **explore spatially** and **refine visually**. Chat forces them to articulate preferences they haven't formed yet.
+
+### 2. Typing is tedious
+
+Every refinement required typing. Want to exclude properties with maintenance fees over $500? Type it out. Want to see only houses built after 2010? Type it out.
+
+Meanwhile, a slider or checkbox would take half a second.
+
+### 3. Chat lacks spatial context
+
+Real estate is inherently spatial. "Show me properties near the subway" means nothing without seeing a map. "Is this neighborhood good?" requires visual context.
+
+My beautiful chat interface was trying to describe geography through text. It was like playing Battleship with your eyes closed.
+
+---
+
+## The Moment of Clarity
+
+On January 6th, I started a new branch: `feature/ai-search-input`.
+
+I wasn't ready to abandon the idea entirely - maybe the problem was just the multi-turn conversation. Maybe a simpler approach would work.
+
+But in my heart, I knew. The commit message from December 4th had already told me:
+
+```bash
+refactor(chatbot): Consolidate to NLP-only API,
+fix UX issues, and improve Storybook docs
+```
+
+"Fix UX issues." The issues weren't bugs. They were fundamental to the interaction model.
+
+---
+
+## What I'd Do Differently
+
+If I could go back and talk to November Milan, I'd say:
+
+**Don't build the chatbot.** Not because it's technically wrong - the code was good. But because it solves a problem users don't have.
+
+Build the thing users actually need: a map they can explore visually, with an _optional_ natural language input for expressing complex criteria quickly.
+
+ChatGPT is amazing. MCP is powerful. Function calling is elegant.
+
+But none of that matters if the user experience makes simple tasks harder.
+
+---
+
+## The Silver Lining
+
+This wasn't wasted time. The chatbot taught me:
+
+1. **Technical excellence ≠ product success**. Clean architecture and elegant code don't matter if the UX is wrong.
+
+2. **Question the trend**. Everyone was building chatbots in late 2025. That didn't mean every problem needed one.
+
+3. **Watch users, not metrics**. The chatbot _worked_ technically. But watching someone actually use it revealed the friction.
+
+4. **Sunk cost fallacy is real**. After 88 packages and weeks of work, admitting it was the wrong direction was hard. But necessary.
+
+Plus, I now had a working Repliers NLP integration I could use for the _right_ interface.
+
+Which brings me to Week 2, where I tried something simpler...
+
+---
+
+**Try the chatbot**: [Chatbot Component in Storybook](/?path=/story/pocs-chatbot-real-estate-chatbot--default)
+
+**Commits referenced**: `d581bf3`, `7fc228e`, `6f5fe87`, `8df334a`, `5c537ed`
+
+**Next**: Week 2: The AI Search Input - A Beautiful Failure →

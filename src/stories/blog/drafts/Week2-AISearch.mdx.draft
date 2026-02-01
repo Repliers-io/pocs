@@ -1,0 +1,313 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Blog & Writing/The AI Search Input (A Beautiful Failure)" />
+
+# The AI Search Input: A Beautiful Failure
+
+**January 6-14, 2026** · 7 min read
+
+---
+
+After the chatbot, I needed something simpler. Less conversation, more action. The problem wasn't NLP - the Repliers API worked great. The problem was making users type out every detail in a chat conversation.
+
+So on January 6th, I stripped it all down to the essence: a search input that auto-parses what you type.
+
+Type "3 bedroom condo in Liberty Village" and the AI would extract:
+- 🛏️ Bedrooms: 3
+- 🏠 Type: Condo
+- 📍 Location: Liberty Village
+
+Then search automatically. No chat. No back-and-forth. Just... magic.
+
+Or so I thought.
+
+---
+
+## The Vision: Auto-Magical Search
+
+The idea was elegant. Users already know how to use a search box. You don't need to teach them anything new. Just type naturally and let AI do the parsing.
+
+I started with the component shell on January 6th:
+
+```jsx
+/**
+ * AISearchInput - An expanded search interface with multiline input
+ * and entity chips
+ *
+ * User types naturally, AI extracts structured data, displays as chips
+ */
+const AISearchInput = ({
+  openaiApiKey,
+  repliersApiKey,
+  onSearchComplete
+}) => {
+  const [query, setQuery] = useState('');
+  const { parseQuery, entities, loading } = useOpenAIParser(openaiApiKey);
+  const { executeSearch, results } = useRepliersNLP(repliersApiKey);
+
+  // Auto-parse with 500ms debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query) parseQuery(query);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [query]);
+```
+
+The flow was beautiful in my mind:
+1. User types
+2. After 500ms pause, OpenAI extracts entities
+3. Entities appear as colorful chips
+4. User clicks search
+5. Repliers NLP executes the search
+
+---
+
+## January 8th: The "Complete" Implementation
+
+Two days later, I pushed the commit I thought was the finished product:
+
+```bash
+feat(ai-search): Add complete AI-powered property search integration
+
+Features:
+- useRepliersNLP hook for two-step property search (NLP → Listings API)
+- Auto-parsing with OpenAI entity extraction (500ms debounce)
+- Dynamic entity chips with emoji icons and priority sorting
+- Conversation context management with nlpId persistence
+- Multiple loading states (analyzing, searching) with user feedback
+- Comprehensive API key validation (format + runtime auth detection)
+- Error UI with helpful messages and disabled states
+```
+
+I was proud of this. Real-time entity extraction. Smart debouncing. Beautiful error handling. API key validation.
+
+The UI would show:
+
+```
+┌─────────────────────────────────────────────┐
+│  "3 bedroom condo in Liberty Village"      │
+└─────────────────────────────────────────────┘
+
+✨ AI Search detected:
+┌────────────┬────────────┬──────────────────┐
+│ 🛏️ 3 beds  │ 🏠 Condo   │ 📍 Liberty V...  │
+└────────────┴────────────┴──────────────────┘
+
+Be inspired:
+[Modern kitchen] [Near subway] [Pet friendly]
+
+Or try searching for:
+[3br condo downtown] [House with backyard]
+```
+
+It looked polished. It felt futuristic.
+
+It was also completely wrong.
+
+---
+
+## The Problems Start to Surface
+
+I showed it to a few people. Here's what happened:
+
+**Attempt 1:**
+- User types: "3 bedroom condo Liberty Village"
+- Chips appear: 🛏️ 3 beds | 🏠 Condo | 📍 Liberty Village
+- User: "Cool... now what do I do with these chips?"
+- Me: "Click search!"
+- User: "I could have just clicked dropdowns for bedrooms and property type..."
+
+**Attempt 2:**
+- User types: "3 bedroom"
+- Chips appear: 🛏️ 3 beds
+- User types more: "condo"
+- Chips update: 🛏️ 3 beds | 🏠 Condo
+- User: "Why is it updating while I'm typing? That's distracting"
+- Me: *adjusts debounce timing*
+
+**Attempt 3:**
+- User types: "house with pool under 800k"
+- OpenAI extracts: 🏠 House | 💰 Under $800k
+- Missing: pool
+- User: "It didn't catch 'pool'"
+- Me: "Oh, let me add pool to the entity extraction..."
+
+I was playing whack-a-mole with edge cases.
+
+---
+
+## January 14th: The Desperate Refactor
+
+By now, I knew something was wrong. But I'd invested a week. Surely I could fix it with better UX?
+
+The entity chips felt jarring - they'd pop in suddenly, changing the whole UI. So I tried a different approach:
+
+```bash
+feat: refactor AISearchInput for subtle AI-assisted suggestions
+
+Changes:
+- Remove AI Search ✨ entity chips section (indigo chips with borders)
+- Keep same "Be inspired" and "Or try searching for" sections
+- Dynamically update suggestion content based on parsed entities
+- Add subtle sparkle indicator (50% opacity) when AI-enhanced
+- Replace getEntityChips() with getAISuggestions() function
+
+Benefits:
+- More elegant UX without jarring transitions
+- AI feels naturally integrated, not bolted on
+- Progressive enhancement with graceful fallbacks
+- Users may not even notice AI is helping (good design)
+```
+
+I rewrote the rendering logic to be "subtle":
+
+```jsx
+const getAISuggestions = useCallback(() => {
+  if (!parsedEntities || Object.keys(parsedEntities).length === 0) {
+    return {
+      inspirations: INSPIRATION_CHIPS,
+      examples: SEARCH_EXAMPLES,
+      hasAIAssist: false
+    };
+  }
+
+  // Dynamically generate suggestions based on parsed entities
+  // Make it feel natural, not forced
+  // Users shouldn't even notice the AI...
+```
+
+I wrote that last line and paused.
+
+*"Users shouldn't even notice the AI"*
+
+If the AI is so subtle users don't notice it's helping... is it actually adding value?
+
+---
+
+## The Realization
+
+I opened the codebase stats:
+
+```
+src/components/AISearchInput/
+├── AISearchInput.jsx (391 lines)
+├── constants.js (156 lines)
+├── MapSearchPOC/ (1,211 lines)
+└── hooks/
+    └── useOpenAIParser.js (143 lines)
+```
+
+Nearly 2,000 lines of code for a search input that:
+1. Still required typing (tedious)
+2. Had no spatial context (where *is* Liberty Village?)
+3. Needed a map anyway (to show results)
+4. Added OpenAI API calls (extra latency, extra cost)
+5. Could miss entities ("pool" not detected)
+6. Required two API keys (OpenAI + Repliers)
+
+Meanwhile, my existing map-listings component had:
+- Visual map exploration
+- Click-to-filter
+- Immediate feedback
+- Single API (Repliers only)
+
+The AI Search Input was solving a problem that didn't exist by introducing problems that did.
+
+---
+
+## The Commit That Hurt
+
+January 23rd, I opened my editor and typed:
+
+```bash
+poc update: AISearch + Map
+```
+
+I created a rough proof-of-concept combining the AI input with a map. And immediately saw what I'd been missing:
+
+**The map was the interface.** Not the search box.
+
+Users wanted to:
+- See *where* properties are
+- Explore *visually*
+- Refine *spatially*
+
+The search box should *enhance* the map, not replace it.
+
+---
+
+## January 29th: The Delete
+
+When I finally committed the hybrid map-listings component, the diff was brutal:
+
+```bash
+feat: add AI-powered map listings component with NLP search
+
+ src/components/AISearchInput/AISearchInput.jsx     | 391 ------
+ src/components/AISearchInput/constants.js          | 156 ---
+ src/components/AISearchInput/MapSearchPOC/...      | 1211 ----
+
+ 46 files changed, 8626 insertions(+), 2016 deletions(-)
+```
+
+**2,016 lines deleted.**
+
+Everything I'd built in the AISearchInput - gone. The OpenAI integration - gone. The entity chips - gone. The subtle suggestions - gone.
+
+It hurt. But it was necessary.
+
+---
+
+## What I Learned
+
+### 1. You Can't Polish a Fundamentally Flawed UX
+
+I tried two major refactors:
+- January 8th: Make it complete and robust
+- January 14th: Make it subtle and elegant
+
+Both missed the point. The problem wasn't *how* the AI features were presented. It was that text-based search doesn't work for spatial, exploratory tasks.
+
+### 2. Fighting Your Own UI Is a Code Smell
+
+When I wrote *"AI feels naturally integrated, not bolted on"* in my commit message, I was trying to convince myself.
+
+If you have to fight to make something feel natural, it's probably not the right approach.
+
+### 3. Two APIs Are Worse Than One
+
+The architecture required:
+- OpenAI for entity extraction
+- Repliers NLP for search
+
+But Repliers NLP *already does entity extraction*. I was adding complexity for no benefit.
+
+Later, I'd discover that Repliers NLP even returns lat/long coordinates. I could have saved myself a week of work by just... reading the API response more carefully.
+
+### 4. Deleted Code Is Progress
+
+Those 2,016 deleted lines weren't wasted effort. They taught me:
+- What doesn't work
+- Why it doesn't work
+- What would work instead
+
+The hybrid map I built next was informed by this "failure."
+
+---
+
+## The Bridge Forward
+
+The AI Search Input had one good idea buried in all the complexity:
+
+**Natural language can express intent faster than clicking through filters.**
+
+"3 bedroom condo in Liberty Village under 800k" captures everything in one line. But that intent needs to translate into a spatial interface, not stay in a text box.
+
+Which brings us to Week 3: the hybrid approach that actually worked.
+
+---
+
+**Commits referenced**: `58445b9`, `4ac6366`, `d833e38`, `b0cccf7`, `0bfe16e`, `a359e03`
+
+**Next**: Week 3: Finding the Hybrid - NLP-Powered Map Search →
