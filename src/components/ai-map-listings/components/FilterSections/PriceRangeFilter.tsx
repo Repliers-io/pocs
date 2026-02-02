@@ -2,23 +2,41 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import type { PriceRangeFilterProps } from "../../types";
 
 export function PriceRangeFilter({
-  isOpen,
   initialMin,
   initialMax,
   onApply,
-  onCancel,
   priceBreakpoints = [0, 500000, 1000000, 2000000, 4000000, Infinity]
 }: PriceRangeFilterProps) {
   const [tempMinPrice, setTempMinPrice] = useState(initialMin);
   const [tempMaxPrice, setTempMaxPrice] = useState(initialMax);
   const [isDragging, setIsDragging] = useState<'min' | 'max' | null>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset temp values when modal opens/closes or initial values change
+  // Reset temp values when initial values change
   useEffect(() => {
     setTempMinPrice(initialMin);
     setTempMaxPrice(initialMax);
-  }, [isOpen, initialMin, initialMax]);
+  }, [initialMin, initialMax]);
+
+  // Debounced auto-apply
+  const debouncedApply = useCallback((min: number, max: number | null) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      onApply(min, max);
+    }, 300);
+  }, [onApply]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Format price for display
   const formatDisplayPrice = useCallback((price: number | null): string => {
@@ -94,12 +112,15 @@ export function PriceRangeFilter({
     if (isDragging === 'min') {
       const maxValue = tempMaxPrice === null ? Infinity : tempMaxPrice;
       const constrainedPrice = newPrice === null ? maxValue : Math.min(newPrice, maxValue);
-      setTempMinPrice(constrainedPrice === Infinity ? 0 : constrainedPrice);
+      const finalPrice = constrainedPrice === Infinity ? 0 : constrainedPrice;
+      setTempMinPrice(finalPrice);
+      debouncedApply(finalPrice, tempMaxPrice);
     } else if (isDragging === 'max') {
       const constrainedPrice = newPrice === null ? null : Math.max(newPrice, tempMinPrice);
       setTempMaxPrice(constrainedPrice);
+      debouncedApply(tempMinPrice, constrainedPrice);
     }
-  }, [isDragging, tempMinPrice, tempMaxPrice, getPriceFromPosition]);
+  }, [isDragging, tempMinPrice, tempMaxPrice, getPriceFromPosition, debouncedApply]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(null);
@@ -130,29 +151,16 @@ export function PriceRangeFilter({
       if (handle === 'min') {
         const maxValue = tempMaxPrice === null ? Infinity : tempMaxPrice;
         const constrainedPrice = newPrice === null ? maxValue : Math.min(newPrice, maxValue);
-        setTempMinPrice(constrainedPrice === Infinity ? 0 : constrainedPrice);
+        const finalPrice = constrainedPrice === Infinity ? 0 : constrainedPrice;
+        setTempMinPrice(finalPrice);
+        debouncedApply(finalPrice, tempMaxPrice);
       } else {
         const constrainedPrice = newPrice === null ? null : Math.max(newPrice || 0, tempMinPrice);
         setTempMaxPrice(constrainedPrice);
+        debouncedApply(tempMinPrice, constrainedPrice);
       }
     }
-  }, [tempMinPrice, tempMaxPrice, getSliderPosition, getPriceFromPosition]);
-
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onCancel();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEsc);
-      return () => document.removeEventListener('keydown', handleEsc);
-    }
-  }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
+  }, [tempMinPrice, tempMaxPrice, getSliderPosition, getPriceFromPosition, debouncedApply]);
 
   const minPosition = getSliderPosition(tempMinPrice);
   const maxPosition = getSliderPosition(tempMaxPrice);
@@ -160,40 +168,34 @@ export function PriceRangeFilter({
   return (
     <div
       style={{
-        position: "absolute",
-        top: "100%",
-        left: 0,
-        width: "400px", // Fixed width instead of constrained by parent
-        backgroundColor: "white",
-        border: "1px solid #d1d5db",
+        marginTop: "6px",
+        padding: "12px",
+        backgroundColor: "#f9fafb",
         borderRadius: "6px",
-        marginTop: "4px",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-        zIndex: 1002,
-        padding: "20px",
+        border: "1px solid #e5e7eb",
       }}
     >
       {/* Current Selection Display */}
       <div style={{
         textAlign: 'center',
-        fontSize: '16px',
+        fontSize: '13px',
         fontWeight: '600',
         color: '#374151',
-        marginBottom: '20px',
+        marginBottom: '12px',
       }}>
         {formatDisplayPrice(tempMinPrice)} - {formatDisplayPrice(tempMaxPrice)}
       </div>
 
       {/* Slider Container */}
-      <div style={{ marginBottom: '20px' }}>
+      <div>
         <div
           ref={sliderRef}
           style={{
             position: 'relative',
-            height: '8px',
+            height: '6px',
             backgroundColor: '#e5e7eb',
-            borderRadius: '4px',
-            marginBottom: '16px',
+            borderRadius: '3px',
+            marginBottom: '10px',
           }}
         >
           {/* Active Range */}
@@ -216,13 +218,13 @@ export function PriceRangeFilter({
               left: `${minPosition}%`,
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '20px',
-              height: '20px',
+              width: '16px',
+              height: '16px',
               backgroundColor: 'white',
               border: '2px solid #3b82f6',
               borderRadius: '50%',
               cursor: isDragging === 'min' ? 'grabbing' : 'grab',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
             }}
             onMouseDown={handleMouseDown('min')}
             onKeyDown={handleKeyDown('min')}
@@ -242,13 +244,13 @@ export function PriceRangeFilter({
               left: `${maxPosition}%`,
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '20px',
-              height: '20px',
+              width: '16px',
+              height: '16px',
               backgroundColor: 'white',
               border: '2px solid #3b82f6',
               borderRadius: '50%',
               cursor: isDragging === 'max' ? 'grabbing' : 'grab',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
             }}
             onMouseDown={handleMouseDown('max')}
             onKeyDown={handleKeyDown('max')}
@@ -266,7 +268,7 @@ export function PriceRangeFilter({
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: '12px',
+          fontSize: '10px',
           color: '#6b7280',
         }}>
           {priceBreakpoints.slice(0, -1).map((price, index) => (
@@ -276,44 +278,6 @@ export function PriceRangeFilter({
           ))}
           <span>Max</span>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{
-        display: 'flex',
-        gap: '12px',
-        justifyContent: 'flex-end',
-      }}>
-        <button
-          onClick={onCancel}
-          style={{
-            padding: '8px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#374151',
-            backgroundColor: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => onApply(tempMinPrice, tempMaxPrice)}
-          style={{
-            padding: '8px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: 'white',
-            backgroundColor: '#3b82f6',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
-        >
-          Apply
-        </button>
       </div>
     </div>
   );

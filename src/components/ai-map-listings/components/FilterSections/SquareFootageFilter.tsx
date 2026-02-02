@@ -2,23 +2,41 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import type { SquareFootageFilterProps } from "../../types";
 
 export function SquareFootageFilter({
-  isOpen,
   initialMin,
   initialMax,
   onApply,
-  onCancel,
   sqftBreakpoints = [0, 1000, 2000, 3000, 5000, Infinity]
 }: SquareFootageFilterProps) {
   const [tempMinSqft, setTempMinSqft] = useState(initialMin);
   const [tempMaxSqft, setTempMaxSqft] = useState(initialMax);
   const [isDragging, setIsDragging] = useState<'min' | 'max' | null>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset temp values when modal opens/closes or initial values change
+  // Reset temp values when initial values change
   useEffect(() => {
     setTempMinSqft(initialMin);
     setTempMaxSqft(initialMax);
-  }, [isOpen, initialMin, initialMax]);
+  }, [initialMin, initialMax]);
+
+  // Debounced auto-apply
+  const debouncedApply = useCallback((min: number, max: number | null) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      onApply(min, max);
+    }, 300);
+  }, [onApply]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Format sqft for display
   const formatDisplaySqft = useCallback((sqft: number | null): string => {
@@ -90,12 +108,15 @@ export function SquareFootageFilter({
     if (isDragging === 'min') {
       const maxValue = tempMaxSqft === null ? Infinity : tempMaxSqft;
       const constrainedSqft = newSqft === null ? maxValue : Math.min(newSqft, maxValue);
-      setTempMinSqft(constrainedSqft === Infinity ? 0 : constrainedSqft);
+      const finalSqft = constrainedSqft === Infinity ? 0 : constrainedSqft;
+      setTempMinSqft(finalSqft);
+      debouncedApply(finalSqft, tempMaxSqft);
     } else if (isDragging === 'max') {
       const constrainedSqft = newSqft === null ? null : Math.max(newSqft, tempMinSqft);
       setTempMaxSqft(constrainedSqft);
+      debouncedApply(tempMinSqft, constrainedSqft);
     }
-  }, [isDragging, tempMinSqft, tempMaxSqft, getSqftFromPosition]);
+  }, [isDragging, tempMinSqft, tempMaxSqft, getSqftFromPosition, debouncedApply]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(null);
@@ -126,29 +147,16 @@ export function SquareFootageFilter({
       if (handle === 'min') {
         const maxValue = tempMaxSqft === null ? Infinity : tempMaxSqft;
         const constrainedSqft = newSqft === null ? maxValue : Math.min(newSqft, maxValue);
-        setTempMinSqft(constrainedSqft === Infinity ? 0 : constrainedSqft);
+        const finalSqft = constrainedSqft === Infinity ? 0 : constrainedSqft;
+        setTempMinSqft(finalSqft);
+        debouncedApply(finalSqft, tempMaxSqft);
       } else {
         const constrainedSqft = newSqft === null ? null : Math.max(newSqft || 0, tempMinSqft);
         setTempMaxSqft(constrainedSqft);
+        debouncedApply(tempMinSqft, constrainedSqft);
       }
     }
-  }, [tempMinSqft, tempMaxSqft, getSliderPosition, getSqftFromPosition]);
-
-  // Handle ESC key to close modal
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onCancel();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEsc);
-      return () => document.removeEventListener('keydown', handleEsc);
-    }
-  }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
+  }, [tempMinSqft, tempMaxSqft, getSliderPosition, getSqftFromPosition, debouncedApply]);
 
   const minPosition = getSliderPosition(tempMinSqft);
   const maxPosition = getSliderPosition(tempMaxSqft);
@@ -156,8 +164,8 @@ export function SquareFootageFilter({
   return (
     <div
       style={{
-        marginTop: "16px",
-        padding: "16px",
+        marginTop: "6px",
+        padding: "12px",
         backgroundColor: "#f9fafb",
         borderRadius: "6px",
         border: "1px solid #e5e7eb",
@@ -166,16 +174,16 @@ export function SquareFootageFilter({
       {/* Current Selection Display */}
       <div style={{
         textAlign: 'center',
-        fontSize: '14px',
+        fontSize: '13px',
         fontWeight: '600',
         color: '#374151',
-        marginBottom: '16px',
+        marginBottom: '12px',
       }}>
         {formatDisplaySqft(tempMinSqft)} - {formatDisplaySqft(tempMaxSqft)} sq ft
       </div>
 
       {/* Slider Container */}
-      <div style={{ marginBottom: '16px' }}>
+      <div>
         <div
           ref={sliderRef}
           style={{
@@ -183,7 +191,7 @@ export function SquareFootageFilter({
             height: '6px',
             backgroundColor: '#e5e7eb',
             borderRadius: '3px',
-            marginBottom: '12px',
+            marginBottom: '10px',
           }}
         >
           {/* Active Range */}
@@ -206,8 +214,8 @@ export function SquareFootageFilter({
               left: `${minPosition}%`,
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '18px',
-              height: '18px',
+              width: '16px',
+              height: '16px',
               backgroundColor: 'white',
               border: '2px solid #3b82f6',
               borderRadius: '50%',
@@ -232,8 +240,8 @@ export function SquareFootageFilter({
               left: `${maxPosition}%`,
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '18px',
-              height: '18px',
+              width: '16px',
+              height: '16px',
               backgroundColor: 'white',
               border: '2px solid #3b82f6',
               borderRadius: '50%',
@@ -256,7 +264,7 @@ export function SquareFootageFilter({
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: '11px',
+          fontSize: '10px',
           color: '#6b7280',
         }}>
           {sqftBreakpoints.slice(0, -1).map((sqft, index) => (
@@ -266,44 +274,6 @@ export function SquareFootageFilter({
           ))}
           <span>Max</span>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        justifyContent: 'flex-end',
-      }}>
-        <button
-          onClick={onCancel}
-          style={{
-            padding: '6px 12px',
-            fontSize: '13px',
-            fontWeight: '500',
-            color: '#374151',
-            backgroundColor: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => onApply(tempMinSqft, tempMaxSqft)}
-          style={{
-            padding: '6px 12px',
-            fontSize: '13px',
-            fontWeight: '500',
-            color: 'white',
-            backgroundColor: '#3b82f6',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
-        >
-          Apply
-        </button>
       </div>
     </div>
   );

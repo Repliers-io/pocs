@@ -6,6 +6,8 @@ import { useNLPSearch } from "../../hooks/useNLPSearch";
 import { parseNLPUrl, extractNLPSummary, extractLocationFromNLP } from "../../utils/nlp-parser";
 import { BedroomBathroomFilter } from "../FilterSections/BedroomBathroomFilter";
 import { PropertyTypeFilter } from "../FilterSections/PropertyTypeFilter";
+import { PriceRangeFilter } from "../filters/PriceRangeFilter";
+import { SquareFootageFilter } from "../filters/SquareFootageFilter";
 import { ChevronDown, Sparkles } from "lucide-react";
 
 const SAMPLE_SEARCHES = [
@@ -181,8 +183,8 @@ export function SearchPanel({
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
         zIndex: 1000,
         transition: "all 300ms ease-out",
-        maxHeight: isExpanded ? "90vh" : "auto",
-        overflow: "visible",
+        maxHeight: isExpanded ? "calc(100vh - 32px)" : "auto",
+        overflow: isExpanded ? "hidden" : "visible",
       }}
     >
       {/* Search Input */}
@@ -215,9 +217,9 @@ export function SearchPanel({
       {/* Expandable Content */}
       <div
         style={{
-          maxHeight: isExpanded ? "600px" : "0",
+          maxHeight: isExpanded ? "calc(100vh - 160px)" : "0",
           opacity: isExpanded ? 1 : 0,
-          overflow: "hidden",
+          overflow: isExpanded ? "auto" : "hidden",
           transition: "max-height 300ms ease-out, opacity 300ms ease-out",
           marginTop: isExpanded ? "20px" : "0",
           padding: isExpanded ? "0 16px 16px 16px" : "0",
@@ -352,35 +354,89 @@ export function SearchPanel({
 
         {/* Filter Sections */}
         {showFilters && (
-          <div style={{ marginTop: "16px" }}>
+          <div style={{ marginTop: "12px" }}>
             {/* Listing Type */}
-            <div style={{ marginBottom: "16px" }}>
-              <select
-                value={filters.listingType || "sale"}
-                onChange={(e) =>
-                  onFiltersChange({
-                    ...filters,
-                    listingType: e.target.value as "sale" | "lease",
-                  })
-                }
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  background: "white",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  color: "#374151",
-                  cursor: "pointer",
-                }}
-              >
-                <option value="sale">For Sale</option>
-                <option value="lease">For Lease</option>
-              </select>
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button
+                  onClick={() =>
+                    onFiltersChange({
+                      ...filters,
+                      listingType: "sale",
+                    })
+                  }
+                  style={{
+                    flex: 1,
+                    padding: "6px 12px",
+                    backgroundColor:
+                      (filters.listingType || "sale") === "sale" ? "#6366f1" : "white",
+                    color:
+                      (filters.listingType || "sale") === "sale" ? "white" : "#374151",
+                    border: `1px solid ${
+                      (filters.listingType || "sale") === "sale" ? "#6366f1" : "#d1d5db"
+                    }`,
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    fontWeight:
+                      (filters.listingType || "sale") === "sale" ? "600" : "400",
+                    cursor: "pointer",
+                    transition: "all 200ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if ((filters.listingType || "sale") !== "sale") {
+                      e.currentTarget.style.backgroundColor = "#f9fafb";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if ((filters.listingType || "sale") !== "sale") {
+                      e.currentTarget.style.backgroundColor = "white";
+                    }
+                  }}
+                >
+                  For Sale
+                </button>
+                <button
+                  onClick={() =>
+                    onFiltersChange({
+                      ...filters,
+                      listingType: "lease",
+                    })
+                  }
+                  style={{
+                    flex: 1,
+                    padding: "6px 12px",
+                    backgroundColor:
+                      filters.listingType === "lease" ? "#6366f1" : "white",
+                    color:
+                      filters.listingType === "lease" ? "white" : "#374151",
+                    border: `1px solid ${
+                      filters.listingType === "lease" ? "#6366f1" : "#d1d5db"
+                    }`,
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    fontWeight:
+                      filters.listingType === "lease" ? "600" : "400",
+                    cursor: "pointer",
+                    transition: "all 200ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (filters.listingType !== "lease") {
+                      e.currentTarget.style.backgroundColor = "#f9fafb";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (filters.listingType !== "lease") {
+                      e.currentTarget.style.backgroundColor = "white";
+                    }
+                  }}
+                >
+                  For Lease
+                </button>
+              </div>
             </div>
 
             {/* Property Type */}
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: "12px" }}>
               <PropertyTypeFilter
                 filters={filters}
                 onFiltersChange={onFiltersChange}
@@ -389,67 +445,34 @@ export function SearchPanel({
             </div>
 
             {/* Price Range */}
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: "12px" }}>
               <div
                 style={{
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: "600",
                   color: "#6b7280",
-                  marginBottom: "8px",
+                  marginBottom: "6px",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
                 }}
               >
                 Price Range
               </div>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.minPrice || ""}
-                  onChange={(e) =>
-                    onFiltersChange({
-                      ...filters,
-                      minPrice: e.target.value
-                        ? parseInt(e.target.value)
-                        : undefined,
-                    })
-                  }
-                  style={{
-                    flex: 1,
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.maxPrice || ""}
-                  onChange={(e) =>
-                    onFiltersChange({
-                      ...filters,
-                      maxPrice: e.target.value
-                        ? parseInt(e.target.value)
-                        : undefined,
-                    })
-                  }
-                  style={{
-                    flex: 1,
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-              </div>
+              <PriceRangeFilter
+                initialMin={filters.minPrice || 0}
+                initialMax={filters.maxPrice || null}
+                onApply={(min, max) => {
+                  onFiltersChange({
+                    ...filters,
+                    minPrice: min || undefined,
+                    maxPrice: max || undefined,
+                  });
+                }}
+              />
             </div>
 
             {/* Bedrooms & Bathrooms */}
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: "12px" }}>
               <BedroomBathroomFilter
                 bedrooms={filters.bedrooms || "all"}
                 bathrooms={filters.bathrooms || "all"}
@@ -460,6 +483,332 @@ export function SearchPanel({
                   onFiltersChange({ ...filters, bathrooms: value as any })
                 }
               />
+            </div>
+
+            {/* Garage/Parking */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Garage / Parking
+              </div>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {["all", "1+", "2+", "3+", "4+", "5+"].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() =>
+                      onFiltersChange({
+                        ...filters,
+                        garageSpaces: value as any,
+                      })
+                    }
+                    style={{
+                      padding: "6px 12px",
+                      backgroundColor:
+                        filters.garageSpaces === value ? "#6366f1" : "white",
+                      color:
+                        filters.garageSpaces === value ? "white" : "#374151",
+                      border: `1px solid ${
+                        filters.garageSpaces === value ? "#6366f1" : "#d1d5db"
+                      }`,
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      fontWeight:
+                        filters.garageSpaces === value ? "600" : "400",
+                      cursor: "pointer",
+                      transition: "all 200ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (filters.garageSpaces !== value) {
+                        e.currentTarget.style.backgroundColor = "#f9fafb";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (filters.garageSpaces !== value) {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }
+                    }}
+                  >
+                    {value === "all" ? "All" : value}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Square Footage */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Square Footage
+              </div>
+              <SquareFootageFilter
+                initialMin={filters.minSqft || 0}
+                initialMax={filters.maxSqft || null}
+                onApply={(min, max) => {
+                  onFiltersChange({
+                    ...filters,
+                    minSqft: min || undefined,
+                    maxSqft: max || undefined,
+                  });
+                }}
+              />
+            </div>
+
+            {/* Open House */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Open House
+              </div>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {[
+                  { value: "all", label: "All" },
+                  { value: "today", label: "Today" },
+                  { value: "thisWeekend", label: "This Weekend" },
+                  { value: "thisWeek", label: "This Week" },
+                  { value: "anytime", label: "Anytime" },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() =>
+                      onFiltersChange({ ...filters, openHouse: value as any })
+                    }
+                    style={{
+                      padding: "6px 12px",
+                      backgroundColor:
+                        filters.openHouse === value ? "#6366f1" : "white",
+                      color: filters.openHouse === value ? "white" : "#374151",
+                      border: `1px solid ${
+                        filters.openHouse === value ? "#6366f1" : "#d1d5db"
+                      }`,
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      fontWeight: filters.openHouse === value ? "600" : "400",
+                      cursor: "pointer",
+                      transition: "all 200ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (filters.openHouse !== value) {
+                        e.currentTarget.style.backgroundColor = "#f9fafb";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (filters.openHouse !== value) {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Max Maintenance Fee */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Max Maintenance Fee
+              </div>
+              <input
+                type="number"
+                placeholder="Enter max fee"
+                value={filters.maxMaintenanceFee || ""}
+                onChange={(e) =>
+                  onFiltersChange({
+                    ...filters,
+                    maxMaintenanceFee: e.target.value
+                      ? parseInt(e.target.value)
+                      : undefined,
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {/* Active Listings */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Active Listings
+              </div>
+              <select
+                value={filters.activeListingDays || "all"}
+                onChange={(e) =>
+                  onFiltersChange({
+                    ...filters,
+                    activeListingDays: e.target.value === "off" ? undefined : (e.target.value as any),
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  background: "white",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  color: "#374151",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="off">Off</option>
+                <option value="all">All</option>
+                <option value="1">Last 24 hours</option>
+                <option value="3">Last 3 days</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="15+">More than 15 days</option>
+                <option value="30+">More than 30 days</option>
+                <option value="60+">More than 60 days</option>
+                <option value="90+">More than 90 days</option>
+              </select>
+            </div>
+
+            {/* Sold Listings */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Sold Listings
+              </div>
+              <select
+                value={filters.soldListingDays || "off"}
+                onChange={(e) =>
+                  onFiltersChange({
+                    ...filters,
+                    soldListingDays: e.target.value === "off" ? undefined : (e.target.value as any),
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  background: "white",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  color: "#374151",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="off">Off</option>
+                <option value="1">Last 24 hours</option>
+                <option value="3">Last 3 days</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="360">Last 360 days</option>
+                <option value="2025">Year 2025</option>
+                <option value="2024">Year 2024</option>
+                <option value="2023">Year 2023</option>
+                <option value="2022">Year 2022</option>
+                <option value="2021">Year 2021</option>
+                <option value="2020">Year 2020</option>
+              </select>
+            </div>
+
+            {/* De-listed (Unavailable) Listings */}
+            <div style={{ marginBottom: "12px" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                De-listed Listings
+              </div>
+              <select
+                value={filters.unavailableListingDays || "off"}
+                onChange={(e) =>
+                  onFiltersChange({
+                    ...filters,
+                    unavailableListingDays: e.target.value === "off" ? undefined : (e.target.value as any),
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  background: "white",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  color: "#374151",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="off">Off</option>
+                <option value="1">Last 24 hours</option>
+                <option value="3">Last 3 days</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="360">Last 360 days</option>
+                <option value="2025">Year 2025</option>
+                <option value="2024">Year 2024</option>
+                <option value="2023">Year 2023</option>
+                <option value="2022">Year 2022</option>
+                <option value="2021">Year 2021</option>
+                <option value="2020">Year 2020</option>
+              </select>
             </div>
           </div>
         )}
