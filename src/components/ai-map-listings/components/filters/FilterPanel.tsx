@@ -546,11 +546,9 @@ export function FilterPanel({
         {/* Price Range Filter Dropdown */}
         {isPriceFilterOpen && (
           <PriceRangeFilter
-            isOpen={isPriceFilterOpen}
             initialMin={filters.minPrice || 0}
             initialMax={filters.maxPrice || null}
             onApply={handlePriceFilterApply}
-            onCancel={handlePriceFilterCancel}
           />
         )}
       </div>
@@ -1138,11 +1136,9 @@ export function FilterPanel({
                 SQUARE FOOTAGE
               </div>
               <SquareFootageFilter
-                isOpen={true}
                 initialMin={filters.minSqft || 0}
                 initialMax={filters.maxSqft || null}
                 onApply={handleSqftFilterApply}
-                onCancel={handleSqftFilterCancel}
               />
             </div>
 

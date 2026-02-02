@@ -167,20 +167,16 @@ export interface PropertyTypeFilterProps {
 }
 
 export interface PriceRangeFilterProps {
-  isOpen: boolean;
   initialMin: number;
   initialMax: number | null; // null represents "Max" (no limit)
   onApply: (min: number, max: number | null) => void;
-  onCancel: () => void;
   priceBreakpoints?: number[]; // Optional custom breakpoints
 }
 
 export interface SquareFootageFilterProps {
-  isOpen: boolean;
   initialMin: number;
   initialMax: number | null;
   onApply: (min: number, max: number | null) => void;
-  onCancel: () => void;
   sqftBreakpoints?: number[];
 }
 
