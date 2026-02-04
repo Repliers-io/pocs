@@ -1,8 +1,8 @@
 import { Meta } from '@storybook/blocks';
 
-<Meta title="Blog & Writing/The AI Search Input (A Beautiful Failure)" />
+<Meta title="Blog & Writing/The AI Search Input" />
 
-# The AI Search Input: A Beautiful Failure
+# The AI Search Input
 
 **January 6-14, 2026** · 7 min read
 
@@ -17,9 +17,7 @@ Type "3 bedroom condo in Liberty Village" and the AI would extract:
 - 🏠 Type: Condo
 - 📍 Location: Liberty Village
 
-Then search automatically. No chat. No back-and-forth. Just... magic.
-
-Or so I thought.
+Then search automatically. No chat. No back-and-forth. The approach felt straightforward.
 
 ---
 
@@ -101,9 +99,7 @@ Or try searching for:
 [3br condo downtown] [House with backyard]
 ```
 
-It looked polished. It felt futuristic.
-
-It was also completely wrong.
+It looked polished. It felt futuristic. Then I watched people actually use it.
 
 ---
 
@@ -137,9 +133,9 @@ I was playing whack-a-mole with edge cases.
 
 ---
 
-## January 14th: The Desperate Refactor
+## January 14th: Another Approach
 
-By now, I knew something was wrong. But I'd invested a week. Surely I could fix it with better UX?
+Something felt off. I'd invested a week in the entity chips approach. Maybe the issue was the presentation?
 
 The entity chips felt jarring - they'd pop in suddenly, changing the whole UI. So I tried a different approach:
 
@@ -216,7 +212,7 @@ The AI Search Input was solving a problem that didn't exist by introducing probl
 
 ---
 
-## The Commit That Hurt
+## The Shift
 
 January 23rd, I opened my editor and typed:
 
@@ -224,7 +220,7 @@ January 23rd, I opened my editor and typed:
 poc update: AISearch + Map
 ```
 
-I created a rough proof-of-concept combining the AI input with a map. And immediately saw what I'd been missing:
+I created a rough proof-of-concept combining the AI input with a map. Something clicked:
 
 **The map was the interface.** Not the search box.
 
@@ -237,9 +233,9 @@ The search box should *enhance* the map, not replace it.
 
 ---
 
-## January 29th: The Delete
+## January 29th: The Commit
 
-When I finally committed the hybrid map-listings component, the diff was brutal:
+When I committed the hybrid map-listings component, the diff told the story:
 
 ```bash
 feat: add AI-powered map listings component with NLP search
@@ -255,25 +251,25 @@ feat: add AI-powered map listings component with NLP search
 
 Everything I'd built in the AISearchInput - gone. The OpenAI integration - gone. The entity chips - gone. The subtle suggestions - gone.
 
-It hurt. But it was necessary.
+The code cleared. The path forward became visible.
 
 ---
 
 ## What I Learned
 
-### 1. You Can't Polish a Fundamentally Flawed UX
+### 1. Better Presentation Doesn't Fix a Mismatch in Interface
 
 I tried two major refactors:
 - January 8th: Make it complete and robust
 - January 14th: Make it subtle and elegant
 
-Both missed the point. The problem wasn't *how* the AI features were presented. It was that text-based search doesn't work for spatial, exploratory tasks.
+Both focused on presentation. The deeper question was whether text-based search matched the spatial, exploratory nature of finding a home.
 
-### 2. Fighting Your Own UI Is a Code Smell
+### 2. When You're Fighting the UI, Listen
 
-When I wrote *"AI feels naturally integrated, not bolted on"* in my commit message, I was trying to convince myself.
+When I wrote *"AI feels naturally integrated, not bolted on"* in my commit message, I was working hard to justify the approach.
 
-If you have to fight to make something feel natural, it's probably not the right approach.
+If integration feels forced, that's signal worth paying attention to.
 
 ### 3. Two APIs Are Worse Than One
 
@@ -292,7 +288,7 @@ Those 2,016 deleted lines weren't wasted effort. They taught me:
 - Why it doesn't work
 - What would work instead
 
-The hybrid map I built next was informed by this "failure."
+The hybrid map I built next was informed by this exploration.
 
 ---
 
