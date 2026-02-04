@@ -1,5 +1,5 @@
-import{j as e}from"./jsx-runtime-xF634gn_.js";import{useMDXComponents as r}from"./index-o2KxC7bF.js";import{M as i}from"./index-DZgaqtxQ.js";import"./index-C-7etoUd.js";import"./iframe-BhH0lYK1.js";import"./index-DmZMPOxo.js";import"./index-BKjiqKB3.js";import"./index-DgH-xKnr.js";import"./index-DrFu-skq.js";function s(t){const n={a:"a",blockquote:"blockquote",code:"code",em:"em",h1:"h1",h2:"h2",h3:"h3",hr:"hr",li:"li",ol:"ol",p:"p",pre:"pre",strong:"strong",ul:"ul",...r(),...t.components};return e.jsxs(e.Fragment,{children:[e.jsx(i,{title:"Blog & Writing/Why I Built a Real Estate Chatbot (And Why It Was Just OK)"}),`
-`,e.jsx(n.h1,{id:"why-i-built-a-real-estate-chatbot-and-why-it-was-just-ok",children:"Why I Built a Real Estate Chatbot (And Why It Was Just OK)"}),`
+import{j as e}from"./jsx-runtime-xF634gn_.js";import{useMDXComponents as s}from"./index-o2KxC7bF.js";import{M as i}from"./index-B9VInP_e.js";import"./index-C-7etoUd.js";import"./iframe-BFm-Dita.js";import"./index-DmZMPOxo.js";import"./index-BKjiqKB3.js";import"./index-DgH-xKnr.js";import"./index-DrFu-skq.js";function r(t){const n={a:"a",blockquote:"blockquote",code:"code",em:"em",h1:"h1",h2:"h2",h3:"h3",hr:"hr",li:"li",ol:"ol",p:"p",pre:"pre",strong:"strong",ul:"ul",...s(),...t.components};return e.jsxs(e.Fragment,{children:[e.jsx(i,{title:"Blog & Writing/Building a Real Estate Chatbot: The Journey"}),`
+`,e.jsx(n.h1,{id:"building-a-real-estate-chatbot-the-journey",children:"Building a Real Estate Chatbot: The Journey"}),`
 `,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"November 24 - December 23, 2025"})," · 8 min read"]}),`
 `,e.jsx(n.hr,{}),`
 `,e.jsxs(n.p,{children:["It was late November when I opened a new branch and typed: ",e.jsx(n.code,{children:"git checkout -b feature/chatbot-poc-shell"}),". ChatGPT had just gone viral again, everyone was building conversational interfaces, and I thought: ",e.jsx(n.em,{children:"why not bring this to property search?"})]}),`
@@ -15,7 +15,7 @@ import{j as e}from"./jsx-runtime-xF634gn_.js";import{useMDXComponents as r}from"
 `,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"User"}),`: "3 bedroom house in Leslieville"
 `,e.jsx(n.strong,{children:"System"}),`: → Searches for 3br properties in Leslieville
 `,e.jsx(n.strong,{children:"Result"}),": 47 properties displayed"]}),`
-`,e.jsx(n.p,{children:"Magic. Or so I thought."}),`
+`,e.jsx(n.p,{children:"The technical integration worked smoothly."}),`
 `,e.jsx(n.hr,{}),`
 `,e.jsx(n.h2,{id:"going-deep-the-mcp-integration",children:"Going Deep: The MCP Integration"}),`
 `,e.jsx(n.p,{children:"But here's where I went off the deep end. I discovered the Model Context Protocol (MCP) - a standardized way for AI models to interact with external tools and services. On December 2nd, I committed what might be the most technically ambitious (and ultimately misguided) code of the project:"}),`
@@ -112,9 +112,8 @@ fix UX issues, and improve Storybook docs
 `,e.jsx(n.p,{children:`"Fix UX issues." The issues weren't bugs. They were fundamental to the interaction model.`}),`
 `,e.jsx(n.hr,{}),`
 `,e.jsx(n.h2,{id:"what-id-do-differently",children:"What I'd Do Differently"}),`
-`,e.jsx(n.p,{children:"If I could go back and talk to November Milan, I'd say:"}),`
-`,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"Don't build the chatbot."})," Not because it's technically wrong - the code was good. But because it solves a problem users don't have."]}),`
-`,e.jsxs(n.p,{children:["Build the thing users actually need: a map they can explore visually, with an ",e.jsx(n.em,{children:"optional"})," natural language input for expressing complex criteria quickly."]}),`
+`,e.jsx(n.p,{children:"Looking back, I'd start with the core user need: a map to explore visually, with natural language input as an enhancement for complex criteria."}),`
+`,e.jsx(n.p,{children:"The chatbot solved an interesting technical problem. The code was solid, the architecture clean. But the core question wasn't whether it worked - it was whether conversational UI was the right interface for spatial, exploratory search."}),`
 `,e.jsx(n.p,{children:"ChatGPT is amazing. MCP is powerful. Function calling is elegant."}),`
 `,e.jsx(n.p,{children:"But none of that matters if the user experience makes simple tasks harder."}),`
 `,e.jsx(n.hr,{}),`
@@ -139,4 +138,4 @@ fix UX issues, and improve Storybook docs
 `,e.jsx(n.hr,{}),`
 `,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"Try the chatbot"}),": ",e.jsx(n.a,{href:"/?path=/story/pocs-chatbot-real-estate-chatbot--default",children:"Chatbot Component in Storybook"})]}),`
 `,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"Commits referenced"}),": ",e.jsx(n.code,{children:"d581bf3"}),", ",e.jsx(n.code,{children:"7fc228e"}),", ",e.jsx(n.code,{children:"6f5fe87"}),", ",e.jsx(n.code,{children:"8df334a"}),", ",e.jsx(n.code,{children:"5c537ed"})]}),`
-`,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"Next"}),": Week 2: The AI Search Input - A Beautiful Failure →"]})]})}function m(t={}){const{wrapper:n}={...r(),...t.components};return n?e.jsx(n,{...t,children:e.jsx(s,{...t})}):s(t)}export{m as default};
+`,e.jsxs(n.p,{children:[e.jsx(n.strong,{children:"Next"}),": Week 2: The AI Search Input →"]})]})}function m(t={}){const{wrapper:n}={...s(),...t.components};return n?e.jsx(n,{...t,children:e.jsx(r,{...t})}):r(t)}export{m as default};
