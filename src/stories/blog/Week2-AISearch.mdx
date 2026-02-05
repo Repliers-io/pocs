@@ -1,8 +1,8 @@
-import { Meta } from '@storybook/blocks';
+import { Meta } from "@storybook/blocks";
 
-<Meta title="Blog & Writing/The AI Search Input (A Beautiful Failure)" />
+<Meta title="Blog & Writing/2. The AI Search Input" />
 
-# The AI Search Input: A Beautiful Failure
+# The AI Search Input: A Learning Experience
 
 **January 6-14, 2026** · 7 min read
 
@@ -13,6 +13,7 @@ After the chatbot, I needed something simpler. Less conversation, more action. T
 So on January 6th, I stripped it all down to the essence: a search input that auto-parses what you type.
 
 Type "3 bedroom condo in Liberty Village" and the AI would extract:
+
 - 🛏️ Bedrooms: 3
 - 🏠 Type: Condo
 - 📍 Location: Liberty Village
@@ -55,6 +56,7 @@ const AISearchInput = ({
 ```
 
 The flow was beautiful in my mind:
+
 1. User types
 2. After 500ms pause, OpenAI extracts entities
 3. Entities appear as colorful chips
@@ -112,6 +114,7 @@ It was also completely wrong.
 I showed it to a few people. Here's what happened:
 
 **Attempt 1:**
+
 - User types: "3 bedroom condo Liberty Village"
 - Chips appear: 🛏️ 3 beds | 🏠 Condo | 📍 Liberty Village
 - User: "Cool... now what do I do with these chips?"
@@ -119,14 +122,16 @@ I showed it to a few people. Here's what happened:
 - User: "I could have just clicked dropdowns for bedrooms and property type..."
 
 **Attempt 2:**
+
 - User types: "3 bedroom"
 - Chips appear: 🛏️ 3 beds
 - User types more: "condo"
 - Chips update: 🛏️ 3 beds | 🏠 Condo
 - User: "Why is it updating while I'm typing? That's distracting"
-- Me: *adjusts debounce timing*
+- Me: _adjusts debounce timing_
 
 **Attempt 3:**
+
 - User types: "house with pool under 800k"
 - OpenAI extracts: 🏠 House | 💰 Under $800k
 - Missing: pool
@@ -179,7 +184,7 @@ const getAISuggestions = useCallback(() => {
 
 I wrote that last line and paused.
 
-*"Users shouldn't even notice the AI"*
+_"Users shouldn't even notice the AI"_
 
 If the AI is so subtle users don't notice it's helping... is it actually adding value?
 
@@ -199,14 +204,16 @@ src/components/AISearchInput/
 ```
 
 Nearly 2,000 lines of code for a search input that:
+
 1. Still required typing (tedious)
-2. Had no spatial context (where *is* Liberty Village?)
+2. Had no spatial context (where _is_ Liberty Village?)
 3. Needed a map anyway (to show results)
 4. Added OpenAI API calls (extra latency, extra cost)
 5. Could miss entities ("pool" not detected)
 6. Required two API keys (OpenAI + Repliers)
 
 Meanwhile, my existing map-listings component had:
+
 - Visual map exploration
 - Click-to-filter
 - Immediate feedback
@@ -229,11 +236,12 @@ I created a rough proof-of-concept combining the AI input with a map. And immedi
 **The map was the interface.** Not the search box.
 
 Users wanted to:
-- See *where* properties are
-- Explore *visually*
-- Refine *spatially*
 
-The search box should *enhance* the map, not replace it.
+- See _where_ properties are
+- Explore _visually_
+- Refine _spatially_
+
+The search box should _enhance_ the map, not replace it.
 
 ---
 
@@ -264,30 +272,33 @@ It hurt. But it was necessary.
 ### 1. You Can't Polish a Fundamentally Flawed UX
 
 I tried two major refactors:
+
 - January 8th: Make it complete and robust
 - January 14th: Make it subtle and elegant
 
-Both missed the point. The problem wasn't *how* the AI features were presented. It was that text-based search doesn't work for spatial, exploratory tasks.
+Both missed the point. The problem wasn't _how_ the AI features were presented. It was that text-based search doesn't work for spatial, exploratory tasks.
 
 ### 2. Fighting Your Own UI Is a Code Smell
 
-When I wrote *"AI feels naturally integrated, not bolted on"* in my commit message, I was trying to convince myself.
+When I wrote _"AI feels naturally integrated, not bolted on"_ in my commit message, I was trying to convince myself.
 
 If you have to fight to make something feel natural, it's probably not the right approach.
 
 ### 3. Two APIs Are Worse Than One
 
 The architecture required:
+
 - OpenAI for entity extraction
 - Repliers NLP for search
 
-But Repliers NLP *already does entity extraction*. I was adding complexity for no benefit.
+But Repliers NLP _already does entity extraction_. I was adding complexity for no benefit.
 
 Later, I'd discover that Repliers NLP even returns lat/long coordinates. I could have saved myself a week of work by just... reading the API response more carefully.
 
 ### 4. Deleted Code Is Progress
 
 Those 2,016 deleted lines weren't wasted effort. They taught me:
+
 - What doesn't work
 - Why it doesn't work
 - What would work instead
