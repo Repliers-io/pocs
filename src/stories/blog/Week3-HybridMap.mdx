@@ -1,6 +1,6 @@
-import { Meta } from '@storybook/blocks';
+import { Meta } from "@storybook/blocks";
 
-<Meta title="Blog & Writing/Finding the Hybrid (The Breakthrough)" />
+<Meta title="Blog & Writing/3. Finding the Hybrid" />
 
 # Finding the Hybrid: NLP-Powered Map Search
 
@@ -10,11 +10,35 @@ import { Meta } from '@storybook/blocks';
 
 It was late on January 23rd when I created the rough proof-of-concept. Just the AI search input next to a map. No polish, just the two pieces side-by-side to see how they felt together.
 
-And suddenly, it clicked.
+Honestly? I didn't expect much. I'd already tried conversational UI (tedious). I'd tried AI-powered search input (gimmicky). This was probably going to be another dead end.
 
-The map wasn't *showing results from the search*. The map **was the search**. The NLP input wasn't the interface - it was a shortcut *into* the interface.
+But I opened the component anyway, typed "3 bedroom condo in Liberty Village," and watched what happened.
 
-Within a week, I'd rewritten the entire thing from scratch. The commit on January 29th tells the story:
+The map moved. Centered on Liberty Village. The filters updated. Properties appeared.
+
+And I just... stared at it.
+
+Something felt different. Not the "oh this is clever" different. The "oh, _this_ is how it should work" different.
+
+But I didn't trust it yet. I'd been wrong twice before. The chatbot _felt_ right at first. The AI search input _seemed_ elegant. Why would this be any different?
+
+So I sat there, staring at the proof-of-concept, trying to figure out what was wrong with it.
+
+And I couldn't find anything.
+
+---
+
+## The Realization (That I Didn't Want to Believe)
+
+Here's the thing: I didn't want to rewrite everything _again_.
+
+I'd already deleted the chatbot approach. I'd already deleted 2,016 lines from the AI search input. And now I was looking at another complete rewrite?
+
+But the proof-of-concept kept nagging at me. Every time I used it, it just... worked. Type. Map moves. Filters update. Refine visually.
+
+Fast. Intuitive. No friction.
+
+On January 29th, I gave in and committed the rewrite:
 
 ```bash
 feat: add AI-powered map listings component with NLP search
@@ -24,28 +48,33 @@ feat: add AI-powered map listings component with NLP search
 
 **8,626 lines added. 2,016 deleted.**
 
-This is that story.
+This better be worth it.
 
 ---
 
-## The Insight: Maps Are For Exploring
+## What I Missed (Twice)
 
-Property search is fundamentally spatial. When someone says "I want to live in Liberty Village," they're not describing a database query - they're describing a *place*.
+Property search is fundamentally spatial. When someone says "I want to live in Liberty Village," they're not describing a database query - they're describing a _place_.
 
 And places are best understood visually.
 
+This seems obvious now. But I'd spent three months trying to make natural language the _primary_ interface. Chat. Then AI search input. Both trying to make typing the main interaction.
+
+I'd been solving the wrong problem.
+
 Think about how you'd actually search for a home:
+
 - Open a map
 - Look around a neighborhood
 - See what's available
 - Zoom in on interesting areas
 - Filter down to what you can afford
 
-The map isn't a *result visualization*. It's the primary interface.
+The map isn't a _result visualization_. It's the primary interface.
 
 So what role does natural language play?
 
-**Getting you there fast.**
+**Getting you there fast.** That's it. Not replacing the map. Not being the interface. Just... a shortcut.
 
 ---
 
@@ -73,9 +102,13 @@ Hybrid.
 
 ---
 
-## The Implementation: Location Intelligence
+## The Implementation: Actually Reading the Docs
 
-The breakthrough came from actually reading the Repliers NLP API response. Here's what it returns:
+The breakthrough came from actually reading the Repliers NLP API response.
+
+I know. Embarrassing. I'd been using this API for months and apparently hadn't looked closely at what it returned.
+
+Here's what it gives you:
 
 ```json
 {
@@ -98,7 +131,9 @@ The breakthrough came from actually reading the Repliers NLP API response. Here'
 
 **The API already gives you lat/long, boundaries, and zoom level.**
 
-I'd been planning to call a separate geocoding API. But it was right there in the response. I just needed to extract it:
+I'd been planning to add a separate Mapbox geocoding call. I'd even roughed out the code for it. But the data was already sitting there in the NLP response.
+
+How many hours had I wasted over-engineering when the solution was already there?
 
 ```typescript
 /**
@@ -111,22 +146,30 @@ export function extractLocationFromNLP(response: NLPResponse) {
   if (!location) return null;
 
   return {
-    center: location.center,           // [lat, lng]
-    boundaries: location.geometry,     // GeoJSON polygon
-    zoom: location.zoom || 14,         // Recommended zoom level
-    name: location.name,               // "Liberty Village"
-    type: location.type                // "neighborhood"
+    center: location.center, // [lat, lng]
+    boundaries: location.geometry, // GeoJSON polygon
+    zoom: location.zoom || 14, // Recommended zoom level
+    name: location.name, // "Liberty Village"
+    type: location.type, // "neighborhood"
   };
 }
 ```
 
 One API call. Everything you need to center the map perfectly.
 
+I could have saved myself a week of work if I'd just read the API response carefully from the start.
+
 ---
 
 ## Building SearchFeedback: Showing Your Work
 
 Here's the thing about AI-powered features: users don't trust them unless you show what the AI understood.
+
+I learned this the hard way. The initial version didn't have the SearchFeedback component. Users would type something, the map would move, and they'd just... sit there, confused.
+
+"Did it work? What's it searching for? Why am I seeing these results?"
+
+Right. Show your work.
 
 So I built a SearchFeedback component that displays the interpretation:
 
@@ -137,21 +180,17 @@ export function SearchFeedback({ prompt, url, summary, filters }) {
     { label: "Neighborhood", value: "Liberty Village", icon: <MapPin /> },
     { label: "Bedrooms", value: "3", icon: <Bed /> },
     { label: "Property Type", value: "Condo", icon: <Home /> },
-    { label: "Price", value: "Under $800,000", icon: <DollarSign /> }
+    { label: "Price", value: "Under $800,000", icon: <DollarSign /> },
   ];
 
   return (
     <div className="search-feedback">
-      <div className="prompt">
-        You searched: "{prompt}"
-      </div>
+      <div className="prompt">You searched: "{prompt}"</div>
 
-      <div className="interpretation">
-        {summary}
-      </div>
+      <div className="interpretation">{summary}</div>
 
       <div className="captured-criteria">
-        {captured.map(item => (
+        {captured.map((item) => (
           <div className="criterion">
             {item.icon} {item.label}: {item.value}
           </div>
@@ -199,20 +238,20 @@ export function parseNLPUrl(url: string): Partial<MapFilters> {
   const filters: Partial<MapFilters> = {};
 
   // Property Type
-  const propertyType = params.get('propertyType');
+  const propertyType = params.get("propertyType");
   if (propertyType) {
-    filters.propertyTypes = propertyType.split(',').map(t => t.trim());
+    filters.propertyTypes = propertyType.split(",").map((t) => t.trim());
   }
 
   // Bedrooms
-  const minBeds = params.get('minBeds');
+  const minBeds = params.get("minBeds");
   if (minBeds) {
     const value = parseInt(minBeds);
-    filters.bedrooms = value >= 5 ? '5+' : value.toString();
+    filters.bedrooms = value >= 5 ? "5+" : value.toString();
   }
 
   // Price Range
-  const maxPrice = params.get('maxPrice');
+  const maxPrice = params.get("maxPrice");
   if (maxPrice) filters.maxPrice = parseInt(maxPrice);
 
   return filters;
@@ -220,6 +259,7 @@ export function parseNLPUrl(url: string): Partial<MapFilters> {
 ```
 
 Now when the NLP search completes:
+
 1. Parse the URL into filter state
 2. Update the UI filters to match
 3. User sees exactly what criteria are active
@@ -235,8 +275,7 @@ I kept the familiar chat interface pattern for the input, but made it clear this
 <SearchPanel>
   {!hasSearched && (
     <InspirationChips>
-      Try: "3br condo in Liberty Village"
-      Or: "House under 800k near Queen West"
+      Try: "3br condo in Liberty Village" Or: "House under 800k near Queen West"
     </InspirationChips>
   )}
 
@@ -264,11 +303,15 @@ Each search is independent - no conversation history. Because property search is
 
 ---
 
-## February 1st: The Optimization
+## February 1st: The Embarrassing Optimization
 
-The initial implementation worked, but I was still calling the Locations API separately for geocoding. Then I realized: the NLP response already includes location data.
+The initial implementation worked, but I was still calling the Locations API separately for geocoding.
 
-The optimization commit from February 1st:
+Let me say that again: I'd already discovered the NLP response contained location data. I'd extracted it. I'd used it to center the map.
+
+And I was _still_ making a separate geocoding call out of habit.
+
+On February 1st, I finally noticed:
 
 ```bash
 feat: optimize NLP response usage and add search feedback UI
@@ -290,6 +333,8 @@ Benefits:
 From two API calls (NLP + Locations) down to one (NLP only).
 
 Sometimes the best optimization is just... reading the response more carefully.
+
+Or, you know, reading it at all.
 
 ---
 
@@ -318,6 +363,7 @@ ai-map-listings/
 ```
 
 Each piece has a clear responsibility:
+
 - **SearchPanel**: Handles NLP input and feedback
 - **FilterSections**: Traditional filter UI
 - **useNLPSearch**: Manages NLP API calls and state
@@ -326,13 +372,14 @@ Each piece has a clear responsibility:
 
 ---
 
-## What Makes It Work
+## What Makes It Work (I Think)
 
-Four key decisions:
+Looking back, I can identify four decisions that mattered. Though honestly, half of these were accidents:
 
 ### 1. NLP Is Enhancement, Not Replacement
 
 The map works perfectly without any NLP search. Users can:
+
 - Pan around the map
 - Click filters
 - Explore visually
@@ -344,6 +391,7 @@ NLP is just a faster way to express initial intent.
 No conversation history. No nlpId persistence between searches.
 
 Why? Because users want to try different things:
+
 - "3br in Liberty Village" → see results
 - "Actually, show me High Park" → fresh search
 - "What about 2br?" → fresh search
@@ -353,6 +401,7 @@ Exploration is non-linear. Don't force it into a conversational flow.
 ### 3. Show the Interpretation
 
 The SearchFeedback component is crucial. It answers:
+
 - Did the AI understand correctly?
 - What criteria are active?
 - What got missed?
@@ -362,6 +411,7 @@ Transparency builds trust.
 ### 4. Visual Refinement > Typed Refinement
 
 After the initial NLP search, users refine with:
+
 - Price sliders
 - Bedroom buttons
 - Property type checkboxes
@@ -377,7 +427,7 @@ Here's the full flow:
 
 **User types**: "3 bedroom condo in Liberty Village under 800k"
 
-*[500ms later, NLP parses]*
+_[500ms later, NLP parses]_
 
 **Map**: Smoothly centers on Liberty Village
 **Filters**: Update to 3 beds, Condo, $800k max
@@ -418,27 +468,31 @@ No separate geocoding call. One API request. Clean.
 
 ---
 
-## What I Learned
+## What I Learned (The Hard Way)
 
 ### Maps > Chat for Spatial Tasks
 
-Property search is inherently spatial. Fighting this with chat or text-based interfaces adds friction.
+Property search is inherently spatial. Took me three months and two failed approaches to figure that out.
 
-### Read the API Response
+### Read the API Response (Seriously, Read It)
 
-I almost added a separate Locations API call for geocoding. The data was already in the NLP response. Always read the full response.
+I almost added a separate Locations API call for geocoding. The data was already in the NLP response, staring me in the face.
+
+RTFM isn't just for beginners.
 
 ### Show Your Work
 
-The SearchFeedback component isn't just nice-to-have - it's essential for AI features. Users need to see what the AI understood.
+The SearchFeedback component wasn't in my original plan. Users were confused without it. Another thing I should have anticipated but didn't.
 
 ### Hybrid Beats Pure
 
-Not AI-only. Not traditional-only. Both. Let users choose their path.
+Not AI-only. Not traditional-only. Both. Turns out users don't want to be forced into a single interaction model. Who knew? (Everyone. Everyone knew this.)
 
 ### Delete Without Guilt
 
 Those 2,016 deleted lines from the AI Search Input? They taught me what doesn't work, which informed what does.
+
+Still hurt to delete them though.
 
 ---
 
@@ -447,6 +501,7 @@ Those 2,016 deleted lines from the AI Search Input? They taught me what doesn't 
 [AI Map Listings Component](/?path=/story/pocs-ai-map-listings--default)
 
 Try these searches:
+
 - "3 bedroom condo in Liberty Village"
 - "House under 800k in Leslieville"
 - "2br apartment near Queen West"

@@ -1,0 +1,432 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Blog & Writing/4. Pondering on NLP Experimentation" />
+
+# Pondering on NLP Experimentation
+
+**November 2024 - February 2026** · 12 min read
+
+---
+
+Three months. Three major approaches. Two complete rewrites. 2,016 lines of deleted code.
+
+And one working solution.
+
+I opened my git history the other day to write this post. Scrolling through the commits felt like reading a diary of bad decisions:
+
+```bash
+Nov 24: feat(chatbot): add initial chatbot PoC shell component
+Dec 2:  feat(chatbot): Add MCP server integration (88 packages)
+Dec 23: refactor(chatbot): Complete UI redesign
+Jan 6:  feat(components): Add AISearchInput component
+Jan 8:  feat(ai-search): Add complete AI-powered property search
+Jan 14: feat: refactor AISearchInput for subtle AI-assisted suggestions
+Jan 23: poc update: AISearch + Map
+Jan 29: feat: add AI-powered map listings (8,626 insertions, 2,016 deletions)
+Feb 1:  feat: optimize NLP response usage and add search feedback UI
+```
+
+Each commit message so confident. So sure this time would work.
+
+Spoiler: most of them didn't.
+
+But I learned more from what failed than what succeeded. Here's what three months of experimentation taught me.
+
+---
+
+## The Technology Trap
+
+I spent the first month building a chatbot because ChatGPT was everywhere in late 2025. Everyone was adding conversational UI. It seemed like the future.
+
+I didn't ask "do users need this?" I asked "how can I use this cool tech?"
+
+Wrong question.
+
+The real question should have been: **How do people actually search for homes?**
+
+They don't want to have a conversation. They want to see a map, explore visually, and refine spatially. Property search is about _place_, not dialogue.
+
+But I was so excited about the technology - ChatGPT, MCP Server integration, function calling - that I let it dictate the interface. I built what was technically impressive instead of what was actually useful.
+
+The hybrid map solution worked because I finally asked what users needed first, then chose technology to support that. Not the other way around.
+
+---
+
+## When I Finally Understood Intent
+
+"Book a flight to NYC next Thursday."
+
+That's a good use case for conversational UI. It's linear. Goal-oriented. You know what you want.
+
+But property search?
+
+"I want a 3 bedroom condo in Liberty Village under $800k. Actually, maybe High Park? Or what if I went up to $850k? Wait, show me houses too."
+
+That's not a conversation. That's exploration. Discovery. "I'll know it when I see it."
+
+I tried to force exploratory tasks into a conversational model. It's like shopping for clothes over the phone - technically possible, but why would you want to?
+
+The chatbot made me type out every refinement. "Actually, can you show me 2 bedrooms instead?" The AI search input still required articulating preferences I hadn't formed yet.
+
+The map let me just... look. Pan around. See what's available. Adjust on the fly.
+
+Different tasks need different interaction models. Took me three months to figure that out.
+
+---
+
+## 88 Packages and a Month I'll Never Get Back
+
+December 2nd. I hit commit on the MCP server integration.
+
+88 packages. Full orchestration between ChatGPT, function calling, and the Repliers API. The architecture was beautiful. Optional MCP. Graceful fallbacks. Zero-setup Storybook demos.
+
+I remember writing the commit message with genuine pride.
+
+And then users started actually trying it.
+
+The feedback was clear: the chatbot was tedious. The back-and-forth conversation slowed them down. They'd rather just click dropdowns.
+
+But I'd invested weeks. 88 packages. All that architecture. Surely I could _fix_ the UX without throwing it all away?
+
+So I spent another month trying to make the chatbot paradigm work. Better prompts. Smarter conversation flow. UI tweaks.
+
+It took until January 6th - over a month later - to even try a different approach.
+
+The code was good. The architecture was sound. But I was solving the wrong problem, and all the clean code in the world couldn't fix that.
+
+Sunk cost fallacy is real. And I fell for it completely.
+
+---
+
+## The Moment I Actually Watched Someone Use It
+
+I tested the AI search input extensively. Worked great. Type "3 bedroom condo," entity chips appear, click search, done. Smooth!
+
+Then I showed it to someone.
+
+They typed "3 bedroom condo Liberty Village." The entity chips appeared.
+
+They stared at the chips.
+
+"Now what?"
+
+"Click search!"
+
+"Why? I could have just clicked dropdowns for bedrooms and property type. This seems like extra steps."
+
+Oh.
+
+I'd been testing by using the components myself. And because I built them, I knew exactly how they were supposed to work. The interaction model made perfect sense to me.
+
+But watching someone else revealed all the friction I'd been blind to. The confusion. The impatience. The "why am I typing when clicking is faster?"
+
+The components worked technically. But users didn't need what they provided.
+
+---
+
+## That Commit Message I Wish I Could Delete
+
+January 14th. I was refactoring the AI search input for the second time.
+
+The entity chips felt jarring. They'd pop in suddenly, changing the whole UI. Users said it was distracting.
+
+So I rewrote it to be "subtle." The commit message said:
+
+> "Benefits: AI feels naturally integrated, not bolted on. Users may not even notice AI is helping (good design)."
+
+I wrote that. Actually wrote "users may not even notice AI is helping" and thought it was a _good thing_.
+
+If users don't notice the AI is helping... what's the point of the AI?
+
+I was fighting my own UI, trying to make something fundamentally flawed feel natural through clever design tricks. Removing the jarring transitions. Making it subtle. Hiding the AI.
+
+When you're optimizing for "users won't notice your feature exists," you're not fixing a UX problem. You're admitting the feature shouldn't exist.
+
+---
+
+## The Data That Was There All Along
+
+I was planning my implementation. Three API calls:
+
+1. NLP API to parse the query
+2. Locations API to geocode "Liberty Village"
+3. Listings API to get properties
+
+Straightforward. Standard. I'd even started writing the geocoding logic.
+
+Then I actually looked at the NLP API response:
+
+```json
+{
+  "search_url": "https://api.repliers.io/listings?...",
+  "summary": "3 bedroom condos in Liberty Village under $800,000",
+  "locations": [
+    {
+      "name": "Liberty Village",
+      "center": [43.639, -79.403],
+      "zoom": 14,
+      "geometry": { "type": "Polygon", "coordinates": [...] }
+    }
+  ]
+}
+```
+
+Wait.
+
+It already returns coordinates. And zoom level. And boundaries.
+
+I'd been using this API for months and somehow missed that the location data was right there.
+
+One API call instead of three. The smooth map-centering that makes the hybrid approach work? Only possible because the API design included everything needed.
+
+If the NLP response had only returned a search URL, I'd have needed that geocoding step. More latency. More complexity. Worse UX.
+
+Good API design enables good user experience. I just wish I'd read the documentation more carefully from the start.
+
+---
+
+## The Component I Almost Didn't Build
+
+The hybrid map was working. Type a query, map centers, filters populate. Done.
+
+I showed it to someone.
+
+They typed "3br condo in Liberty Village." The map moved. Properties appeared.
+
+They stared at the screen.
+
+"Did it work?"
+
+"Yeah, see the map moved to Liberty Village."
+
+"Oh. I thought it was just loading."
+
+Right. They had no idea what the AI understood. No feedback. No transparency. Just... stuff happened.
+
+So I added the SearchFeedback component. Almost as an afterthought, on February 1st after the main implementation.
+
+```tsx
+<SearchFeedback
+  prompt="3br condo in Liberty Village under 800k"
+  summary="3 bedroom condos in Liberty Village under $800,000"
+  captured={[...]}
+/>
+```
+
+Shows what the AI parsed. What criteria it captured. What it might have missed.
+
+The reaction changed immediately.
+
+**Before:** "Did it work? What's it searching for?"
+
+**After:** "Oh, it got everything. Cool."
+
+One small component. Changed the entire perception of the feature.
+
+Transparency builds trust. Especially with AI.
+
+---
+
+## Why Hybrid Worked When Pure Didn't
+
+The chatbot was pure conversational. Failed.
+
+The AI search input was pure natural language. Failed.
+
+The hybrid map is... both. And it works.
+
+Users can type "3br in Liberty Village" if they know what they want. Or they can just pan around the map exploring neighborhoods. Or they can click price sliders and property type filters. Or all three.
+
+No forced workflow. No "you must use the AI" or "you must use traditional filters."
+
+I spent two months trying to make users interact with my interface the "right way." Conversational. Then natural language. Each time, forcing a single path.
+
+The hybrid approach finally gave up on forcing anything. Want to type? Type. Want to click? Click. Want to explore visually? Explore.
+
+Turns out users like having options. Who knew?
+
+(Everyone. Again, everyone knew this.)
+
+---
+
+## How Three Months Feels Both Long and Short
+
+Three months to get it right feels like forever when you're in it.
+
+But looking back, the pace wasn't actually slow. Each failed approach taught me something:
+
+- Chatbot taught me: conversational UI is wrong for exploratory tasks
+- AI search input taught me: text-based is still too tedious
+- Hybrid map taught me: maps first, NLP second
+
+Without the failures, I wouldn't have known what to build.
+
+Storybook helped. Being able to rapidly deploy and test components meant I could fail faster. Git history became my design diary - every commit a decision, a pivot, or a realization.
+
+Still. Three months. Two complete rewrites. A lot of deleted code.
+
+Could I have gotten there faster? Maybe. But I'm not sure how.
+
+---
+
+## 2,016 Lines I'll Never Get Back (But Don't Regret)
+
+January 29th. The commit that deleted everything.
+
+```
+ 46 files changed, 8,626 insertions(+), 2,016 deletions(-)
+```
+
+2,016 lines gone. The AI Search Input. The entity extraction. The progressive enhancement logic. The subtle suggestions refactor. All those hours of careful work.
+
+I hovered over the commit button for a while.
+
+Then I clicked it.
+
+It hurt. Not gonna lie. All that code. All those careful design decisions. The clever debouncing. The entity chip animations. Gone.
+
+But those 2,016 lines taught me things I needed to know:
+
+- Entity chips feel gimmicky (learned it)
+- Text-based search is tedious (learned it)
+- No spatial context is a dealbreaker (learned it)
+
+Failed code is successful learning. Even if it doesn't feel that way when you're hitting delete.
+
+---
+
+## The Simplicity I Couldn't See at First
+
+The chatbot had:
+
+- ChatGPT orchestration
+- MCP Server integration (88 packages!)
+- Function calling
+- OpenAI API
+- Repliers NLP API
+
+The AI Search Input had:
+
+- OpenAI entity extraction
+- Repliers NLP
+- Entity chips
+- Debounced parsing
+
+The hybrid map has:
+
+- Repliers NLP (one API)
+- Map interface (already existed)
+- SearchFeedback component
+
+The final solution is simpler. Fewer moving parts. Fewer dependencies. Fewer things to break.
+
+But I couldn't have started there. I had to go through the complexity to learn what to remove. Each failed experiment stripped away something unnecessary.
+
+88 packages → one API.
+Multiple interaction models → one hybrid approach.
+Forced workflows → user choice.
+
+Sometimes you have to build the complicated thing to learn how to build the simple thing.
+
+---
+
+## What I'd Tell Someone Starting This Journey
+
+If you're building NLP into a product, here are the questions I wish I'd asked earlier:
+
+**What's the user's mental model?**
+
+I assumed property search was conversational because ChatGPT was hot. It's not. It's exploratory and spatial. I could have saved two months by asking this first.
+
+**What's the primary interface without AI?**
+
+For property search, it's a map. Always has been. The AI should enhance that, not replace it. I kept trying to make AI the primary interface when it should have been secondary.
+
+**Are you showing your work?**
+
+The SearchFeedback component changed everything. Users need to see what the AI understood. Transparency builds trust. I almost didn't build it.
+
+**Are you actually reading the API response?**
+
+I almost added a separate geocoding API because I didn't notice the NLP response already contained coordinates. Read the full response. Seriously.
+
+---
+
+## What I'd Want My PM to Know
+
+If you're working with someone building AI features, here's what would have helped me:
+
+**Question the interaction model early.** Just because ChatGPT works as chat doesn't mean every product needs chat. I chased the trend instead of the user need.
+
+**"Fighting the UI" is a warning sign.** When I wrote that commit about making the AI "feel natural" and "users won't notice," that was me admitting the approach was wrong. I just didn't realize it yet.
+
+**Budget for pivots.** First iterations usually solve for the wrong thing. I needed three attempts. That's not failure - that's learning. But it takes time.
+
+**Deleted code is progress.** Those 2,016 deleted lines represented weeks of work. But they enabled the right solution. That's valuable, even if it doesn't look like progress in a sprint review.
+
+---
+
+## The Artifacts
+
+All three approaches are in the codebase:
+
+**[Chatbot Component](/?path=/story/pocs-chatbot-real-estate-chatbot--default)**
+
+- The conversational approach
+- MCP Server integration
+- ChatGPT orchestration
+- Beautiful, but tedious
+
+**[AI Map Listings Component](/?path=/story/pocs-ai-map-listings--default)**
+
+- The hybrid solution
+- NLP + map interface
+- SearchFeedback component
+- Actually works
+
+**[Map Listings Component](/?path=/story/pocs-map-listings--default)**
+
+- The proven foundation
+- Traditional map interface
+- What I built the hybrid on top of
+
+Try them all. See the evolution. Learn from the failures.
+
+---
+
+## What I Still Want to Explore
+
+These posts documented the journey. But there are deeper technical dives I'm curious about:
+
+- MCP Server integration (even if I ended up not using it)
+- OpenAI function calling patterns
+- Natural language parsing into structured queries
+- Building user trust in AI features
+
+Maybe I'll write about those. Or maybe I'll build something else and make completely different mistakes.
+
+Either way, I'll probably learn something.
+
+---
+
+## The Thing I Should Have Known From the Start
+
+Three months. Three complete rewrites. 2,016 deleted lines.
+
+And the lesson is embarrassingly simple:
+
+**Technology should serve the user's mental model, not the other way around.**
+
+ChatGPT is amazing. NLP is powerful. Entity extraction is elegant.
+
+But property search is spatial and exploratory. Has been forever. Maps are the right interface. NLP should enhance that, not replace it.
+
+I knew this. Somewhere, I knew this. But I got so excited about the technology that I forgot to ask what users actually needed.
+
+Won't make that mistake again.
+
+(Probably will make completely different mistakes instead.)
+
+---
+
+**Previous**: [← Week 3: Finding the Hybrid](#)
