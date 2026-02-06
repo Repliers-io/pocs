@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 // Type imports
@@ -43,8 +45,11 @@ export function AIMapListings({
 }: AIMapListingsProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const drawInstance = useRef<MapboxDraw | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+  const [drawnPolygon, setDrawnPolygon] = useState<number[][][] | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(
     initialCenter || null
@@ -97,6 +102,79 @@ export function AIMapListings({
       });
     }
   }, []);
+
+  // Polygon change callback ref (set by SearchPanel)
+  const onPolygonChangeRef = useRef<((action: 'create' | 'update' | 'delete', polygon: number[][][] | null) => void) | null>(null);
+
+  // Set polygon change callback from SearchPanel
+  const setPolygonChangeCallback = useCallback((callback: (action: 'create' | 'update' | 'delete', polygon: number[][][] | null) => void) => {
+    onPolygonChangeRef.current = callback;
+  }, []);
+
+  // Draw event handlers
+  const handleDrawCreate = useCallback((e: any) => {
+    const feature = e.features[0];
+    if (feature && feature.geometry.type === "Polygon") {
+      const coordinates = feature.geometry.coordinates;
+      setDrawnPolygon(coordinates);
+      setIsDrawing(false); // Drawing completed
+      onPolygonChangeRef.current?.('create', coordinates);
+    }
+  }, []);
+
+  const handleDrawUpdate = useCallback((e: any) => {
+    const feature = e.features[0];
+    if (feature && feature.geometry.type === "Polygon") {
+      const coordinates = feature.geometry.coordinates;
+      setDrawnPolygon(coordinates);
+      onPolygonChangeRef.current?.('update', coordinates);
+    }
+  }, []);
+
+  const handleDrawDelete = useCallback(() => {
+    setDrawnPolygon(null);
+    setIsDrawing(false); // Exit drawing mode
+    onPolygonChangeRef.current?.('delete', null);
+  }, []);
+
+  const enableDrawMode = useCallback(() => {
+    if (drawInstance.current) {
+      drawInstance.current.changeMode("draw_polygon");
+      setIsDrawing(true); // Enter drawing mode
+    }
+  }, []);
+
+  const cancelDrawMode = useCallback(() => {
+    if (drawInstance.current) {
+      drawInstance.current.changeMode("simple_select");
+      setIsDrawing(false); // Exit drawing mode
+    }
+  }, []);
+
+  const clearPolygon = useCallback(() => {
+    if (drawInstance.current) {
+      drawInstance.current.deleteAll();
+      setDrawnPolygon(null);
+      setIsDrawing(false);
+    }
+  }, []);
+
+  const handleClearPolygon = useCallback(() => {
+    clearPolygon();
+    onPolygonChangeRef.current?.('delete', null);
+  }, [clearPolygon]);
+
+  // Update filters when polygon changes
+  useEffect(() => {
+    if (drawnPolygon) {
+      setFilters((prev) => ({ ...prev, map: drawnPolygon }));
+    } else {
+      setFilters((prev) => {
+        const { map, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, [drawnPolygon]);
 
   // Clear existing price markers
   const clearPriceMarkers = useCallback(() => {
@@ -578,8 +656,8 @@ export function AIMapListings({
           const queries = activeStatuses.map(({ type, value }) => {
             const queryParams = buildStatusQueryParams(type, value, zoom);
 
-            // Add the map polygon to each query
-            queryParams.map = boundsToPolygon(bounds);
+            // Add the map polygon to each query (use drawn polygon if exists, otherwise use bounds)
+            queryParams.map = filters.map || boundsToPolygon(bounds);
 
             return queryParams;
           });
@@ -649,8 +727,9 @@ export function AIMapListings({
             }
           });
 
-          // Add common parameters
-          url.searchParams.set("map", JSON.stringify(boundsToPolygon(bounds)));
+          // Add common parameters (use drawn polygon if exists, otherwise use bounds)
+          const mapPolygon = filters.map || boundsToPolygon(bounds);
+          url.searchParams.set("map", JSON.stringify(mapPolygon));
           url.searchParams.set("key", apiKey);
 
           // At very high zoom (18+), disable clustering entirely to get individual listings only
@@ -1079,6 +1158,62 @@ export function AIMapListings({
       // Add navigation controls (zoom in/out buttons)
       map.current.addControl(new mapboxgl.NavigationControl());
 
+      // Initialize Mapbox Draw for polygon drawing
+      drawInstance.current = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: false,
+          trash: false,
+        },
+        styles: [
+          {
+            id: "gl-draw-polygon-fill",
+            type: "fill",
+            filter: ["all", ["==", "$type", "Polygon"]],
+            paint: {
+              "fill-color": "#6366f1",
+              "fill-opacity": 0.15,
+            },
+          },
+          {
+            id: "gl-draw-polygon-stroke-active",
+            type: "line",
+            filter: ["all", ["==", "$type", "Polygon"], ["==", "active", "true"]],
+            paint: {
+              "line-color": "#6366f1",
+              "line-width": 2,
+            },
+          },
+          {
+            id: "gl-draw-polygon-stroke-inactive",
+            type: "line",
+            filter: ["all", ["==", "$type", "Polygon"], ["==", "active", "false"]],
+            paint: {
+              "line-color": "#6366f1",
+              "line-width": 2,
+            },
+          },
+          {
+            id: "gl-draw-polygon-and-line-vertex-active",
+            type: "circle",
+            filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"]],
+            paint: {
+              "circle-radius": 5,
+              "circle-color": "#fff",
+              "circle-stroke-color": "#6366f1",
+              "circle-stroke-width": 2,
+            },
+          },
+        ],
+      });
+
+      map.current.addControl(drawInstance.current);
+
+      // Event handlers for draw
+      map.current.on("draw.create", handleDrawCreate);
+      map.current.on("draw.update", handleDrawUpdate);
+      map.current.on("draw.delete", handleDrawDelete);
+
       // Add source for listings
       map.current.addSource("listings", {
         type: "geojson",
@@ -1378,12 +1513,17 @@ export function AIMapListings({
         className="rounded-lg overflow-hidden"
       />
 
-      {/* Search Panel (Floating) */}
+      {/* Search Panel (Floating) with integrated draw controls */}
       <SearchPanel
         filters={filters}
         onFiltersChange={handleFiltersChange}
         apiKey={apiKey}
         onMapUpdate={handleMapUpdate}
+        onDrawStart={enableDrawMode}
+        onDrawClear={handleClearPolygon}
+        onCancelDraw={cancelDrawMode}
+        hasPolygon={!!drawnPolygon}
+        isDrawing={isDrawing}
       />
 
       {/* Property Count Display */}

@@ -193,3 +193,18 @@ export interface FilterPanelProps {
   onFiltersChange: (filters: MapFilters) => void;
   apiKey: string;
 }
+
+export interface ActivityLogEntry {
+  id: string;
+  timestamp: Date;
+  type: 'search' | 'understood' | 'update' | 'status' | 'polygon';
+  data: {
+    query?: string;
+    summary?: string;
+    filters?: Partial<MapFilters>;
+    message?: string;
+    polygon?: number[][][];
+    updateField?: string;
+    updateValue?: any;
+  };
+}

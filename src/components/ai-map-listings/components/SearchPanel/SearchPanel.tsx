@@ -1,14 +1,15 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { SearchInput } from "./SearchInput";
-import { SearchFeedback } from "./SearchFeedback";
+import { ActivityLog } from "./ActivityLog";
 import type { SearchPanelProps } from "./types";
+import type { ActivityLogEntry } from "../../types";
 import { useNLPSearch } from "../../hooks/useNLPSearch";
 import { parseNLPUrl, extractNLPSummary, extractLocationFromNLP } from "../../utils/nlp-parser";
 import { BedroomBathroomFilter } from "../FilterSections/BedroomBathroomFilter";
 import { PropertyTypeFilter } from "../FilterSections/PropertyTypeFilter";
 import { PriceRangeFilter } from "../filters/PriceRangeFilter";
 import { SquareFootageFilter } from "../filters/SquareFootageFilter";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles, Pencil, Ban } from "lucide-react";
 
 const SAMPLE_SEARCHES = [
   "2 bedroom 2 bath condo in rosedale",
@@ -22,20 +23,50 @@ export function SearchPanel({
   onSearch,
   apiKey,
   onMapUpdate,
+  onPolygonChange,
+  onDrawStart,
+  onDrawClear,
+  onCancelDraw,
+  hasPolygon = false,
+  isDrawing = false,
 }: SearchPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [lastSearchResult, setLastSearchResult] = useState<{
-    prompt: string;
-    url: string;
-    summary: string;
-    filters: any;
-  } | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const { processSearch, isProcessing, error, resetNlpId } =
     useNLPSearch(apiKey);
+
+  // Add log entry
+  const addLogEntry = useCallback((
+    type: ActivityLogEntry['type'],
+    data: ActivityLogEntry['data']
+  ) => {
+    const entry: ActivityLogEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      type,
+      data,
+    };
+    setActivityLog((prev) => {
+      // If adding an 'understood' entry, remove any 'status' (loading) entries
+      const filteredLog = type === 'understood'
+        ? prev.filter(e => e.type !== 'status')
+        : prev;
+
+      const newLog = [...filteredLog, entry];
+      // Keep last 100 entries
+      return newLog.slice(-100);
+    });
+  }, []);
+
+  // Handle polygon change events from map (called by parent AIMapListings)
+  useEffect(() => {
+    // This effect ensures the callback stays fresh with current addLogEntry
+    // The actual callback invocation happens from AIMapListings
+  }, [onPolygonChange, addLogEntry]);
 
   // Reset NLP session when user starts typing a new search
   const handleSearchQueryChange = (value: string) => {
@@ -43,10 +74,6 @@ export function SearchPanel({
     // Reset NLP session to start fresh (prevents mixing old/new location data)
     if (value !== searchQuery) {
       resetNlpId();
-      // Clear previous search feedback when user starts typing
-      if (lastSearchResult && value !== lastSearchResult.summary) {
-        setLastSearchResult(null);
-      }
     }
   };
 
@@ -96,6 +123,20 @@ export function SearchPanel({
     if (queryOverride) {
       setSearchQuery(queryOverride);
     }
+
+    // Log the search
+    addLogEntry('search', { query });
+
+    // Log processing status with a fun message
+    const funMessages = [
+      'Crunching the numbers...',
+      'Consulting with the property spirits...',
+      'Asking the real estate gods...',
+      'Searching high and low...',
+      'Scouring the neighborhoods...',
+    ];
+    const randomMessage = funMessages[Math.floor(Math.random() * funMessages.length)];
+    addLogEntry('status', { message: randomMessage });
 
     const nlpResponse = await processSearch(query);
 
@@ -155,11 +196,9 @@ export function SearchPanel({
         setSearchQuery(summary);
       }
 
-      // Save search result for feedback display
-      setLastSearchResult({
-        prompt: query,
-        url: nlpResponse.request.url,
-        summary: summary,
+      // Log AI understanding
+      addLogEntry('understood', {
+        summary: summary || 'Search understood',
         filters: parsedFilters,
       });
 
@@ -187,15 +226,83 @@ export function SearchPanel({
         overflow: isExpanded ? "hidden" : "visible",
       }}
     >
-      {/* Search Input */}
-      <SearchInput
-        value={searchQuery}
-        onChange={handleSearchQueryChange}
-        onFocus={handleFocus}
-        onSearch={handleSearch}
-        isSearching={isProcessing}
-        placeholder="Search properties..."
-      />
+      {/* Search Input with Draw Controls */}
+      <div style={{ position: "relative" }}>
+        <SearchInput
+          value={searchQuery}
+          onChange={handleSearchQueryChange}
+          onFocus={handleFocus}
+          onSearch={handleSearch}
+          isSearching={isProcessing}
+          placeholder="Search properties..."
+        />
+
+        {/* Draw Controls - Top Right */}
+        {onDrawStart && (
+          <div
+            style={{
+              position: "absolute",
+              top: "12px",
+              right: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              alignItems: "center",
+            }}
+          >
+            {/* Pencil icon with Ban overlay when drawing or polygon exists */}
+            <button
+              onClick={isDrawing || hasPolygon ? (isDrawing ? onCancelDraw : onDrawClear) : onDrawStart}
+              disabled={isDrawing || hasPolygon ? false : false}
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "8px",
+                border: `1px solid ${isDrawing || hasPolygon ? '#fecaca' : '#e5e7eb'}`,
+                background: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 200ms",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                position: "relative",
+              }}
+              title={isDrawing ? "Cancel drawing" : hasPolygon ? "Clear custom search area" : "Draw custom search area on map"}
+              onMouseEnter={(e) => {
+                if (isDrawing || hasPolygon) {
+                  e.currentTarget.style.background = "#fef2f2";
+                  e.currentTarget.style.borderColor = "#f87171";
+                } else {
+                  e.currentTarget.style.background = "#f9fafb";
+                  e.currentTarget.style.borderColor = "#6366f1";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "white";
+                e.currentTarget.style.borderColor = isDrawing || hasPolygon ? "#fecaca" : "#e5e7eb";
+              }}
+            >
+              {/* Always show pencil */}
+              <Pencil size={16} color="#6366f1" />
+
+              {/* Overlay Ban icon when drawing or polygon exists */}
+              {(isDrawing || hasPolygon) && (
+                <Ban
+                  size={14}
+                  color="#ef4444"
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                  }}
+                />
+              )}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Error Display */}
       {error && (
@@ -226,7 +333,7 @@ export function SearchPanel({
         }}
       >
         {/* Sample Searches Section - Only show before first search */}
-        {!showFilters && !lastSearchResult && (
+        {!showFilters && activityLog.length === 0 && (
           <div>
             <div
               style={{
@@ -295,14 +402,12 @@ export function SearchPanel({
           </div>
         )}
 
-        {/* Search Feedback - Show after search is performed */}
-        {!showFilters && lastSearchResult && (
+        {/* Activity Log - Show after search is performed */}
+        {!showFilters && activityLog.length > 0 && (
           <div>
-            <SearchFeedback
-              prompt={lastSearchResult.prompt}
-              url={lastSearchResult.url}
-              summary={lastSearchResult.summary}
-              filters={lastSearchResult.filters}
+            <ActivityLog
+              entries={activityLog}
+              onChipClick={() => setShowFilters(true)}
             />
             <div
               style={{
