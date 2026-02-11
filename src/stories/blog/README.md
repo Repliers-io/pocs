@@ -6,11 +6,10 @@ This directory contains MDX files for blog posts and writing about the PoCs in t
 
 ### Published
 - `Week1-Chatbot.mdx` - First post in the NLP Search series (chatbot phase)
-
-### Drafts (not visible in Storybook)
-- `drafts/Week2-AISearch.mdx.draft` - Second post (AI search input phase)
-- `drafts/Week3-HybridMap.mdx.draft` - Third post (hybrid map solution)
-- `drafts/Week4-Lessons.mdx.draft` - Synthesis post with learnings
+- `Week2-AISearch.mdx` - Second post (AI search input phase)
+- `Week3-HybridMap.mdx` - Third post (hybrid map solution)
+- `Week4-Lessons.mdx` - Synthesis post with learnings
+- `Week5-MissingPieces.mdx` - Feature request: exposing what NLP didn't understand
 
 ## Planning Document
 
@@ -30,8 +29,7 @@ Navigate to: **Blog & Writing → Why I Built a Real Estate Chatbot...** (or any
 
 ## Current Status
 
-- **Published**: Week 1 (Chatbot post)
-- **Drafts**: Week 2-4 (will be released later)
+- **Published**: Week 1-5 (Complete NLP experimentation series)
 
 All posts are complete and written as narrative stories with embedded code snippets, commit references, and architectural decisions woven into the storytelling.
 
