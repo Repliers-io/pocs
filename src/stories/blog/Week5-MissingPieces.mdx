@@ -1,0 +1,545 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Blog & Writing/5. The Missing Pieces Problem" />
+
+# The Missing Pieces: When the API Can't Tell You What It Didn't Understand
+
+**February 2026** · 10 min read
+
+---
+
+The hybrid map search was working. Users could type natural language queries, watch the map center on their desired location, see filters populate automatically, then refine visually. It felt right.
+
+But something was off.
+
+I'd watch someone type "3 bedroom condo with pool in Liberty Village under 800k" and the map would move, the filters would update, and they'd just... sit there. Staring at the results with a confused look.
+
+"Did it get everything?" they'd ask.
+
+I'd look at the activity log. It showed what the NLP understood:
+- ✓ 3 bedrooms
+- ✓ Condo
+- ✓ Liberty Village
+- ✓ Under $800K
+
+"Yeah, looks good," I'd say.
+
+Then they'd scroll through the results. "But some of these don't have pools?"
+
+Oh.
+
+---
+
+## The Realization
+
+The NLP API didn't capture "pool." And the user had no way to know that without manually comparing their original query to the chips we showed them.
+
+**This is a transparency problem.**
+
+Not a UI problem. Not a UX problem. An information problem.
+
+The client can only show what the API tells it. And the API only tells us what it *understood*, not what it *didn't understand*.
+
+---
+
+## Attempt 1: The SearchFeedback Component
+
+My first instinct was to make the comparison easier for users:
+
+```jsx
+<SearchFeedback
+  prompt="3 bedroom condo with pool in Liberty Village"
+  summary="3 bedroom condos in Liberty Village"
+  filters={{ bedrooms: 3, propertyType: 'Condo', city: 'Liberty Village' }}
+/>
+```
+
+It rendered like this:
+
+```
+┌─────────────────────────────────────────────┐
+│  YOUR SEARCH                                │
+│  "3 bedroom condo with pool in Liberty      │
+│   Village"                                  │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│  UNDERSTOOD AS                              │
+│  "3 bedroom condos in Liberty Village"      │
+│                                             │
+│  [🛏️ 3 beds] [🏠 Condo] [📍 Liberty Village]│
+└─────────────────────────────────────────────┘
+
+⚠️ Use advanced filters to refine your search further
+```
+
+Better. Users could see both the original query and what was parsed.
+
+But they still had to do the mental diff. Look at "with pool" in their query. Look at the chips. Notice it's missing. Wonder if it matters.
+
+**Cognitive load transferred, not eliminated.**
+
+---
+
+## Attempt 2: The Activity Log
+
+I tried making it more conversational:
+
+```
+12:34 PM
+Searching for: "3 bedroom condo with pool in Liberty Village"
+
+12:34 PM
+I was able to process the following search criteria from your
+original prompt:
+
+[🛏️ Bedrooms: 3] [🏠 Type: Condo] [📍 City: Liberty Village]
+[💰 Price: Up to $800K]
+
+Click on a parameter to fine tune your search further →
+```
+
+More natural. More polished. Better animations.
+
+Same fundamental problem.
+
+The system was saying "I was able to process the following..." but not "I was *unable* to process: pool."
+
+---
+
+## The Client-Side Ceiling
+
+Here's what I receive from the Repliers NLP API when someone searches for "3 bedroom condo with pool in Liberty Village under 800k":
+
+```json
+{
+  "request": {
+    "url": "https://api.repliers.io/listings?bedrooms=3&propertyType=Condo&city=Liberty%20Village&maxPrice=800000",
+    "summary": "3 bedroom condos in Liberty Village under $800,000",
+    "locations": [{
+      "name": "Liberty Village",
+      "type": "neighborhood",
+      "map": {
+        "latitude": "43.639",
+        "longitude": "-79.403",
+        "boundary": [...]
+      }
+    }]
+  },
+  "nlpId": "abc123"
+}
+```
+
+I can parse this. I can show chips for bedrooms, property type, location, and price.
+
+**But I can't tell the user about "pool" because the API doesn't mention it.**
+
+The information gap is on the server side. The NLP engine knew it couldn't parse "pool" - it just didn't tell me.
+
+---
+
+## The Workarounds That Don't Work
+
+### **Generic Messaging**
+
+I tried adding helpful hints:
+
+- "Use advanced filters below to refine your search further"
+- "Click on a parameter to fine tune your search"
+
+**Problem**: These don't tell the user *what* needs refining. It's like a teacher saying "fix your essay" without marking what's wrong.
+
+### **Showing Everything**
+
+I considered showing *all* possible filter options that weren't used. Bedrooms? ✓. Bathrooms? ✗. Square footage? ✗. Garage? ✗. Pool? ✗.
+
+**Problem**: This creates noise. If someone searches "2 bedroom condo in Toronto," they don't need to see that we also didn't capture bathrooms, square footage, parking, waterfront, and 47 other possible criteria.
+
+### **Parsing the Prompt Myself**
+
+Could I parse the original prompt on the client and compare it to what the API returned?
+
+```javascript
+// DON'T DO THIS
+const detectMissing = (prompt, understood) => {
+  const amenities = ['pool', 'gym', 'parking', 'balcony', ...];
+  const missing = amenities.filter(a =>
+    prompt.toLowerCase().includes(a) &&
+    !understood.includes(a)
+  );
+  return missing;
+};
+```
+
+**Problem**: Now I'm maintaining my own NLP parser to detect gaps in the real NLP parser. I'd constantly be out of sync. The API might understand "swimming pool" but I'm checking for "pool." Or vice versa.
+
+This is madness.
+
+---
+
+## You Can't Fix an Information Gap with Better UI
+
+I tried:
+- Better visual design ✗
+- More conversational copy ✗
+- Animated transitions ✗
+- Contextual hints ✗
+- Clickable chips ✗
+
+None of it addressed the core issue: **The client doesn't know what the API couldn't parse.**
+
+And there's no client-side workaround that doesn't involve reimplementing NLP parsing, which defeats the entire point of using an NLP API.
+
+---
+
+## The Feature Request
+
+The NLP API is the single source of truth for what was and wasn't understood. It should expose both.
+
+### **What I Want to Receive**
+
+```json
+{
+  "request": {
+    "url": "https://api.repliers.io/listings?bedrooms=3&propertyType=Condo&city=Liberty%20Village&maxPrice=800000",
+    "summary": "3 bedroom condos in Liberty Village under $800,000",
+    "understood": {
+      "bedrooms": 3,
+      "propertyType": "Condo",
+      "location": "Liberty Village",
+      "maxPrice": 800000
+    },
+    "not_understood": [
+      {
+        "term": "pool",
+        "phrase": "with pool",
+        "reason": "unsupported_amenity",
+        "suggestion": "Use advanced filters to add amenity requirements"
+      }
+    ],
+    "locations": [...]
+  },
+  "nlpId": "abc123"
+}
+```
+
+### **What This Enables**
+
+Now I can show explicit, actionable feedback:
+
+```
+✅ UNDERSTOOD
+[🛏️ 3 bedrooms] [🏠 Condo] [📍 Liberty Village] [💰 Up to $800K]
+
+⚠️ COULDN'T CAPTURE
+"pool" - This amenity isn't available in natural language search yet.
+Try using the advanced filters panel to add amenity requirements.
+```
+
+**Transparent. Honest. Actionable.**
+
+---
+
+## Why This Matters
+
+### **User Trust**
+
+When AI transparently admits what it doesn't understand, users trust it more.
+
+Compare these two experiences:
+
+**Without explicit gaps:**
+```
+User: *types "3 bed condo with pool in Liberty Village"*
+System: *shows results, some without pools*
+User: "Wait... did it understand 'pool'?"
+User: *scrolls back up to re-read their query*
+User: *compares to chips manually*
+User: "I guess it didn't get the pool part?"
+User: "Does this even work?"
+```
+
+**With explicit gaps:**
+```
+User: *types "3 bed condo with pool in Liberty Village"*
+System: "✅ Got: 3 bed, condo, Liberty Village"
+System: "⚠️ Couldn't capture: pool - use advanced filters"
+User: "Oh, makes sense."
+User: *opens advanced filters, adds pool*
+```
+
+One builds trust. The other breeds doubt.
+
+### **Product Intelligence**
+
+The NLP engine already knows what it couldn't parse. This isn't asking for new computation - it's asking to expose existing information.
+
+Somewhere in the API's processing pipeline, decisions are being made:
+- "bedrooms=3" → ✓ understood, added to query
+- "propertyType=Condo" → ✓ understood, added to query
+- "with pool" → ✗ not understood, skipped
+
+That last decision is invisible to the client. Why?
+
+### **Better UX at Every Layer**
+
+With this information, I could:
+
+**In the activity log:**
+- Show exactly what was missed
+- Explain why (unsupported vs ambiguous vs unknown)
+- Provide specific next steps
+
+**In analytics:**
+- Track what users commonly request that isn't supported
+- Prioritize feature development based on actual gaps
+- Measure NLP comprehension rates
+
+**In error messaging:**
+- Replace generic "refine your search" with "add pool in advanced filters"
+- Guide users to the exact solution
+- Reduce frustration and abandonment
+
+---
+
+## The Attempted Workarounds (Ranked by Desperation)
+
+### **Level 1: Hope Users Notice**
+
+Just show the chips and hope users compare manually.
+
+**Result**: They don't. Or they do and get confused.
+
+### **Level 2: Generic Hints**
+
+Add copy like "Use advanced filters to refine further."
+
+**Result**: Users don't know what to refine or why.
+
+### **Level 3: Show Everything That Could Exist**
+
+Display all possible filters with checkmarks/Xs.
+
+**Result**: Information overload. Noise drowns out signal.
+
+### **Level 4: Implement My Own NLP**
+
+Parse the prompt client-side to detect missing terms.
+
+**Result**: Now I'm maintaining two NLP engines. They drift out of sync. Chaos.
+
+### **Level 5: Just Ask the API**
+
+Request that the API expose what it didn't understand.
+
+**Result**: Elegant. Scalable. Actually solves the problem.
+
+I'm on Level 5 now.
+
+---
+
+## The Implementation (If It Existed)
+
+If the API returned `not_understood` items, here's what the component would look like:
+
+```typescript
+interface NLPResponse {
+  request: {
+    url: string;
+    summary: string;
+    understood?: Record<string, any>;
+    not_understood?: Array<{
+      term: string;
+      phrase: string;
+      reason: 'unsupported_amenity' | 'ambiguous_term' |
+              'unknown_location' | 'conflicting_criteria';
+      suggestion?: string;
+    }>;
+    locations?: Location[];
+  };
+  nlpId: string;
+}
+```
+
+And the rendering:
+
+```tsx
+function SearchResults({ nlpResponse }: { nlpResponse: NLPResponse }) {
+  const { understood, not_understood } = nlpResponse.request;
+
+  return (
+    <div className="space-y-4">
+      {/* Show what was understood */}
+      {understood && (
+        <div>
+          <h3>✅ Understood</h3>
+          {Object.entries(understood).map(([key, value]) => (
+            <Chip key={key} label={key} value={value} />
+          ))}
+        </div>
+      )}
+
+      {/* Show what wasn't understood - THE MAGIC */}
+      {not_understood && not_understood.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <h3 className="flex items-center gap-2 text-amber-900">
+            <AlertCircle size={16} />
+            Couldn't Capture
+          </h3>
+          {not_understood.map((item, idx) => (
+            <div key={idx} className="mt-2">
+              <span className="font-semibold">"{item.term}"</span>
+              <p className="text-sm text-amber-800 mt-1">
+                {item.suggestion ||
+                 `This ${item.reason.replace('_', ' ')} isn't supported yet.`}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+Clean. Clear. Honest.
+
+---
+
+## Common Scenarios This Would Solve
+
+### **Scenario 1: Unsupported Amenities**
+
+```
+Query: "2 bed with gym and parking in downtown"
+Understood: bedrooms=2, location=downtown
+Not understood:
+  - "gym" (reason: unsupported_amenity)
+  - "parking" (reason: unsupported_amenity)
+```
+
+User sees: "Couldn't capture: gym, parking - Use advanced filters to add amenities"
+
+### **Scenario 2: Ambiguous Terms**
+
+```
+Query: "modern house in the village"
+Understood: propertyType=House
+Not understood:
+  - "modern" (reason: ambiguous_term, "Did you mean recently built or modern style?")
+  - "the village" (reason: ambiguous_term, "Multiple neighborhoods match. Try: Liberty Village, Yorkville, Annex")
+```
+
+User sees specific clarification requests, not silence.
+
+### **Scenario 3: Unknown Locations**
+
+```
+Query: "condo in Libery Village" (typo)
+Understood: propertyType=Condo
+Not understood:
+  - "Libery Village" (reason: unknown_location, "Did you mean Liberty Village?")
+```
+
+User gets spelling correction suggestion instead of wondering why location didn't populate.
+
+### **Scenario 4: Conflicting Criteria**
+
+```
+Query: "3 bedroom studio in Toronto"
+Understood: city=Toronto
+Not understood:
+  - "3 bedroom studio" (reason: conflicting_criteria, "Studios are typically 0 bedrooms")
+```
+
+User immediately sees the conflict instead of getting confusing results.
+
+---
+
+## The Ceiling I Hit
+
+I've built:
+- ✅ Activity log showing chronological search history
+- ✅ Chips displaying understood criteria with icons
+- ✅ Conversational messaging: "I was able to process the following..."
+- ✅ Clickable chips that open advanced filters
+- ✅ Visual comparison between original prompt and interpretation
+- ✅ Smooth animations and polished UI
+
+None of it solves the core problem.
+
+**You can't expose information the API doesn't give you.**
+
+I'm at the ceiling. The next improvement requires API changes.
+
+---
+
+## The Ask
+
+The NLP API already does the hard work:
+- ✓ Parses natural language
+- ✓ Extracts entities
+- ✓ Maps to structured filters
+- ✓ Generates search URLs
+
+It already knows what it couldn't parse. That information exists somewhere in the processing pipeline.
+
+**Can it be exposed in the response?**
+
+Not as a nice-to-have. As a critical trust-building feature.
+
+Users need to know:
+1. What worked
+2. What didn't
+3. Why
+4. What to do about it
+
+The API is the only source of truth for 1-3. The client can help with 4, but only if it knows 1-3.
+
+---
+
+## What This Unlocks
+
+With `not_understood` in the API response:
+
+**For users:**
+- Immediate clarity on what was missed
+- Specific guidance on next steps
+- Trust through transparency
+- Less confusion, less abandonment
+
+**For developers:**
+- No need for client-side NLP parsing
+- Clean separation of concerns
+- Easy to render explicit feedback
+- Analytics on comprehension gaps
+
+**For the product:**
+- Data on what users request but isn't supported
+- Prioritization signal for new features
+- Measure of NLP accuracy over time
+- Path to continuous improvement
+
+---
+
+## The Honest Truth
+
+I spent weeks trying to work around this on the client side.
+
+Better UI. Better copy. Better animations. More transparency in what was shown.
+
+All of it hit the same wall: **I can only show what the API tells me.**
+
+The API knows more than it's sharing. And that information gap cascades into user confusion, eroded trust, and a suboptimal experience no amount of client-side polish can fix.
+
+This isn't a request for new functionality. It's a request to expose information that already exists.
+
+The NLP engine makes decisions about what it can and can't parse.
+
+**Users deserve to know what those decisions were.**
+
+---
+
+**Commits referenced**: `b79fe88` (SearchFeedback), `f8eecec` (Activity Log)
+
+**Status**: Waiting for API support for `not_understood` fields
