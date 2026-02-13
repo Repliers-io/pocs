@@ -12,6 +12,8 @@ export interface SearchPanelProps {
   onCancelDraw?: () => void;
   hasPolygon?: boolean;
   isDrawing?: boolean;
+  expandDirection?: 'up' | 'down';
+  expandedHeight?: 'fit' | '100%';
 }
 
 export interface FilterState extends MapFilters {

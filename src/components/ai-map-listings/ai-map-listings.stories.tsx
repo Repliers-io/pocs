@@ -23,6 +23,19 @@ export const Default: Story = {
     height: "100vh",
     width: "100vw",
     mapStyle: "mapbox://styles/mapbox/streets-v12",
-    centerCalculation: "city"
+    centerCalculation: "city",
+  },
+};
+
+export const NlpTest: Story = {
+  args: {
+    apiKey: SAMPLE_API_KEY,
+    mapboxToken: SAMPLE_MAPBOX_TOKEN,
+    height: "100vh",
+    width: "100vw",
+    mapStyle: "mapbox://styles/mapbox/streets-v12",
+    centerCalculation: "city",
+    expandDirection: "up",
+    expandedHeight: "100%",
   },
 };
