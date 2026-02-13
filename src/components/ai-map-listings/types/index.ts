@@ -17,6 +17,10 @@ export interface AIMapListingsProps {
   centerCalculation?: "average" | "city";
   /** Show property count display */
   showPropertyCount?: boolean;
+  /** Search panel expansion direction - 'down' (default) or 'up' */
+  expandDirection?: 'up' | 'down';
+  /** Search panel expanded height - 'fit' (auto-sized) or '100%' (full viewport, default) */
+  expandedHeight?: 'fit' | '100%';
 }
 
 export interface ClusterFeature {

@@ -42,6 +42,8 @@ export function AIMapListings({
   mapStyle = "mapbox://styles/mapbox/streets-v12",
   centerCalculation = "average",
   showPropertyCount = true,
+  expandDirection = "down",
+  expandedHeight = "100%",
 }: AIMapListingsProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -1524,6 +1526,8 @@ export function AIMapListings({
         onCancelDraw={cancelDrawMode}
         hasPolygon={!!drawnPolygon}
         isDrawing={isDrawing}
+        expandDirection={expandDirection}
+        expandedHeight={expandedHeight}
       />
 
       {/* Property Count Display */}

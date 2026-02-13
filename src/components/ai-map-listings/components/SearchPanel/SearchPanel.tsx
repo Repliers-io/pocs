@@ -9,7 +9,7 @@ import { BedroomBathroomFilter } from "../FilterSections/BedroomBathroomFilter";
 import { PropertyTypeFilter } from "../FilterSections/PropertyTypeFilter";
 import { PriceRangeFilter } from "../filters/PriceRangeFilter";
 import { SquareFootageFilter } from "../filters/SquareFootageFilter";
-import { ChevronDown, Sparkles, Pencil, Ban } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles, Pencil, Ban } from "lucide-react";
 
 const SAMPLE_SEARCHES = [
   "2 bedroom 2 bath condo in rosedale",
@@ -29,6 +29,8 @@ export function SearchPanel({
   onCancelDraw,
   hasPolygon = false,
   isDrawing = false,
+  expandDirection = 'down',
+  expandedHeight = '100%',
 }: SearchPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -219,11 +221,14 @@ export function SearchPanel({
         background: "white",
         borderRadius: "16px",
         padding: "0",
+        paddingTop: expandDirection === 'up' && isExpanded ? "20px" : "0",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
         zIndex: 1000,
         transition: "all 300ms ease-out",
         maxHeight: isExpanded ? "calc(100vh - 32px)" : "auto",
         overflow: isExpanded ? "hidden" : "visible",
+        display: "flex",
+        flexDirection: expandDirection === 'down' ? 'column' : 'column-reverse',
       }}
     >
       {/* Search Input with Draw Controls */}
@@ -324,12 +329,16 @@ export function SearchPanel({
       {/* Expandable Content */}
       <div
         style={{
-          maxHeight: isExpanded ? "calc(100vh - 160px)" : "0",
+          maxHeight: isExpanded
+            ? (expandedHeight === '100%' ? "calc(100vh - 160px)" : "9999px")
+            : "0",
           opacity: isExpanded ? 1 : 0,
           overflow: isExpanded ? "auto" : "hidden",
           transition: "max-height 300ms ease-out, opacity 300ms ease-out",
-          marginTop: isExpanded ? "20px" : "0",
-          padding: isExpanded ? "0 16px 16px 16px" : "0",
+          marginTop: expandDirection === 'down' && isExpanded ? "20px" : "0",
+          padding: isExpanded
+            ? (expandDirection === 'down' ? "0 16px 16px 16px" : "0 16px 0 16px")
+            : "0",
         }}
       >
         {/* Sample Searches Section - Only show before first search */}
@@ -391,14 +400,6 @@ export function SearchPanel({
                 </button>
               ))}
             </div>
-            <div
-              style={{
-                height: "1px",
-                background:
-                  "linear-gradient(90deg, transparent, #e5e7eb 50%, transparent)",
-                margin: "16px 0",
-              }}
-            />
           </div>
         )}
 
@@ -409,53 +410,8 @@ export function SearchPanel({
               entries={activityLog}
               onChipClick={() => setShowFilters(true)}
             />
-            <div
-              style={{
-                height: "1px",
-                background:
-                  "linear-gradient(90deg, transparent, #e5e7eb 50%, transparent)",
-                margin: "16px 0",
-              }}
-            />
           </div>
         )}
-
-        {/* Advanced Filters Toggle */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            background: "transparent",
-            border: "1px solid #e5e7eb",
-            borderRadius: "10px",
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "#6366f1",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            transition: "all 200ms ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#f9fafb";
-            e.currentTarget.style.borderColor = "#6366f1";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.borderColor = "#e5e7eb";
-          }}
-        >
-          <span>{showFilters ? "Hide" : "Show"} Advanced Filters</span>
-          <ChevronDown
-            size={18}
-            style={{
-              transform: showFilters ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 200ms ease",
-            }}
-          />
-        </button>
 
         {/* Filter Sections */}
         {showFilters && (
@@ -917,6 +873,40 @@ export function SearchPanel({
             </div>
           </div>
         )}
+
+        {/* Advanced Filters Toggle - At Bottom */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          style={{
+            width: "100%",
+            padding: "8px 0",
+            background: "transparent",
+            border: "none",
+            fontSize: "12px",
+            fontWeight: "500",
+            color: "#6b7280",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: "6px",
+            transition: "color 200ms ease",
+            marginTop: showFilters ? "8px" : "0",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#6366f1";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#6b7280";
+          }}
+        >
+          <span>{showFilters ? "Hide" : "Show"} Advanced Filters</span>
+          {showFilters ? (
+            <ChevronUp size={14} />
+          ) : (
+            <ChevronDown size={14} />
+          )}
+        </button>
       </div>
     </div>
   );
