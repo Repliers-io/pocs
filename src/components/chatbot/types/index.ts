@@ -5,6 +5,8 @@
 export interface ChatbotProps {
   /** Repliers API key (required for property search) */
   repliersApiKey: string;
+  /** Repliers API base URL (optional - defaults to https://api.repliers.io) */
+  repliersApiEndpoint?: string;
   /** OpenAI API key (optional - for enhanced conversation) */
   openaiApiKey?: string;
   /** Name of the brokerage to display in header */

@@ -46,6 +46,7 @@ import {
  */
 export function Chatbot({
   repliersApiKey,
+  repliersApiEndpoint,
   openaiApiKey,
   brokerageName = DEFAULT_BROKERAGE_NAME,
   brokerageLogo,
@@ -70,7 +71,8 @@ export function Chatbot({
     repliersApiKey,
     openaiApiKey,
     brokerageName,
-    welcomeMessage
+    welcomeMessage,
+    repliersApiEndpoint
   );
 
   // Suppress unused variable warnings

@@ -174,50 +174,25 @@ This is a complete, working demonstration of the chatbot with all features:
 };
 
 /**
- * **Custom Branding**
+ * **Local Testing**
  *
- * This story shows how to white-label the chatbot with your brokerage's branding.
- * Customize the name, logo, colors, welcome message, and button position.
- *
- * **Perfect for:**
- * - Adding to your real estate website
- * - White-labeling for clients
- * - Matching your brand identity
+ * Same as the Working Demo but pointed at a local API server on port 3001.
+ * Run your local Repliers API proxy before using this story.
  */
-export const CustomBranding: Story = {
+export const LocalTesting: Story = {
   args: {
     repliersApiKey: SAMPLE_REPLIERS_API_KEY,
-    brokerageName: "Luxury Homes Toronto",
-    brokerageLogo:
-      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=100&h=100&fit=crop",
-    primaryColor: "#1e40af",
-    position: "bottom-right",
+    repliersApiEndpoint: "http://localhost:3001",
+    openaiApiKey: undefined,
+    brokerageName: "Smart Homes Realty",
   },
   parameters: {
     docs: {
       description: {
         story: `
-Customize every aspect of the chatbot to match your brand:
+Same as Working Demo, but all Repliers API calls are routed to \`http://localhost:3001\`.
 
-**Branding Options:**
-- \`brokerageName\`: Your company name in the header
-- \`brokerageLogo\`: URL to your logo image
-- \`welcomeMessage\`: Custom greeting message
-- \`placeholder\`: Custom input placeholder text
-- \`primaryColor\`: Brand color (future feature)
-- \`position\`: "bottom-right" or "bottom-left"
-
-**Example Integration:**
-\`\`\`tsx
-<Chatbot
-  repliersApiKey="your-key"
-  openaiApiKey="your-openai-key"
-  brokerageName="Your Realty"
-  brokerageLogo="https://your-site.com/logo.png"
-  welcomeMessage="Welcome! How can I help you find your dream home?"
-  position="bottom-right"
-/>
-\`\`\`
+Start your local API server before using this story.
         `,
       },
     },

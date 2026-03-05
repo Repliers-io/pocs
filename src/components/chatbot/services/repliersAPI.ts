@@ -69,8 +69,9 @@ export class RepliersNLPService {
   private baseUrl: string = "https://api.repliers.io";
   private currentNlpId: string | null = null;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey;
+    if (baseUrl) this.baseUrl = baseUrl;
   }
 
   /**
