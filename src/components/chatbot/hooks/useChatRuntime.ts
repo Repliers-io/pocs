@@ -40,12 +40,13 @@ export function useChatRuntime(
   repliersApiKey: string,
   openaiApiKey?: string,
   brokerageName: string = "Real Estate Assistant",
-  welcomeMessage: string = DEFAULT_WELCOME_MESSAGE
+  welcomeMessage: string = DEFAULT_WELCOME_MESSAGE,
+  repliersApiEndpoint?: string
 ): ChatRuntime {
   // Initialize services (memoized to avoid recreating on every render)
   const nlpService = useMemo(
-    () => new RepliersNLPService(repliersApiKey),
-    [repliersApiKey]
+    () => new RepliersNLPService(repliersApiKey, repliersApiEndpoint),
+    [repliersApiKey, repliersApiEndpoint]
   );
 
   const chatGPT = useMemo(
