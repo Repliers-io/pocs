@@ -55,7 +55,7 @@ type Story = StoryObj<typeof meta>;
 
 const SAMPLE_API_KEY = "pxI19UMy9zfw9vz5lRxoGpjJWXrMnm";
 const SAMPLE_MAPBOX_TOKEN =
-  "pk.eyJ1IjoibWlsYW5zb21hIiwiYSI6ImNtZWJrODZmajBwMWQya3B3cHE1M2Y3anoifQ.HMDLOc-6V9K3-mHKeTHHxw";
+  "pk.eyJ1IjoicmVwbGllcnMiLCJhIjoiY21veDUxZ2U3MDd5NzQ4b2EzZnRrY3lzbCJ9.JNV9nyXhJVwMsSbG4I7KnA";
 
 /**
  * **Part 1: Basic Map Listings Display**
