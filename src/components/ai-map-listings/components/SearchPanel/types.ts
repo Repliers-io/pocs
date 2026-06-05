@@ -14,6 +14,7 @@ export interface SearchPanelProps {
   isDrawing?: boolean;
   expandDirection?: 'up' | 'down';
   expandedHeight?: 'fit' | '100%';
+  nlpEnv?: 'prod' | 'dev' | 'local';
 }
 
 export interface FilterState extends MapFilters {

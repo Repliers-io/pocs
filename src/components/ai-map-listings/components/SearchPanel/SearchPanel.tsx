@@ -31,6 +31,7 @@ export function SearchPanel({
   isDrawing = false,
   expandDirection = 'down',
   expandedHeight = '100%',
+  nlpEnv,
 }: SearchPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -39,7 +40,7 @@ export function SearchPanel({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const { processSearch, isProcessing, error, resetNlpId } =
-    useNLPSearch(apiKey);
+    useNLPSearch(apiKey, nlpEnv);
 
   // Add log entry
   const addLogEntry = useCallback((

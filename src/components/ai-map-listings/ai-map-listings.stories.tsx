@@ -7,6 +7,13 @@ const meta: Meta<typeof AIMapListings> = {
   parameters: {
     layout: "fullscreen",
   },
+  argTypes: {
+    nlpEnv: {
+      control: { type: "select" },
+      options: ["prod", "dev", "local"],
+      description: "NLP API environment",
+    },
+  },
 };
 
 export default meta;
@@ -37,5 +44,19 @@ export const NlpTest: Story = {
     centerCalculation: "city",
     expandDirection: "up",
     expandedHeight: "100%",
+  },
+};
+
+export const LocalhostNlp: Story = {
+  args: {
+    apiKey: SAMPLE_API_KEY,
+    mapboxToken: SAMPLE_MAPBOX_TOKEN,
+    height: "100vh",
+    width: "100vw",
+    mapStyle: "mapbox://styles/mapbox/streets-v12",
+    centerCalculation: "city",
+    expandDirection: "up",
+    expandedHeight: "100%",
+    nlpEnv: "local",
   },
 };

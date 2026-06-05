@@ -43,7 +43,13 @@ interface UseNLPSearchReturn {
   resetNlpId: () => void;
 }
 
-export function useNLPSearch(apiKey: string): UseNLPSearchReturn {
+const NLP_URLS = {
+  prod: 'https://api.repliers.io/nlp',
+  dev: 'https://dev.repliers.io/nlp',
+  local: 'http://localhost:3001/nlp',
+};
+
+export function useNLPSearch(apiKey: string, nlpEnv: 'prod' | 'dev' | 'local' = 'prod'): UseNLPSearchReturn {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nlpId, setNlpId] = useState<string | null>(null);
@@ -65,7 +71,7 @@ export function useNLPSearch(apiKey: string): UseNLPSearchReturn {
 
       console.log('🔍 NLP Request:', requestBody);
 
-      const response = await fetch('https://api.repliers.io/nlp', {
+      const response = await fetch(NLP_URLS[nlpEnv], {
         method: 'POST',
         headers: {
           'REPLIERS-API-KEY': apiKey,

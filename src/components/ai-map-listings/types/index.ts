@@ -21,6 +21,8 @@ export interface AIMapListingsProps {
   expandDirection?: 'up' | 'down';
   /** Search panel expanded height - 'fit' (auto-sized) or '100%' (full viewport, default) */
   expandedHeight?: 'fit' | '100%';
+  /** NLP environment - controls which API endpoint is used */
+  nlpEnv?: 'prod' | 'dev' | 'local';
 }
 
 export interface ClusterFeature {
