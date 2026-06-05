@@ -44,6 +44,7 @@ export function AIMapListings({
   showPropertyCount = true,
   expandDirection = "down",
   expandedHeight = "100%",
+  nlpEnv,
 }: AIMapListingsProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -1528,6 +1529,7 @@ export function AIMapListings({
         isDrawing={isDrawing}
         expandDirection={expandDirection}
         expandedHeight={expandedHeight}
+        nlpEnv={nlpEnv}
       />
 
       {/* Property Count Display */}
